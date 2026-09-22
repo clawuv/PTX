@@ -1,0 +1,25 @@
+import { AudioLines, Bot, Boxes, Info, LockKeyhole, PawPrint, Settings2, Sun, Terminal } from 'lucide-react'
+import type { ComponentType } from 'react'
+import { BrowserGlobe } from '@/components/ui'
+import type { MessageKey } from '@/lib/i18n'
+import type { SettingsSection } from './contracts'
+
+export interface SettingsSectionDescriptor {
+  id: SettingsSection
+  label: MessageKey
+  icon: ComponentType<{ size?: number }>
+}
+
+/** Shared by the settings page nav and the sidebar's settings mode. */
+export const SETTINGS_SECTIONS: readonly SettingsSectionDescriptor[] = [
+  { id: 'general', label: 'settings.general', icon: Settings2 },
+  { id: 'appearance', label: 'settings.appearance', icon: Sun },
+  { id: 'agent', label: 'settings.harness', icon: Bot },
+  { id: 'providers', label: 'settings.providers', icon: Boxes },
+  { id: 'voice', label: 'settings.voice', icon: AudioLines },
+  { id: 'pets', label: 'settings.pets', icon: PawPrint },
+  { id: 'browser', label: 'settings.browser', icon: BrowserGlobe },
+  { id: 'terminal', label: 'settings.terminal', icon: Terminal },
+  { id: 'privacy', label: 'settings.privacy', icon: LockKeyhole },
+  { id: 'about', label: 'settings.about', icon: Info },
+]

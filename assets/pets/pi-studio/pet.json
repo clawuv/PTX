@@ -1,0 +1,6 @@
+{
+  "id": "pi-studio",
+  "displayName": "PiStudio",
+  "description": "A friendly purple jelly pet shaped like the mathematical pi symbol.",
+  "spritesheetPath": "spritesheet.webp"
+}

@@ -1,0 +1,732 @@
+/* Window title strip: nav arrows, replica menus, window controls, and the
+   conversation header that rides the top drag band (macOS). */
+.app-shell[data-platform="darwin"] .workbench {
+  padding-top: 40px;
+}
+.title-toolbar {
+  display: flex;
+  height: var(--toolbar-height);
+  flex: 0 0 var(--toolbar-height);
+  min-width: 0;
+  align-items: center;
+  padding: 0 0 0 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--canvas);
+  position: relative;
+  z-index: 15;
+}
+/* macOS: the strip leaves the native sidebar material fully visible. */
+.app-shell[data-platform="darwin"] .title-toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  border-bottom: 0;
+  /* The sidebar paints the material underneath this overlay. Keeping this
+     transparent avoids applying the sidebar tint twice above the traffic lights. */
+  background: transparent;
+}
+.app-shell[data-platform="darwin"] .title-toolbar {
+  padding-top: 2px;
+  right: auto;
+  width: var(--sidebar-width, 252px);
+}
+.app-shell[data-platform="darwin"] .sidebar {
+  padding-top: 34px;
+}
+.app-shell[data-platform="darwin"] .sidebar__titlebar {
+  margin-top: 0;
+}
+/* Dark chrome: every title strip uses its matching opaque surface. */
+:root[data-theme="dark"] .app-shell:not([data-platform="darwin"]) .title-toolbar {
+  background: var(--sidebar);
+  border-bottom-color: transparent;
+}
+/* Windows/Linux: the menu strip shares the sidebar color in both themes, so the toolbar and the sidebar column read as one surface. */
+.app-shell[data-platform="win32"] .title-toolbar,
+.app-shell[data-platform="linux"] .title-toolbar {
+  background: var(--sidebar);
+  border-bottom-color: transparent;
+}
+/* The replica dropdown must paint over the sidebar column (z 30) when it hangs below the strip. */
+.app-shell[data-platform="win32"] .title-toolbar,
+.app-shell[data-platform="linux"] .title-toolbar {
+  z-index: 45;
+}
+.app-shell[data-platform="win32"] .title-toolbar {
+  flex-basis: auto;
+  height: max(36px, var(--windows-titlebar-height));
+  padding-right: max(6px, calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 6px));
+}
+.app-shell[data-platform="linux"] .title-toolbar {
+  padding-right: max(12px, calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 12px));
+}
+/* Replica clusters: bare 16px panel icon at x=12, arrows +20px (gap 14), menus +24px (gap 27). */
+.title-toolbar__nav {
+  display: flex;
+  align-items: center;
+  -webkit-app-region: no-drag;
+}
+.title-toolbar__nav > *,
+.title-toolbar__nav button {
+  -webkit-app-region: no-drag;
+}
+.title-toolbar__nav .icon-button {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  padding: 0;
+  border-radius: 0;
+  color: var(--text-tertiary);
+}
+.title-toolbar__nav .icon-button:hover {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.titlebar-arrows {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: 20px;
+}
+.titlebar-arrow {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  color: var(--titlebar-arrow);
+  background: transparent;
+}
+.titlebar-arrow:disabled {
+  color: var(--titlebar-arrow-back);
+  background: transparent;
+}
+/* macOS: tighter cluster pulled toward the traffic lights, with slightly smaller glyphs and hover feedback. */
+.app-shell[data-platform="darwin"] .titlebar-arrows {
+  gap: 10px;
+  margin-left: 14px;
+}
+.app-shell[data-platform="darwin"] .title-toolbar__nav .icon-button {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  margin: -2px;
+  border-radius: 6px;
+}
+.app-shell[data-platform="darwin"] .title-toolbar__nav .icon-button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.app-shell[data-platform="darwin"] .title-toolbar__nav .icon-button svg {
+  width: 12px;
+  height: 12px;
+}
+.app-shell[data-platform="darwin"] .titlebar-arrows svg {
+  width: 15px;
+  height: 15px;
+}
+.app-shell[data-platform="darwin"] .titlebar-arrow {
+  width: 21px;
+  height: 21px;
+  transition: background 130ms ease-out;
+}
+.app-shell[data-platform="darwin"] .titlebar-arrow:hover:not(:disabled),
+.app-shell[data-platform="darwin"] .titlebar-arrow:focus-visible {
+  color: var(--text);
+  background: var(--surface-hover);
+  outline: 0;
+}
+.titlebar-menus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-left: 8px;
+  margin-right: 8px;
+}
+.titlebar-menu {
+  height: 26px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--menu-label);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: default;
+}
+.titlebar-menu-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+/* Replica menus hover with the same filled cell as the window controls, not an underline. */
+.titlebar-menu:hover,
+.titlebar-menu:focus-visible,
+.titlebar-menu.is-open {
+  background: var(--surface-hover);
+  color: var(--text);
+  text-decoration: none;
+  outline: 0;
+}
+/* In-app replica dropdown: themed surface so it matches the light/dark chrome instead of native menu styling. */
+.titlebar-menu-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  min-width: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+}
+.titlebar-menu-item {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: default;
+}
+.titlebar-menu-item > span {
+  flex: 1;
+}
+.titlebar-menu-item kbd {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+.titlebar-menu-item:hover,
+.titlebar-menu-item:focus-visible {
+  background: var(--surface-hover);
+  outline: 0;
+}
+.titlebar-menu-separator {
+  height: 1px;
+  margin: 5px 8px;
+  background: var(--border);
+}
+.traffic-light-clearance {
+  width: 66px;
+  flex: 0 0 66px;
+}
+.traffic-light-clearance--toolbar {
+  width: 72px;
+  flex-basis: 72px;
+}
+.title-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+/* Replica window controls: three flat 45×36 cells pinned to the right edge. */
+.titlebar-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  padding-right: 6px;
+}
+.titlebar-control {
+  width: 45px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--titlebar-control);
+  background: transparent;
+  cursor: default;
+}
+.titlebar-control:hover,
+.titlebar-control:focus-visible {
+  background: var(--surface-hover);
+  outline: 0;
+}
+/* Session actions float over the pane's top-right corner, like the replica's panel toggle. */
+/* Session actions rise into the window's top drag band on macOS, like the replica's toolbar row. */
+/* Conversation header: session title + options on the left, summary popover as
+   the first control on the right (the floating pane actions sit beside it). */
+.conversation-header {
+  position: absolute;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px 0 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--canvas);
+}
+.conversation-header--new {
+  border-bottom-color: transparent;
+}
+/* Directory and settings pages do not render a conversation header. Keep their
+   matching top band draggable so the window behaves consistently across views. */
+.workbench-titlebar-drag-region {
+  display: none;
+  position: absolute;
+  z-index: 10;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 40px;
+}
+.app-shell[data-platform="darwin"] .workbench-titlebar-drag-region {
+  display: block;
+}
+.workbench-titlebar-actions {
+  position: absolute;
+  z-index: 12;
+  top: 3px;
+  right: 16px;
+  -webkit-app-region: no-drag;
+}
+.workbench-titlebar-actions__primary {
+  min-height: 29px;
+  padding: 0 10px;
+  font-size: 12px;
+  line-height: 1;
+}
+.app-shell:not([data-platform="darwin"]) .workbench:has(.workbench-titlebar-actions) .workbench__content {
+  padding-top: 44px;
+}
+/* macOS: the title rides in the top drag band but starts on the content column's left edge (the transcript/composer centering), so it clears the traffic lights; when the title strip floats over the workbench (sidebar closed, or narrower than the strip) the inset floors at the strip's controls. Interactive buttons inherit the no-drag rule from .drag-region. */
+.app-shell[data-platform="darwin"] .conversation-header {
+  --header-inset: max(calc(260px - var(--sidebar-width, 265px) - 12px), 12px);
+  --inspector-flow: 0px;
+  /* Keep the title anchored to the workbench edge as the window grows. */
+  padding-left: max(var(--header-inset), 24px);
+}
+/* The collapsed-sidebar header shares this title band. Keep the navigation
+   controls above it so their hover and click regions remain reachable. */
+.app-shell[data-platform="darwin"][data-sidebar-open="false"] .title-toolbar {
+  z-index: 60;
+  -webkit-app-region: drag;
+}
+.app-shell[data-platform="darwin"][data-sidebar-open="false"] .title-toolbar__nav,
+.app-shell[data-platform="darwin"][data-sidebar-open="false"] .title-toolbar__nav > * {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+/* The open inspector squeezes the content column; in narrow layouts it floats above the pane instead of squeezing it. */
+.app-shell[data-platform="darwin"][data-inspector-open="true"] .conversation-header {
+  --inspector-flow: calc(var(--inspector-width, 460px) + 1px);
+}
+@media (max-width: 980px) {
+  .app-shell[data-platform="darwin"][data-inspector-open="true"] .conversation-header {
+    --inspector-flow: 0px;
+  }
+}
+.app-shell[data-platform="darwin"][data-sidebar-open="false"] .conversation-header {
+  left: 174px;
+  --header-inset: 0px;
+}
+.conversation-header__title-row {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.conversation-header__icon {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+}
+.conversation-header__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.conversation-header__menu-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.conversation-header__menu {
+  position: absolute;
+  z-index: 90;
+  top: calc(100% + 5px);
+  left: 0;
+  width: 172px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+}
+.conversation-header__menu button {
+  width: 100%;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.conversation-header__menu button:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+.conversation-header__menu button:disabled {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+  cursor: default;
+}
+.conversation-header__spacer {
+  flex: 1 1 auto;
+  -webkit-app-region: drag;
+}
+.conversation-header__openwith {
+  position: relative;
+}
+.conversation-header__submenu-chevron {
+  margin-left: auto;
+}
+.conversation-header__submenu {
+  position: absolute;
+  z-index: 95;
+  top: -5px;
+  left: calc(100% + 4px);
+  width: 172px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+}
+.conversation-header__submenu button {
+  width: 100%;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.conversation-header__submenu button:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+.conversation-header__submenu-empty {
+  display: block;
+  padding: 8px;
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+}
+/* Summary popover: environment details behind the header's first right-side control. */
+.summary-anchor {
+  position: relative;
+  display: inline-flex;
+}
+.summary-anchor__trigger {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  color: var(--text-tertiary);
+  background: transparent;
+  cursor: pointer;
+}
+.summary-anchor__trigger svg { width: 13px; height: 13px; }
+.summary-anchor__trigger:hover,
+.summary-anchor__trigger[aria-expanded="true"] {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+.summary-anchor__trigger.is-active,
+.summary-anchor__trigger[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+.summary-popover {
+  position: absolute;
+  z-index: 90;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 248px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+}
+.summary-popover__heading {
+  padding: 5px 7px 6px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.summary-popover__row {
+  width: 100%;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 7px;
+  border-radius: 7px;
+  color: var(--text-secondary);
+  background: transparent;
+  font-size: 12px;
+  text-align: left;
+}
+.summary-popover__row svg {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+}
+button.summary-popover__row {
+  cursor: pointer;
+}
+button.summary-popover__row:hover,
+button.summary-popover__row[aria-expanded="true"] {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+.summary-popover__label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.summary-popover__chevron {
+  flex: 0 0 auto;
+  transition: transform 120ms ease;
+}
+.summary-popover__chevron.is-open {
+  transform: rotate(180deg);
+}
+.summary-popover__worktrees {
+  margin-top: 2px;
+}
+.title-toolbar__identity {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+.toolbar-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 5px;
+}
+.project-run-control {
+  position: relative;
+  margin-right: 3px;
+}
+.project-run-split {
+  height: 28px;
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  transition:
+    border-color 130ms ease-out,
+    background 130ms ease-out;
+}
+.project-run-split:hover {
+  background: var(--surface-hover);
+}
+.project-run-split:has(.project-run-split__menu[aria-expanded="true"]) {
+  border-color: var(--border);
+  background: var(--surface-selected);
+}
+.project-run-split.is-running {
+  border-color: var(--border);
+  background: var(--surface-selected);
+}
+.project-run-split button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--text-secondary);
+  background: transparent;
+}
+.project-run-split button:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+.project-run-split__primary {
+  width: 29px;
+}
+.project-run-split__primary:hover svg {
+  color: var(--success);
+}
+.project-run-split.is-running .project-run-split__primary svg {
+  color: var(--danger);
+}
+.project-run-split__menu {
+  width: 21px;
+  border-left: 1px solid transparent;
+}
+.project-run-split:hover .project-run-split__menu,
+.project-run-split__menu[aria-expanded="true"] {
+  border-left-color: var(--border);
+}
+.project-run-menu {
+  position: absolute;
+  z-index: 90;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(360px, calc(100vw - 24px));
+  display: grid;
+  gap: 13px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  color: var(--text);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+  cursor: default;
+}
+.project-run-menu > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.project-run-menu > header strong {
+  font-size: 12px;
+  font-weight: 620;
+}
+.project-run-menu > header small {
+  max-width: 180px;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-run-menu > label {
+  display: grid;
+  gap: 6px;
+}
+.project-run-menu > label > span {
+  font-size: 11px;
+  font-weight: 580;
+}
+.project-run-menu > label > small {
+  color: var(--text-tertiary);
+  font-size: 9.5px;
+  line-height: 1.4;
+}
+.project-run-menu textarea {
+  width: 100%;
+  min-height: 52px;
+  resize: vertical;
+  padding: 7px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  outline: 0;
+  color: var(--text);
+  background: var(--canvas);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+.project-run-menu textarea:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--focus) 24%, transparent);
+}
+.project-run-menu__status {
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  justify-self: start;
+  margin-top: -7px;
+  padding: 0 6px;
+  border-radius: 5px;
+  color: var(--text-tertiary);
+  background: var(--surface-subtle);
+  font-size: 9.5px;
+}
+.project-run-menu__status.is-running {
+  color: var(--prime);
+  background: var(--prime-soft);
+}
+.project-run-menu__status.is-success {
+  color: var(--success);
+  background: var(--success-soft);
+}
+.project-run-menu__status.is-error {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+.project-run-menu__error {
+  margin: -4px 0 0;
+  color: var(--danger);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.project-run-menu > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 1px;
+}
+.project-run-menu > footer .button {
+  min-height: 28px;
+  font-size: 10.5px;
+}
+.branch-pill {
+  height: 24px;
+  max-width: 180px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 7px;
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11.5px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

@@ -1,0 +1,206 @@
+.app-shell {
+  --toolbar-height: 36px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  background: var(--canvas);
+  isolation: isolate;
+}
+/* macOS: taller strip so the nav cluster centers on the traffic lights; the strip lives inside the sidebar column while the workbench keeps a same-height drag band at its top. */
+.app-shell[data-platform="darwin"] {
+  --toolbar-height: 42px;
+  background: transparent;
+}
+.app-shell[data-platform="darwin"] .app-shell__body,
+.app-shell[data-platform="darwin"] .sidebar {
+  transition: background 160ms ease-out;
+}
+.app-shell[data-platform="darwin"][data-window-focused="true"] .app-shell__body {
+  background: transparent;
+}
+.app-shell[data-platform="darwin"][data-window-focused="true"] .sidebar {
+  background: color-mix(in srgb, var(--sidebar) 50%, transparent);
+}
+.app-shell[data-platform="darwin"][data-window-focused="false"] .app-shell__body,
+.app-shell[data-platform="darwin"][data-window-focused="false"] .sidebar {
+  background: var(--sidebar);
+}
+.app-shell[data-platform="win32"] {
+  --windows-titlebar-height: env(titlebar-area-height, 36px);
+}
+/* Replica shell: on macOS the title strip docks inside the sidebar column (around the traffic lights) and the workbench reaches the window top; on Windows/Linux the strip spans the whole window. */
+/* Body carries the sidebar color so the workbench's rounded top-left corner (Win/Linux) reads as the divider curving into the top edge. */
+.app-shell__body {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  background: var(--sidebar);
+}
+.app-shell__body > .sidebar {
+  height: auto;
+}
+.workbench {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  flex-direction: column;
+  background: var(--canvas);
+}
+.app-shell[data-platform="win32"] .workbench,
+.app-shell[data-platform="linux"] .workbench {
+  border-top-left-radius: 12px;
+  border-left: 1px solid var(--chrome-divider);
+  overflow: hidden;
+}
+/* macOS: the workbench content starts below the transparent title strip, which spans the whole window and drags. */
+.workbench__content {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.session-workspace {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+.conversation-column {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+.conversation-pane {
+  position: relative;
+  min-width: 360px;
+  min-height: 0;
+  flex: 1 1 auto;
+  background: var(--canvas);
+  overflow: hidden;
+  container-type: inline-size;
+}
+/* Dock width mirrors the transcript content frame (both var(--conversation-width), inset 48px total) so the composer edges align with the messages. */
+.conversation-bottom-dock {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  width: min(calc(100% - 48px), var(--conversation-width));
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.conversation-bottom-dock > * {
+  pointer-events: auto;
+}
+/* The transcript fades out behind the bottom dock so session text never shows around the composer. */
+.conversation-pane::after {
+  content: "";
+  position: absolute;
+  z-index: 8;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 200px;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--canvas) 0%, transparent), var(--canvas) 70%);
+  pointer-events: none;
+}
+.conversation-bottom-dock .composer-wrap {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  margin: 0;
+}
+
+.resize-handle {
+  position: relative;
+  z-index: 12;
+  flex: 0 0 auto;
+  padding: 0;
+  touch-action: none;
+  outline: 0;
+}
+.resize-handle > span {
+  position: absolute;
+  display: block;
+  background: var(--border);
+  transition:
+    background 130ms ease-out,
+    box-shadow 130ms ease-out;
+}
+.resize-handle--vertical {
+  width: 7px;
+  margin-inline: -3px;
+  cursor: col-resize;
+}
+.resize-handle--vertical > span {
+  inset-block: 0;
+  left: 3px;
+  width: 1px;
+}
+/* Sidebar: the divider itself comes from the sidebar/workbench borders, so keep the drag handle's own line invisible at rest to avoid a doubled divider. Hover, focus, and dragging still light it up. */
+.app-shell__body > .resize-handle--vertical > span {
+  background: transparent;
+}
+/* Win/Linux: stop the handle's line at the workbench's rounded top-left corner (12px radius), matching where the static divider bends. */
+.app-shell[data-platform="win32"] .app-shell__body > .resize-handle--vertical > span,
+.app-shell[data-platform="linux"] .app-shell__body > .resize-handle--vertical > span {
+  inset-block-start: 12px;
+}
+/* Sidebar handle highlight: just reveal the line in the same color as the static divider, with no accent tint or glow. */
+.app-shell__body > .resize-handle:hover > span,
+.app-shell__body > .resize-handle:focus-visible > span,
+.app-shell__body > .resize-handle[data-resizing="true"] > span {
+  background: var(--border);
+  box-shadow: none;
+}
+.resize-handle--horizontal {
+  width: 100%;
+  height: 7px;
+  margin-block: -3px;
+  cursor: row-resize;
+}
+.resize-handle--horizontal > span {
+  inset-inline: 0;
+  top: 3px;
+  height: 1px;
+}
+.resize-handle:hover > span,
+.resize-handle:focus-visible > span,
+.resize-handle[data-resizing="true"] > span {
+  background: var(--prime);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--prime) 18%, transparent);
+}
+.resize-handle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+.terminal-drawer > .resize-handle > span {
+  background: var(--terminal-resize);
+}
+.terminal-drawer > .resize-handle:hover > span,
+.terminal-drawer > .resize-handle:focus-visible > span,
+.terminal-drawer > .resize-handle[data-resizing="true"] > span {
+  background: var(--prime);
+}
+body.is-resizing-vertical,
+body.is-resizing-vertical * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+body.is-resizing-horizontal,
+body.is-resizing-horizontal * {
+  cursor: row-resize !important;
+  user-select: none !important;
+}

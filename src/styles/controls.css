@@ -1,0 +1,267 @@
+/* Shared control vocabulary used across every pane: icon buttons, the unified
+   select menu, buttons, and the harness brand marks. */
+.icon-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: transparent;
+  transition:
+    color 130ms ease-out,
+    background 130ms ease-out;
+}
+.icon-button:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+.icon-button.is-active {
+  color: var(--text);
+  background: var(--surface-selected);
+}
+.icon-button--small {
+  width: 25px;
+  height: 25px;
+  border-radius: 5px;
+}
+/* Unified dropdown (SelectMenu): every select in the app shares one trigger +
+   portal-popover vocabulary; no native select popups remain. */
+.select-menu {
+  min-width: 0;
+}
+.select-menu__trigger {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  color: var(--text);
+  background: var(--surface-raised);
+  font-size: 11.5px;
+  text-align: left;
+  transition:
+    background 130ms ease-out,
+    border-color 130ms ease-out;
+}
+.select-menu__trigger:hover:not(:disabled),
+.select-menu__trigger[aria-expanded='true'] {
+  background: var(--surface-hover);
+}
+.select-menu__trigger:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.select-menu__trigger > .select-menu__value {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.select-menu__icon,
+.select-menu__chevron {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+}
+.select-menu__trigger[aria-expanded='true'] .select-menu__chevron {
+  transform: rotate(180deg);
+}
+.select-menu--compact .select-menu__trigger {
+  width: auto;
+  height: 24px;
+  gap: 3px;
+  padding: 0 5px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 520;
+}
+.select-menu--compact .select-menu__trigger:hover:not(:disabled),
+.select-menu--compact .select-menu__trigger[aria-expanded='true'] {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.select-menu--compact .select-menu__trigger > .select-menu__value {
+  flex: 0 1 auto;
+}
+.select-menu__popover {
+  position: fixed;
+  z-index: 240;
+  min-width: 140px;
+  max-height: 280px;
+  padding: 5px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+}
+.select-menu__option {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  color: var(--text-secondary);
+  background: transparent;
+  text-align: left;
+}
+.select-menu__option:hover,
+.select-menu__option.is-active {
+  background: var(--surface-hover);
+}
+.select-menu__option.is-selected {
+  color: var(--text);
+}
+.select-menu__option[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: default;
+}
+.select-menu__option-copy {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+.select-menu__option-copy strong {
+  overflow: hidden;
+  color: inherit;
+  font-size: 11.5px;
+  font-weight: 580;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.select-menu__option-copy small {
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 9.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.select-menu__check {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+.button {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--surface-raised);
+  font-size: 12.5px;
+  font-weight: 520;
+  transition:
+    background 130ms ease-out,
+    border-color 130ms ease-out;
+}
+.button:hover {
+  background: var(--surface-hover);
+}
+.button--compact {
+  min-height: 28px;
+  border-radius: 7px;
+  padding-inline: 9px;
+}
+.button--primary {
+  color: var(--canvas);
+  background: var(--text);
+  border-color: var(--text);
+}
+.button--primary:hover {
+  color: var(--canvas);
+  background: var(--text-secondary);
+  border-color: var(--text-secondary);
+}
+.button--danger {
+  color: var(--on-tint);
+  background: var(--danger);
+  border-color: var(--danger);
+}
+.button--danger:hover {
+  background: var(--danger);
+  filter: brightness(0.94);
+}
+.button--quiet {
+  color: var(--text-secondary);
+  background: transparent;
+}
+
+.prime-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 26%;
+  color: var(--mark-prime-ink);
+  background: var(--mark-prime-bg);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+.prime-mark svg {
+  width: 92%;
+  height: 92%;
+  display: block;
+  pointer-events: none;
+}
+.omp-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 26%;
+  color: var(--mark-vendor-ink);
+  background: var(--mark-vendor-bg);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+.omp-mark svg {
+  width: 78%;
+  height: 78%;
+  display: block;
+  pointer-events: none;
+}
+.pi-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 26%;
+  color: var(--mark-vendor-ink);
+  background: var(--mark-vendor-bg);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+.pi-mark svg {
+  width: 78%;
+  height: 78%;
+  display: block;
+  pointer-events: none;
+}
+.lucide {
+  stroke-width: 1.7;
+}

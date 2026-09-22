@@ -1,0 +1,171 @@
+/* Sidebar — Codex replica layout: 275px rail, flat project rows, recent chats, footer row. */
+.sidebar { --sidebar-menu-ink: color-mix(in srgb, var(--text) 78%, var(--sidebar)); position: relative; z-index: 30; width: var(--sidebar-width, 275px); flex: 0 0 var(--sidebar-width, 275px); height: 100%; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--chrome-divider); background: var(--sidebar); user-select: none; }
+/* Win/Linux: the divider is drawn by the workbench's left border instead, so it bends with the rounded corner instead of running past it. */
+.app-shell[data-platform='win32'] .sidebar, .app-shell[data-platform='linux'] .sidebar { border-right: 0; }
+.sidebar__titlebar { height: 40px; flex: 0 0 40px; margin-top: 4px; display: flex; align-items: center; gap: 7px; padding-left: 16px; padding-right: 14px; }
+/* Win/Linux: tighten the stack between the title strip and the primary nav; macOS keeps its taller traffic-light replica spacing. */
+.app-shell[data-platform='win32'] .sidebar__titlebar, .app-shell[data-platform='linux'] .sidebar__titlebar { height: 38px; flex-basis: 38px; margin-top: 2px; }
+.app-shell[data-platform='win32'] .sidebar__primary, .app-shell[data-platform='linux'] .sidebar__primary { margin-top: 4px; }
+.app-shell[data-platform='linux'] .traffic-light-clearance, .app-shell[data-platform='win32'] .traffic-light-clearance { display: none; }
+.sidebar__brand { position: relative; min-width: 0; display: flex; align-items: center; gap: 7px; }
+.brand-switcher__trigger { display: flex; align-items: center; gap: 7px; margin-left: -5px; padding: 3px 5px; border-radius: 7px; color: inherit; background: transparent; }
+.brand-switcher__trigger:hover, .brand-switcher__trigger[aria-expanded='true'] { background: var(--surface-hover); }
+.brand-switcher__trigger > svg { flex: 0 0 auto; color: var(--text-tertiary); }
+.brand-switcher__name { min-width: 0; display: flex; flex-direction: column; line-height: 1.05; text-align: left; }
+.brand-switcher__name strong { font-size: 17px; font-weight: 700; letter-spacing: -.2px; color: var(--text-secondary); }
+.brand-switcher__menu { position: absolute; z-index: 140; top: calc(100% + 4px); left: -5px; min-width: 186px; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-raised); box-shadow: var(--shadow-popover); }
+.brand-switcher__menu button { width: 100%; min-height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-radius: 6px; color: var(--text-secondary); background: transparent; text-align: left; }
+.brand-switcher__menu button:hover, .brand-switcher__menu button:focus-visible { color: var(--text); background: var(--surface-hover); }
+.brand-switcher__menu button.is-active { color: var(--text); }
+.brand-switcher__menu button.is-active > svg:last-child { flex: 0 0 auto; color: var(--prime); }
+.brand-switcher__option { min-width: 0; flex: 1; display: flex; flex-direction: column; line-height: 1.15; }
+.brand-switcher__option strong { font-size: 12px; font-weight: 560; }
+.sidebar__title-actions { display: flex; margin-left: auto; gap: 14px; }
+.sidebar__title-actions .icon-button { width: auto; height: auto; background: transparent; }
+.sidebar__title-actions .icon-button svg { width: 14px; height: 14px; }
+.sidebar__title-actions .icon-button:hover { background: transparent; color: var(--text); }
+
+/* Sessions nested under their project: flat title lines, like the replica's project group. */
+.project-sessions { display: flex; flex-direction: column; }
+.project-sessions .session-row { padding: 2px 6px 2px 33px; }
+.session-line-more { min-height: 24px; display: flex; align-items: center; width: 100%; padding: 2px 8px 2px 33px; border-radius: 6px; color: var(--text-tertiary); background: transparent; font-size: 12px; text-align: left; }
+.session-line-more:hover { color: var(--text-secondary); background: var(--surface-hover); }
+
+/* Section heading: the label toggles the section, the actions reveal on hover, like the replica's section header. */
+.sidebar__section-heading .section-heading__label { display: inline-flex; align-items: center; gap: 4px; background: transparent; border: 0; padding: 0; font: inherit; color: inherit; cursor: default; }
+/* Expanded: the chevron hides until the row is hovered; hovering the chevron highlights it. Collapsed: always visible. */
+.sidebar__section-heading .section-heading__chevron { width: 14px; height: 14px; border-radius: 4px; opacity: .7; transition: transform 130ms ease-out, opacity 130ms ease-out, background-color 130ms ease-out; }
+.sidebar__section-heading .section-heading__label[aria-expanded='false'] .section-heading__chevron { transform: rotate(-90deg); }
+.sidebar__section-heading .section-heading__label[aria-expanded='true'] .section-heading__chevron { opacity: 0; }
+.sidebar__section-heading:hover .section-heading__chevron, .sidebar__section-heading:hover .section-heading__label[aria-expanded='true'] .section-heading__chevron { opacity: .7; }
+.sidebar__section-heading .section-heading__chevron:hover { background: var(--surface-hover); opacity: 1; }
+.sidebar__section-heading .section-heading__actions { display: flex; align-items: center; gap: 2px; opacity: 0; transition: opacity 130ms ease-out; }
+.sidebar__section-heading:hover .section-heading__actions, .sidebar__section-heading:focus-within .section-heading__actions { opacity: 1; }
+
+.sidebar-search-wrap { padding: 0 16px 4px; }
+.sidebar-search { height: 31px; display: flex; align-items: center; gap: 6px; padding: 0 7px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--canvas); color: var(--text-tertiary); }
+.sidebar-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; font-size: 12px; }
+.sidebar-search button { width: 18px; height: 18px; padding: 0; color: var(--text-tertiary); background: transparent; }
+
+.sidebar__primary { margin-top: 2px; padding: 0 8px; display: flex; flex-direction: column; gap: 0; }
+.sidebar__settings-nav { flex: 1; min-height: 0; overflow: auto; margin-top: 8px; padding: 0 8px 8px; display: flex; flex-direction: column; gap: 1px; }
+.sidebar__settings-nav > button { width: 100%; height: 31px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-radius: 8px; color: var(--sidebar-menu-ink); background: transparent; font-size: 13.5px; text-align: left; }
+.sidebar__settings-nav > button:hover { color: var(--text); background: var(--surface-hover); }
+.sidebar__settings-nav > button.is-active { color: var(--text); background: var(--surface-hover); }
+.sidebar__settings-nav > button svg { color: var(--text-tertiary); }
+.sidebar__settings-back { height: 31px; margin-bottom: 8px; }
+.sidebar__settings-back:hover { background: transparent; color: var(--text); }
+/* Scoped to the settings entry: a bare `.sidebar__footer > button` would also match the
+   update badge and help icon-button and clobber their icon-button box model. */
+.sidebar__primary > button, .sidebar__footer > .sidebar__settings-entry { width: 100%; height: 29px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-radius: 8px; color: var(--sidebar-menu-ink); background: transparent; font-size: 13.5px; text-align: left; }
+.sidebar__primary > button { gap: 8px; font-size: 12.5px; }
+/* The four primary nav labels sit at the secondary step; hover and selection lift them to full text. */
+/* The four primary menu labels read near-black in light mode (matching the replica's menu rows); dark mode keeps the softer menu ink. */
+:root:not([data-theme='dark']) .sidebar__primary > button { color: var(--text); }
+.sidebar__primary > button:hover, .sidebar__footer > .sidebar__settings-entry:hover { color: var(--text); background: var(--surface-hover); }
+.sidebar__primary > button.is-active, .sidebar__footer > .sidebar__settings-entry.is-active { color: var(--text); background: var(--surface-hover); }
+.sidebar__primary > button span:not(.nav-count), .sidebar__footer > .sidebar__settings-entry span { flex: 1; }
+.sidebar__primary > button svg, .sidebar__footer > .sidebar__settings-entry > svg { color: var(--text-tertiary); }
+.sidebar__primary > button > svg { width: 13px; height: 13px; color: currentColor; }
+.sidebar__primary kbd, .sidebar__footer kbd { opacity: 0; transition: opacity 130ms ease-out; }
+.sidebar__primary button:hover kbd, .sidebar__footer button:hover kbd { opacity: 1; }
+.nav-count { min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 5px; border-radius: 9px; color: var(--prime); background: var(--prime-soft); font-size: 10.5px; font-weight: 650; }
+
+.sidebar__scroll { flex: 1; min-height: 0; overflow: auto; padding: 0 8px; }
+.sidebar__section-heading { min-height: 25px; display: flex; align-items: center; justify-content: space-between; padding: 0 4px 0 16px; margin: 10px 0 3px; color: var(--text-tertiary); font-size: 12px; font-weight: 480; }
+.sidebar__section-heading:first-child { margin-top: 8px; }
+.sidebar__section-heading--recent { margin-top: 12px; }
+.sidebar__section-heading .icon-button { color: var(--text-tertiary); }
+.sidebar__empty { margin: 12px 16px; color: var(--text-tertiary); font-size: 12px; }
+/* Menu rows align their leading edge with the brand title text (sidebar 8px gutter + 8px row padding = 16px). */
+/* Session rows reserve a 25px status-mark slot (8px gutter + 16px mark + 9px gap) so running/failed marks never shift the title. */
+.sidebar__primary > button, .sidebar__settings-nav > button, .sidebar__scroll .project-row { padding-left: 8px; }
+.sidebar__scroll .session-row { padding-left: 33px; }
+.sidebar__section-heading { padding-left: 8px; }
+.sidebar__empty { margin-left: 8px; }
+.project-group { margin-bottom: 1px; }
+.project-row { position: relative; height: 29px; display: flex; align-items: center; padding: 0 16px; border-radius: 8px; color: var(--sidebar-menu-ink); }
+.project-row:hover { background: var(--surface-hover); }
+.project-row.is-selected { color: var(--text); background: var(--surface-hover); }
+.project-row__main { min-width: 0; height: 100%; flex: 1; display: flex; align-items: center; gap: 10px; padding: 0; color: inherit; background: transparent; font-size: 13.5px; text-align: left; }
+.project-row__main svg { flex: 0 0 auto; color: var(--text-tertiary); }
+.project-row__main span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.project-row:not(.is-selected) .project-row__main span { color: var(--sidebar-menu-ink); }
+.row-action { opacity: 0; transition: opacity 130ms ease-out; }
+.project-row:hover .row-action, .project-row:focus-within .row-action { opacity: 1; }
+.project-row__new-session { flex: 0 0 auto; color: var(--text-tertiary); }
+.project-row__menu { position: absolute; z-index: 120; top: 33px; right: 2px; width: 154px; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-raised); box-shadow: var(--shadow-popover); }
+.project-row__menu button { width: 100%; min-height: 29px; display: flex; align-items: center; gap: 7px; padding: 0 7px; border-radius: 5px; color: var(--text-secondary); background: transparent; text-align: left; }
+.project-row__menu button:hover, .project-row__menu button:focus-visible { color: var(--danger); background: var(--danger-soft); }
+
+.session-row-wrap { position: relative; border-radius: 8px; }
+.session-row-wrap:hover, .session-row-wrap:focus-within { background: var(--surface-hover); }
+.session-row-wrap.is-selected { background: var(--surface-hover); }
+
+.session-row-wrap > .session-row { padding-right: 24px; }
+.session-row__more { position: absolute; z-index: 5; opacity: 0; transition: opacity 130ms ease-out; right: 3px; top: 3px; }
+.session-row-wrap:hover .session-row__more, .session-row-wrap:focus-within .session-row__more { opacity: 1; }
+.session-row__menu { position: fixed; z-index: 150; width: 154px; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-raised); box-shadow: var(--shadow-popover); }
+.session-row__menu button { width: 100%; min-height: 29px; display: flex; align-items: center; gap: 7px; padding: 0 7px; border-radius: 5px; color: var(--text-secondary); background: transparent; text-align: left; }
+.session-row__menu button:hover, .session-row__menu button:focus-visible { color: var(--text); background: var(--surface-hover); }
+
+/* Recent chats render as single quiet lines, like the replica's flat list. */
+.session-row { position: relative; width: 100%; min-height: 29px; display: flex; align-items: center; gap: 10px; padding: 2px 6px 2px 16px; border-radius: 8px; color: var(--sidebar-menu-ink); background: transparent; text-align: left; }
+.session-row:hover { background: var(--surface-hover); }
+.session-row.is-selected { background: var(--surface-selected); }
+.session-row > .session-status-mark { position: absolute; left: 8px; top: 50%; margin-top: -8px; }
+.session-row__text { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.session-row__title, .session-row__meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.session-row__title { color: var(--sidebar-menu-ink); font-size: 12px; font-weight: 400; }
+.session-row-wrap.has-attention .session-row__title { color: var(--text); }
+.session-row__meta { display: none; color: var(--text-tertiary); font-size: 10.5px; }
+.session-row__time { display: none; flex: 0 0 auto; margin-right: 24px; overflow: hidden; color: var(--text-tertiary); font-size: 10.5px; white-space: nowrap; }
+.session-row:hover .session-row__time, .session-row-wrap:focus-within .session-row__time, .session-row-wrap.is-selected .session-row__time { display: block; }
+.session-row--empty { min-height: 30px; align-items: center; color: var(--text-tertiary); font-size: 11.5px; }
+.session-status-mark { width: 16px; height: 16px; display: inline-grid; place-items: center; flex: 0 0 auto; border-radius: 50%; }
+.session-status-mark--running { color: var(--prime); }
+.session-status-mark--waiting { color: var(--warning); }
+.session-status-mark--failed > span { width: 7px; height: 7px; border-radius: 50%; background: var(--text-tertiary); }
+.session-row-wrap.has-attention .session-status-mark--failed > span { background: var(--danger); }
+
+/* Footer row: gear + workspace name on the left, help on the right, divider above. */
+/* Height 42px (was 34px + 8px sidebar padding) so the row sits centered between the
+   divider and the window's bottom edge. */
+.sidebar__footer { flex: 0 0 auto; display: flex; align-items: center; gap: 9px; margin-top: auto; height: 42px; padding: 0 10px 0 8px; border-top: 1px solid var(--chrome-divider); }
+:root:not([data-theme='dark']) .app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__footer { border-top-color: #d8d8d8; }
+:root[data-theme='dark'] .app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__footer { border-top-color: #4a4a4a; }
+.sidebar__footer > .sidebar__settings-entry { height: 26px; width: auto; flex: 1 1 auto; min-width: 0; padding: 0 16px 0 8px; }
+/* 24x26 keeps the icon-button box model (the settings-entry rule above no longer matches
+   this button) and puts the glyph center on the bell icon's vertical line above: both
+   centers sit 23px from the sidebar's outer edge (10px footer inset + 12px half-width,
+   minus the sidebar's 1px border). Same center as the circular update badge. */
+.sidebar__footer .sidebar__help { flex: 0 0 auto; width: 24px; height: 26px; color: var(--text-tertiary); }
+.sidebar__footer .sidebar__help:hover { color: var(--text); }
+.sidebar__footer > .sidebar__settings-entry svg { color: var(--text-tertiary); }
+.sidebar-update { order: 2; width: 24px; height: 24px; min-height: 24px; display: grid; place-items: center; flex: 0 0 24px; margin-left: auto; padding: 0; border: 0; border-radius: 50%; color: var(--on-tint); background: var(--prime); }
+.sidebar-update__icon { display: grid; place-items: center; border: 0; background: transparent; }
+.sidebar-update:hover:not(:disabled) { filter: brightness(1.08); }
+.sidebar-update--downloading { background: conic-gradient(var(--prime) var(--update-progress), var(--prime-soft) 0); color: var(--on-tint); }
+
+/* A translucent sidebar needs one subtle hover layer. The session button sits
+   inside its hoverable wrapper, so keeping the button transparent avoids a
+   darker double-tint beneath the pointer. */
+.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar { --sidebar-hover: color-mix(in srgb, var(--text) 6%, transparent); }
+.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__primary > button:hover,
+.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__primary > button.is-active,
+.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__footer > .sidebar__settings-entry:hover,
+.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__footer > .sidebar__settings-entry.is-active,
+.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__settings-nav > button:hover,
+.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__settings-nav > button.is-active,
+.app-shell[data-platform='darwin'][data-window-focused='true'] .project-row:hover,
+.app-shell[data-platform='darwin'][data-window-focused='true'] .project-row.is-selected,
+.app-shell[data-platform='darwin'][data-window-focused='true'] .session-row-wrap:hover,
+.app-shell[data-platform='darwin'][data-window-focused='true'] .session-row-wrap:focus-within,
+.app-shell[data-platform='darwin'][data-window-focused='true'] .session-row-wrap.is-selected { background: var(--sidebar-hover); }
+.app-shell[data-platform='darwin'][data-window-focused='true'] .session-row:hover { background: transparent; }
+.sidebar-update--downloading .sidebar-update__icon { background: transparent; }
+.sidebar-update--error { color: var(--on-tint); background: var(--danger); }
+.sidebar-update--checking, .sidebar-update--available, .sidebar-update--indeterminate { animation: update-pulse 1.4s ease-in-out infinite; }
+.sidebar-update:disabled { cursor: default; opacity: .8; }
+@keyframes update-pulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--prime) 10%, transparent); } }
+.nav-attention-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 10.5px; font-style: normal; font-weight: 700; line-height: 1; }

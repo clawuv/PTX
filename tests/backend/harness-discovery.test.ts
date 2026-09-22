@@ -135,7 +135,7 @@ describe('HarnessDiscoveryService', () => {
   })
 
   it('reports missing and non-executable configured candidates', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'pistudio-discovery-'))
+    const dir = mkdtempSync(join(tmpdir(), 'ptx-discovery-'))
     const missing = join(dir, 'missing-pi')
     const nonExecutable = join(dir, 'pi')
     writeFileSync(nonExecutable, '#!/bin/sh\nexit 0\n')
@@ -204,7 +204,7 @@ describe('HarnessDiscoveryService', () => {
   })
 
   it('keeps the meaningful last stderr line in a probe failure', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'pistudio-probe-'))
+    const dir = mkdtempSync(join(tmpdir(), 'ptx-probe-'))
     const executable = join(dir, 'pi')
     writeFileSync(executable, '#!/bin/sh\nprintf "warning noise\\n(node:123) ExperimentalWarning: noisy\\nTypeError: webidl.util.markAsUncloneable is not a function\\n" >&2\nexit 1\n')
     chmodSync(executable, 0o755)

@@ -26,7 +26,7 @@ const PI_SESSION = '/home/user/.pi/agent/sessions/--home-user-project--/session.
 const fixtureDirs: string[] = []
 
 function fakeOverflowCatalog(): OmpModelCatalogService {
-  const directory = mkdtempSync(join(tmpdir(), 'pistudio-omp-ipc-catalog-'))
+  const directory = mkdtempSync(join(tmpdir(), 'ptx-omp-ipc-catalog-'))
   fixtureDirs.push(directory)
   const executable = join(directory, 'omp.cjs')
   const models = Array.from({ length: MAX_CATALOG_PROVIDERS + 1 }, (_, index) => ({

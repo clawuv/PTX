@@ -98,9 +98,9 @@ async function packageMetadata(sourceValue: string, settingsPath: string): Promi
     const description = typeof value.description === 'string' && value.description.trim()
       ? value.description.trim().slice(0, 500)
       : `${name} capability package`
-    const pistudio = isRecord(value.pistudio) ? value.pistudio : undefined
-    const associatedMcpServers = Array.isArray(pistudio?.mcpServers)
-      ? pistudio.mcpServers.filter((server): server is string => typeof server === 'string' && /^[A-Za-z0-9][A-Za-z0-9._ -]{0,63}$/.test(server)).slice(0, 32)
+    const ptx = isRecord(value.ptx) ? value.ptx : undefined
+    const associatedMcpServers = Array.isArray(ptx?.mcpServers)
+      ? ptx.mcpServers.filter((server): server is string => typeof server === 'string' && /^[A-Za-z0-9][A-Za-z0-9._ -]{0,63}$/.test(server)).slice(0, 32)
       : undefined
     return { name, description, ...(associatedMcpServers?.length ? { associatedMcpServers } : {}) }
   } catch {
@@ -334,7 +334,7 @@ function addMcpSettingsMetadata(
       const transport = definition.type === 'sse' ? 'SSE' : 'HTTP'
       output.push({
         id: idFor('mcp', location, name), name: displayName,
-        description: `${transport} MCP server at ${origin}. Managed outside PiStudio.`,
+        description: `${transport} MCP server at ${origin}. Managed outside Ptx.`,
         kind: 'mcp', location, enabled, source: origin, ...definitionIdentity,
         availability: { available: false, detail: NETWORK_MCP_UNAVAILABLE_DETAIL },
       })
@@ -347,7 +347,7 @@ function addMcpSettingsMetadata(
           : undefined
       output.push({
         id: idFor('mcp', location, name), name: displayName,
-        description: `Local stdio MCP server (${command})${harness === 'prime' ? '. Managed outside PiStudio.' : ''}`,
+        description: `Local stdio MCP server (${command})${harness === 'prime' ? '. Managed outside Ptx.' : ''}`,
         kind: 'mcp', location, enabled, source: command, ...definitionIdentity,
         ...(availability ? { availability } : {}),
       })

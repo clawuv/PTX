@@ -175,7 +175,7 @@ body:has(.app-shell[data-platform="darwin"]),
 button, input, textarea, select { color: inherit; font: inherit; }
 /* Chromium's Linux native select popup does not reliably inherit the page's
    scheme or transparent control background. Keep every native menu surface
-   explicit while still following PiStudio's resolved light/dark theme. */
+   explicit while still following Ptx's resolved light/dark theme. */
 select, option, optgroup { color-scheme: light; }
 option, optgroup { color: var(--text); background-color: var(--surface-raised); }
 option:disabled { color: var(--text-tertiary); }

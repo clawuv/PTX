@@ -30,7 +30,7 @@ interface PiMcpAdapterState {
 
 const MAX_ADAPTER_SETTINGS_BYTES = 4 * 1024 * 1024
 const PI_MCP_ADAPTER_SOURCE = 'npm:pi-mcp-adapter'
-const PI_MCP_ADMISSION_LOCK = '.pistudio-pi-mcp-admission'
+const PI_MCP_ADMISSION_LOCK = '.ptx-pi-mcp-admission'
 const EXACT_SEMANTIC_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/
 
 const MAX_CONCURRENT_PLUGIN_DISCOVERIES = 2
@@ -80,7 +80,7 @@ const createDiscoveryQueue = () => createAdmissionQueue({
   maxConcurrent: MAX_CONCURRENT_PLUGIN_DISCOVERIES,
   maxPending: MAX_QUEUED_PLUGIN_DISCOVERIES,
   pendingLimitError: () => new TypeError('Too many plugin discoveries are pending'),
-  closedError: () => new TypeError('PiStudio is shutting down'),
+  closedError: () => new TypeError('Ptx is shutting down'),
 })
 let discoveryQueue = createDiscoveryQueue()
 
@@ -138,11 +138,11 @@ export class PluginService {
     const builtInSkills = await this.builtInSkills()
     const piMcpState = this.harness === 'pi' ? await this.piMcpAdapterState() : undefined
     const harnessCapabilities: SkillRecord[] = this.harness === 'pi' ? [{
-      id: 'pistudio-pi-mcp',
+      id: 'ptx-pi-mcp',
       name: 'Pi MCP Adapter',
       description: piMcpState
         ? `MCP support is installed through Pi’s pi-mcp-adapter extension package${piMcpState.enabled ? '.' : ' and is currently disabled.'}`
-        : 'Install Pi’s supported MCP adapter extension to manage local stdio servers. Network setup and authentication stay outside PiStudio.',
+        : 'Install Pi’s supported MCP adapter extension to manage local stdio servers. Network setup and authentication stay outside Ptx.',
       kind: 'extension',
       location: 'system',
       enabled: piMcpState?.enabled ?? false,
@@ -188,10 +188,10 @@ export class PluginService {
     const install = async (): Promise<ProcessOutcome> => {
       // Prime and Pi own the settings.json lock while their package commands are
       // running. Taking that same lock here makes the child fail or deadlock
-      // against PiStudio. Keep a separate app coordination lock so multiple
-      // PiStudio windows serialize package mutations while the CLI remains free
+      // against Ptx. Keep a separate app coordination lock so multiple
+      // Ptx windows serialize package mutations while the CLI remains free
       // to protect its own settings file.
-      const lockPath = this.harness === 'omp' ? settingsPath : `${settingsPath}.pistudio`
+      const lockPath = this.harness === 'omp' ? settingsPath : `${settingsPath}.ptx`
       const release = await acquireSettingsLock(lockPath)
       try {
         return this.harness === 'omp'
@@ -228,7 +228,7 @@ export class PluginService {
       : undefined
     const settingsPath = projectSettings?.path ?? join(this.agentDir, 'settings.json')
     return await this.queueSettingsMutation(async (): Promise<ProcessOutcome> => {
-      const lockPath = `${settingsPath}.pistudio`
+      const lockPath = `${settingsPath}.ptx`
       const release = await acquireSettingsLock(lockPath, projectSettings?.verify)
       try {
         return this.harness === 'pi'
@@ -245,7 +245,7 @@ export class PluginService {
     if (typeof enabledValue !== 'boolean') throw new TypeError('MCP support state must be a boolean')
     const settingsPath = join(this.agentDir, 'settings.json')
     return await this.queueSettingsMutation(() => this.withPiMcpAdmission(async () => {
-      const releaseSettings = await acquireSettingsLock(`${settingsPath}.pistudio`)
+      const releaseSettings = await acquireSettingsLock(`${settingsPath}.ptx`)
       try {
         const adapter = await this.piMcpAdapterState()
         if (enabledValue) {
@@ -297,7 +297,7 @@ export class PluginService {
     const settingsPath = typeof settingsTarget === 'string' ? settingsTarget : settingsTarget.path
     const verify = typeof settingsTarget === 'string' ? undefined : settingsTarget.verify
     return await this.queueSettingsMutation(() => this.withPiMcpAdmission(async () => {
-      const releaseSettings = await acquireSettingsLock(`${settingsPath}.pistudio`, verify)
+      const releaseSettings = await acquireSettingsLock(`${settingsPath}.ptx`, verify)
       try {
         const piAdmissionFailure = await this.piMcpAdmissionFailure()
         if (piAdmissionFailure) return piAdmissionFailure
@@ -332,7 +332,7 @@ export class PluginService {
     const settingsPath = typeof settingsTarget === 'string' ? settingsTarget : settingsTarget.path
     const verify = typeof settingsTarget === 'string' ? undefined : settingsTarget.verify
     return await this.queueSettingsMutation(() => this.withPiMcpAdmission(async () => {
-      const releaseSettings = await acquireSettingsLock(`${settingsPath}.pistudio`, verify)
+      const releaseSettings = await acquireSettingsLock(`${settingsPath}.ptx`, verify)
       try {
         const piAdmissionFailure = await this.piMcpAdmissionFailure()
         if (piAdmissionFailure) return piAdmissionFailure
@@ -369,7 +369,7 @@ export class PluginService {
     const settingsPath = projectSettings?.path ?? join(this.agentDir, input.kind === 'mcp' && this.harness !== 'prime' ? 'mcp.json' : 'settings.json')
     const agentName = HARNESSES[this.harness].agentName
     const mutate = async (): Promise<ProcessOutcome> => {
-      const releaseSettings = await acquireSettingsLock(`${settingsPath}.pistudio`, projectSettings?.verify)
+      const releaseSettings = await acquireSettingsLock(`${settingsPath}.ptx`, projectSettings?.verify)
       try {
         if (input.kind === 'mcp') {
           if (input.action !== 'remove') {

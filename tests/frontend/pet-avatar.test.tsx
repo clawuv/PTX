@@ -10,8 +10,8 @@ import type { PetDefinition, PrimeWorkApi } from '../../src/types/api'
 const pet: PetDefinition = {
   id: 'pi-studio',
   petId: 'pi-studio',
-  displayName: 'PiStudio',
-  description: 'PiStudio.',
+  displayName: 'Ptx',
+  description: 'Ptx.',
   source: 'built-in',
   kind: 'spritesheet',
 }

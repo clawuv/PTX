@@ -1,5 +1,5 @@
 [project]
-name = "pistudio-prime-supabase"
+name = "ptx-prime-supabase"
 version = "0.1.0"
 description = "Prime Agent integration for Supabase's official hosted MCP server."
 requires-python = ">=3.10"

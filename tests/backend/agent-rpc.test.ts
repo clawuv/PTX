@@ -107,7 +107,7 @@ describe('agent RPC command frame bounds', () => {
         { type: 'follow_up', message },
         { type: 'set_heartbeat', schedule: '0 * * * *', prompt: message },
       ]) {
-        await expect(manager.command('runtime-auth-policy', command)).rejects.toThrow('Network MCP authentication is managed outside PiStudio')
+        await expect(manager.command('runtime-auth-policy', command)).rejects.toThrow('Network MCP authentication is managed outside Ptx')
       }
       expect(wireCommand).not.toHaveBeenCalled()
     } finally {
@@ -436,7 +436,7 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
   it('does not admit a runtime when the handshake fails', async () => {
     const fake = fakeAgent("{ id: command.id, type: 'response', command: 'prompt', success: true }", "{ id: command.id, type: 'response', command: 'get_state', success: false, error: 'Unable to initialize session' }")
     const manager = managerFor(fake.executable)
-    const environment = { PISTUDIO_COLLABORATION_TOKEN: 'failed-start-token' }
+    const environment = { PTX_COLLABORATION_TOKEN: 'failed-start-token' }
     const ended = vi.fn()
     manager.setRuntimeEnvironmentProvider(() => environment)
     manager.setRuntimeEndListener(ended)

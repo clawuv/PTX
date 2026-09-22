@@ -6,7 +6,7 @@ See the [source setup](README.md#run-from-source) and
 ## Local macOS development without release credentials
 
 You do not need access to the signing and notarization credentials for the
-production `app.pistudio.desktop` bundle. Use `npm run dev` while developing and
+production `app.ptx.desktop` bundle. Use `npm run dev` while developing and
 run the relevant checks from the validation guide before submitting a change.
 
 To exercise the normal local packaging pipeline without release credentials,
@@ -21,21 +21,21 @@ that a build is ready for public distribution; `npm run package:mac` is reserved
 for maintainers with the release credentials.
 
 As an optional development convenience, use a separate app identity and
-Electron data directory when keeping a local package alongside PiStudio:
+Electron data directory when keeping a local package alongside Ptx:
 
 ```bash
 npm run build
 npx electron-builder --mac dir --arm64 --publish never \
   --config.mac.identity=null \
   --config.mac.notarize=false \
-  --config.productName="PiStudio Dev" \
-  --config.appId=app.pistudio.desktop.localdev \
-  --config.extraMetadata.name=pistudio-local-dev \
+  --config.productName="Ptx Dev" \
+  --config.appId=app.ptx.desktop.localdev \
+  --config.extraMetadata.name=ptx-local-dev \
   --config.directories.output=release/local-dev
 ```
 
 Use `--x64` instead of `--arm64` on an Intel Mac. The `extraMetadata.name`
 override isolates Electron state under
-`~/Library/Application Support/pistudio-local-dev`; changing only the product
+`~/Library/Application Support/ptx-local-dev`; changing only the product
 name or bundle ID does not isolate it. These values are local examples and must
 not replace the production package metadata.

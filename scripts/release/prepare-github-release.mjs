@@ -40,24 +40,19 @@ export function parseReleasePlatforms(value = RELEASE_PLATFORMS.join(',')) {
  */
 export function releaseAssetNames(version, platforms = RELEASE_PLATFORMS) {
   const assets = {
-    mac: [
-      [`PiStudio-${version}-m-chip.dmg`, `PiStudio-${version}-arm64.dmg`],
-      [`PiStudio-${version}-intel-chip.dmg`, `PiStudio-${version}-x64.dmg`],
-      [`PiStudio-${version}-arm64.zip`],
-      [`PiStudio-${version}-x64.zip`],
-    ],
+    mac: [[`Ptx-${version}-m-chip.dmg`, `Ptx-${version}-arm64.dmg`], [`Ptx-${version}-intel-chip.dmg`, `Ptx-${version}-x64.dmg`], [`Ptx-${version}-arm64.zip`], [`Ptx-${version}-x64.zip`]],
     linux: [
-      [`PiStudio-${version}-linux-arm64.AppImage`],
-      [`PiStudio-${version}-linux-arm64.deb`],
-      [`PiStudio-${version}-linux-aarch64.pacman`],
-      [`PiStudio-${version}-linux-aarch64.rpm`],
-      [`PiStudio-${version}-linux-x86_64.AppImage`],
-      [`PiStudio-${version}-linux-amd64.deb`],
-      [`PiStudio-${version}-linux-x64.pacman`],
-      [`PiStudio-${version}-linux-x86_64.rpm`],
+      [`Ptx-${version}-linux-arm64.AppImage`],
+      [`Ptx-${version}-linux-arm64.deb`],
+      [`Ptx-${version}-linux-aarch64.pacman`],
+      [`Ptx-${version}-linux-aarch64.rpm`],
+      [`Ptx-${version}-linux-x86_64.AppImage`],
+      [`Ptx-${version}-linux-amd64.deb`],
+      [`Ptx-${version}-linux-x64.pacman`],
+      [`Ptx-${version}-linux-x86_64.rpm`],
     ],
     // electron-builder emits the MSIX-compatible package as .appx; publish the same bytes with the modern .msix extension.
-    win: [[`PiStudio-${version}-win-x64.exe`], [`PiStudio-${version}-win-x64.zip`], [`PiStudio-${version}-win-x64.msix`, `PiStudio-${version}-win-x64.appx`]],
+    win: [[`Ptx-${version}-win-x64.exe`], [`Ptx-${version}-win-x64.zip`], [`Ptx-${version}-win-x64.msix`, `Ptx-${version}-win-x64.appx`]],
   }
   const entries = platforms
     .flatMap((platform) => [...assets[platform], ...UPDATE_METADATA_BY_PLATFORM[platform].map((name) => [name])])

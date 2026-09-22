@@ -253,7 +253,7 @@ function canAccessPath(candidate: string, mode: number): boolean {
 
 /**
  * Resolves the official Windows npm Pi shim without running cmd.exe. npm puts
- * the package entry point below the shim directory, so PiStudio can invoke that
+ * the package entry point below the shim directory, so Ptx can invoke that
  * fixed JavaScript file with a validated Node executable and keep shell=false.
  */
 export function prepareExecutableSpawn(

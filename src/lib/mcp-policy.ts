@@ -1,19 +1,19 @@
 import type { HarnessId } from '../types/api'
 
 /**
- * PiStudio does not own the network transport or OAuth discovery performed by
+ * Ptx does not own the network transport or OAuth discovery performed by
  * Prime, OMP, or Pi. Keep network MCP management outside the app instead of
  * implying that selected app-side validation can secure an upstream runtime.
  */
-export const NETWORK_MCP_UNAVAILABLE_DETAIL = 'Network MCP servers are managed outside PiStudio. PiStudio does not create, enable, disable, or authenticate HTTP/SSE servers; use the harness directly. Externally configured definitions are read-only here except explicit definition removal. Authorization is never inspected or changed by PiStudio.'
+export const NETWORK_MCP_UNAVAILABLE_DETAIL = 'Network MCP servers are managed outside Ptx. Ptx does not create, enable, disable, or authenticate HTTP/SSE servers; use the harness directly. Externally configured definitions are read-only here except explicit definition removal. Authorization is never inspected or changed by Ptx.'
 
-export const NETWORK_MCP_AUTH_UNAVAILABLE = 'Network MCP authentication is managed outside PiStudio. Use the harness directly; PiStudio does not inspect or change MCP credentials.'
+export const NETWORK_MCP_AUTH_UNAVAILABLE = 'Network MCP authentication is managed outside Ptx. Use the harness directly; Ptx does not inspect or change MCP credentials.'
 
-export const PRIME_MCP_MANAGEMENT_UNAVAILABLE_DETAIL = 'Prime Agent MCP servers are managed outside PiStudio. PiStudio only manages local stdio MCP definitions for OMP and Pi; Prime definitions may only be removed here, and Prime authorization must be managed directly in Prime Agent.'
+export const PRIME_MCP_MANAGEMENT_UNAVAILABLE_DETAIL = 'Prime Agent MCP servers are managed outside Ptx. Ptx only manages local stdio MCP definitions for OMP and Pi; Prime definitions may only be removed here, and Prime authorization must be managed directly in Prime Agent.'
 
-export const PI_MCP_ADAPTER_REQUIRED_DETAIL = 'Pi core does not include MCP. Install PiStudio\'s supported adapter first: pi install npm:pi-mcp-adapter'
+export const PI_MCP_ADAPTER_REQUIRED_DETAIL = 'Pi core does not include MCP. Install Ptx\'s supported adapter first: pi install npm:pi-mcp-adapter'
 
-export const LOCAL_MCP_STATE_UNAVAILABLE_DETAIL = 'This local MCP definition uses a key PiStudio cannot safely enable or disable. Its state is managed outside PiStudio; use the harness directly. Bounded exact-definition removal remains available when supported.'
+export const LOCAL_MCP_STATE_UNAVAILABLE_DETAIL = 'This local MCP definition uses a key Ptx cannot safely enable or disable. Its state is managed outside Ptx; use the harness directly. Bounded exact-definition removal remains available when supported.'
 
 /** Exact MCP map keys above this limit stay visible but are not app-removable. */
 export const MAX_MCP_DEFINITION_KEY_LENGTH = 1_024

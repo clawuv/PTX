@@ -7,8 +7,8 @@ export interface SessionMention {
   session: SessionRecord
 }
 
-export const SESSION_ROUTING_BEGIN = '===== BEGIN PISTUDIO SESSION REFERENCES ====='
-export const SESSION_ROUTING_END = '===== END PISTUDIO SESSION REFERENCES ====='
+export const SESSION_ROUTING_BEGIN = '===== BEGIN PTX SESSION REFERENCES ====='
+export const SESSION_ROUTING_END = '===== END PTX SESSION REFERENCES ====='
 
 export interface SessionRoutingSplit {
   text: string
@@ -57,8 +57,8 @@ export function appendSessionRouting(prompt: string, sessions: readonly SessionR
   const visiblePrompt = prompt
     .replaceAll(SESSION_ROUTING_BEGIN, '[session reference boundary omitted]')
     .replaceAll(SESSION_ROUTING_END, '[session reference boundary omitted]')
-  const references = unique.map(({ text, session }) => `- ${JSON.stringify(text)}: ${session.harness} session UUID ${session.id}. Use session_read, session_send, and session_wait when the request requires collaboration; PiStudio can wake an idle saved target.`)
-  return `${visiblePrompt}\n\n${SESSION_ROUTING_BEGIN}\nThe user explicitly referenced these PiStudio sessions. Titles are display labels; use the exact UUIDs below:\n${references.join('\n')}\n${SESSION_ROUTING_END}`
+  const references = unique.map(({ text, session }) => `- ${JSON.stringify(text)}: ${session.harness} session UUID ${session.id}. Use session_read, session_send, and session_wait when the request requires collaboration; Ptx can wake an idle saved target.`)
+  return `${visiblePrompt}\n\n${SESSION_ROUTING_BEGIN}\nThe user explicitly referenced these Ptx sessions. Titles are display labels; use the exact UUIDs below:\n${references.join('\n')}\n${SESSION_ROUTING_END}`
 }
 
 /** Removes model-only UUID routing before a sent prompt is rendered to the user. */

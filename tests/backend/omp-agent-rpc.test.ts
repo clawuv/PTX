@@ -243,8 +243,8 @@ describe('OMP RPC adapter argv', () => {
       PRIME_WORK_SCHEDULE_EXTENSION_PATH: '/extensions/schedules.ts',
       PRIME_WORK_BROWSER_EXTENSION_PATH: '/extensions/browser.ts',
       PRIME_WORK_ASK_USER_EXTENSION_PATH: '/extensions/ask-user.ts',
-      PISTUDIO_COLLABORATION_EXTENSION_PATH: '/extensions/collaboration.ts',
-      PISTUDIO_COMPUTER_USE_SKILL_PATH: '/skills/computer-use.md',
+      PTX_COLLABORATION_EXTENSION_PATH: '/extensions/collaboration.ts',
+      PTX_COMPUTER_USE_SKILL_PATH: '/skills/computer-use.md',
     } as NodeJS.ProcessEnv
     const args = OMP_RPC_ADAPTER.buildStartArgs({ ...baseInput, environment })
     expect(args).not.toContain('--skill')
@@ -262,7 +262,7 @@ describe('OMP RPC handshake', () => {
   it('releases the exact runtime environment after OMP termination', async () => {
     const fake = fakeOmpAgent()
     const manager = ompManager(fake.executable)
-    const environment = { PISTUDIO_COLLABORATION_TOKEN: 'omp-runtime-token' }
+    const environment = { PTX_COLLABORATION_TOKEN: 'omp-runtime-token' }
     const ended = vi.fn()
     manager.setRuntimeEnvironmentProvider(() => environment)
     manager.setRuntimeEndListener(ended)
@@ -314,7 +314,7 @@ describe('OMP RPC handshake', () => {
       PRIME_WORK_SCHEDULE_EXTENSION_PATH: '/extensions/schedules.ts',
       PRIME_WORK_BROWSER_EXTENSION_PATH: '/extensions/browser.ts',
       PRIME_WORK_ASK_USER_EXTENSION_PATH: '/extensions/ask-user.ts',
-      PISTUDIO_COLLABORATION_EXTENSION_PATH: '/extensions/collaboration.ts',
+      PTX_COLLABORATION_EXTENSION_PATH: '/extensions/collaboration.ts',
     }))
     const events: Array<Record<string, unknown>> = []
     manager.setEventSink(({ event }) => events.push(event))

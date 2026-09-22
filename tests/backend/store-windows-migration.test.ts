@@ -19,7 +19,7 @@ afterEach(() => {
 })
 
 function makeDirectory(): string {
-  const directory = mkdtempSync(join(tmpdir(), 'pistudio-windows-state-'))
+  const directory = mkdtempSync(join(tmpdir(), 'ptx-windows-state-'))
   directories.push(directory)
   return directory
 }
@@ -68,15 +68,15 @@ function expectCompletedTombstone(path: string): { backupFile: string | null; re
     version: number
     projects: unknown[]
     schedules: unknown[]
-    piStudioV4Migration: { status: string; backupFile: string | null; reason: string }
+    ptxV4Migration: { status: string; backupFile: string | null; reason: string }
   }
   expect(tombstone).toMatchObject({
     version: 3,
     projects: [],
     schedules: [],
-    piStudioV4Migration: { status: 'complete' },
+    ptxV4Migration: { status: 'complete' },
   })
-  return tombstone.piStudioV4Migration
+  return tombstone.ptxV4Migration
 }
 
 function expectReleasedLegacyReaderHasNoAuthority(path: string): void {
@@ -190,23 +190,23 @@ describe('Windows desktop-state compatibility protocol', () => {
     const pending = JSON.parse(readFileSync(legacyPath, 'utf8')) as {
       projects: unknown[]
       schedules: unknown[]
-      piStudioV4Migration: { status: string; backupFile: string }
+      ptxV4Migration: { status: string; backupFile: string }
     }
     expect(pending).toMatchObject({
       projects: [],
       schedules: [],
-      piStudioV4Migration: { status: 'pending' },
+      ptxV4Migration: { status: 'pending' },
     })
     await expect(readiness).rejects.toMatchObject({
-      backupStatePath: join(directory, pending.piStudioV4Migration.backupFile),
+      backupStatePath: join(directory, pending.ptxV4Migration.backupFile),
     })
-    expect(readFileSync(join(directory, pending.piStudioV4Migration.backupFile), 'utf8')).toBe(originalLegacy)
+    expect(readFileSync(join(directory, pending.ptxV4Migration.backupFile), 'utf8')).toBe(originalLegacy)
 
     const retried = new JsonStateStore(currentPath, windowsFileSystem(directory, []), legacyPath, 'win32')
     await retried.ready()
     expect(retried.snapshot().projects).toMatchObject([{ id: 'legacy-project', harness: 'prime' }])
     expect(expectCompletedTombstone(legacyPath)).toMatchObject({
-      backupFile: pending.piStudioV4Migration.backupFile,
+      backupFile: pending.ptxV4Migration.backupFile,
       reason: 'migration',
     })
   })
@@ -230,9 +230,9 @@ describe('Windows desktop-state compatibility protocol', () => {
     }, legacyPath, 'win32')
     await expect(interrupted.ready()).rejects.toBeInstanceOf(StateMigrationError)
     const pending = JSON.parse(readFileSync(legacyPath, 'utf8')) as {
-      piStudioV4Migration: { status: string; backupFile: string }
+      ptxV4Migration: { status: string; backupFile: string }
     }
-    const missingBackupPath = join(directory, pending.piStudioV4Migration.backupFile)
+    const missingBackupPath = join(directory, pending.ptxV4Migration.backupFile)
     rmSync(missingBackupPath)
 
     const restarted = new JsonStateStore(currentPath, windowsFileSystem(directory, []), legacyPath, 'win32')
@@ -241,7 +241,7 @@ describe('Windows desktop-state compatibility protocol', () => {
     await expect(readiness).rejects.toBeInstanceOf(StateMigrationError)
     await expect(readiness).rejects.toThrow(/pending migration.*backup.*missing/i)
     await expect(readiness).rejects.toMatchObject({ backupStatePath: undefined })
-    expect(JSON.parse(readFileSync(legacyPath, 'utf8')).piStudioV4Migration.status).toBe('pending')
+    expect(JSON.parse(readFileSync(legacyPath, 'utf8')).ptxV4Migration.status).toBe('pending')
   })
 
   it('recovers a validated pending migration after a corrupt current file is backed up', async () => {
@@ -260,7 +260,7 @@ describe('Windows desktop-state compatibility protocol', () => {
     }, legacyPath, 'win32')
     await expect(interrupted.ready()).rejects.toBeInstanceOf(StateMigrationError)
     const pending = JSON.parse(readFileSync(legacyPath, 'utf8')) as {
-      piStudioV4Migration: { backupFile: string }
+      ptxV4Migration: { backupFile: string }
     }
     writeFileSync(currentPath, '{corrupt-v4')
 
@@ -268,9 +268,9 @@ describe('Windows desktop-state compatibility protocol', () => {
     await recovered.ready()
 
     expect(recovered.snapshot().projects).toMatchObject([{ id: 'legacy-project', harness: 'prime' }])
-    expect(readFileSync(join(directory, pending.piStudioV4Migration.backupFile), 'utf8')).toBe(originalLegacy)
+    expect(readFileSync(join(directory, pending.ptxV4Migration.backupFile), 'utf8')).toBe(originalLegacy)
     expect(expectCompletedTombstone(legacyPath)).toMatchObject({
-      backupFile: pending.piStudioV4Migration.backupFile,
+      backupFile: pending.ptxV4Migration.backupFile,
       reason: 'migration',
     })
   })

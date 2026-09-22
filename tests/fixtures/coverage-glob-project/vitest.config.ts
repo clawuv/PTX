@@ -3,8 +3,8 @@ import { defineConfig } from 'vitest/config'
 import { createCoverageInventory, type CoverageFamily } from '../../../scripts/release/coverage-inventory'
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url))
-const reportsDirectory = process.env.PISTUDIO_COVERAGE_FIXTURE_REPORTS
-if (!reportsDirectory) throw new Error('PISTUDIO_COVERAGE_FIXTURE_REPORTS is required')
+const reportsDirectory = process.env.PTX_COVERAGE_FIXTURE_REPORTS
+if (!reportsDirectory) throw new Error('PTX_COVERAGE_FIXTURE_REPORTS is required')
 
 const families: readonly CoverageFamily[] = [
   {

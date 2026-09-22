@@ -7,8 +7,8 @@ export interface CapabilityMention {
   skill: SkillRecord
 }
 
-export const CAPABILITY_ROUTING_BEGIN = '===== BEGIN PISTUDIO CAPABILITY ROUTING ====='
-export const CAPABILITY_ROUTING_END = '===== END PISTUDIO CAPABILITY ROUTING ====='
+export const CAPABILITY_ROUTING_BEGIN = '===== BEGIN PTX CAPABILITY ROUTING ====='
+export const CAPABILITY_ROUTING_END = '===== END PTX CAPABILITY ROUTING ====='
 
 const boundaryBefore = (value: string | undefined): boolean => value === undefined || /[\s([{"'`]/.test(value)
 const boundaryAfter = (value: string | undefined): boolean => value === undefined || /[\s.,!?;:()[\]{}"'`]/.test(value)
@@ -48,12 +48,12 @@ export function findCapabilityMentions(value: string, skills: readonly SkillReco
 function routingInstruction(mention: CapabilityMention): string {
   const token = mention.text
   if (mention.skill.id === 'prime-work-browser' || mention.skill.id === 'omp-work-browser') {
-    return `${token}: use PiStudio's in-app Browser capability and its own browser tools. Do not substitute Chrome, an external browser, or another connected browser tool.`
+    return `${token}: use Ptx's in-app Browser capability and its own browser tools. Do not substitute Chrome, an external browser, or another connected browser tool.`
   }
   if (mention.skill.id === 'prime-work-schedules' || mention.skill.id === 'omp-work-schedules') {
-    return `${token}: use PiStudio's Scheduled tasks capability and its own schedule tools.`
+    return `${token}: use Ptx's Scheduled tasks capability and its own schedule tools.`
   }
-  return `${token}: use the enabled PiStudio ${mention.skill.kind} with the exact catalog id ${JSON.stringify(mention.skill.id)}. Do not substitute a similarly named capability.`
+  return `${token}: use the enabled Ptx ${mention.skill.kind} with the exact catalog id ${JSON.stringify(mention.skill.id)}. Do not substitute a similarly named capability.`
 }
 
 /** Adds explicit routing semantics while keeping the user's visible prompt unchanged. */

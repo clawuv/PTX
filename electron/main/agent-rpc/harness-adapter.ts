@@ -87,7 +87,7 @@ export const PRIME_RPC_ADAPTER: HarnessRpcAdapter = {
       args.push('--model', input.modelId)
     }
     if (input.thinking) args.push('--thinking', input.thinking)
-    for (const skillPath of [input.environment.PRIME_WORK_SCHEDULE_SKILL_PATH, input.environment.PRIME_WORK_BROWSER_SKILL_PATH, input.environment.PISTUDIO_COMPUTER_USE_SKILL_PATH]) {
+    for (const skillPath of [input.environment.PRIME_WORK_SCHEDULE_SKILL_PATH, input.environment.PRIME_WORK_BROWSER_SKILL_PATH, input.environment.PTX_COMPUTER_USE_SKILL_PATH]) {
       if (skillPath && !unsafeArgValue(skillPath)) args.push('--skill', skillPath)
     }
     for (const injection of extensionInjections('prime')) {
@@ -130,7 +130,7 @@ export const OMP_RPC_ADAPTER: HarnessRpcAdapter = {
       if (!OMP_APPROVAL_MODES.has(input.approvalMode)) throw new TypeError('Invalid approval mode')
       args.push('--approval-mode', input.approvalMode)
     }
-    const computerUseSkillPath = input.environment.PISTUDIO_COMPUTER_USE_SKILL_PATH
+    const computerUseSkillPath = input.environment.PTX_COMPUTER_USE_SKILL_PATH
     if (computerUseSkillPath && !unsafeArgValue(computerUseSkillPath)) args.push('--append-system-prompt', computerUseSkillPath)
     // OMP has no --skill flag: app capabilities are injected as explicit,
     // self-contained extensions while normal OMP skills remain discovery-based.
@@ -176,7 +176,7 @@ export const OMP_RPC_ADAPTER: HarnessRpcAdapter = {
  * Base pi speaks Prime's request/response envelope, command vocabulary, and
  * event names with no handshake extras: no ready frame, no protocol
  * negotiation, no chunked frames. The Prime-only daemon/heartbeat family is
- * missing; fast mode is supplied by PiStudio's bundled compatibility extension.
+ * missing; fast mode is supplied by Ptx's bundled compatibility extension.
  */
 export const PI_RPC_ADAPTER: HarnessRpcAdapter = {
   id: 'pi',
@@ -195,7 +195,7 @@ export const PI_RPC_ADAPTER: HarnessRpcAdapter = {
       args.push('--model', input.modelId)
     }
     if (input.thinking) args.push('--thinking', input.thinking)
-    const computerUseSkillPath = input.environment.PISTUDIO_COMPUTER_USE_SKILL_PATH
+    const computerUseSkillPath = input.environment.PTX_COMPUTER_USE_SKILL_PATH
     if (computerUseSkillPath && !unsafeArgValue(computerUseSkillPath)) args.push('--skill', computerUseSkillPath)
     // App capabilities are injected as explicit, self-contained extensions
     // (the same decision as OMP); pi's --skill flag stays unused.
@@ -216,7 +216,7 @@ export const PI_RPC_ADAPTER: HarnessRpcAdapter = {
   normalizeEvent: (event) => event,
   // Pi has no native tier command. Its prompt RPC invokes the bundled private
   // slash command, whose provider hook applies service_tier to supported models.
-  buildServiceTierCommand: (serviceTier) => ({ type: 'prompt', message: `/pistudio-fast-mode ${serviceTier}` }),
+  buildServiceTierCommand: (serviceTier) => ({ type: 'prompt', message: `/ptx-fast-mode ${serviceTier}` }),
   // pi's get_state carries no serviceTier, fastModeEnabled, or contextUsage;
   // context usage flows through the shared get_session_stats path.
   readState: () => ({}),

@@ -136,8 +136,8 @@ describe('extensions on a base pi host (no injected pi.typebox)', () => {
 
   it('collaboration extension registers the same session tools on base pi', async () => {
     vi.resetModules()
-    vi.stubEnv('PISTUDIO_COLLABORATION_URL', 'http://127.0.0.1:1/')
-    vi.stubEnv('PISTUDIO_COLLABORATION_TOKEN', 'token')
+    vi.stubEnv('PTX_COLLABORATION_URL', 'http://127.0.0.1:1/')
+    vi.stubEnv('PTX_COLLABORATION_TOKEN', 'token')
     const factory = (await import('../../assets/extensions/omp-work-collaboration')).default
     const { tools, pi } = piHost()
     await factory(pi as unknown as CollaborationExtensionApi)

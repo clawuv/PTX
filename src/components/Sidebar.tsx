@@ -245,7 +245,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
     setSessionMenuAt({ x: rect.right + 4, y: Math.min(rect.top, Math.max(0, window.innerHeight - 105)) })
   }
   const normalized = query.trim().toLowerCase()
-  const activeProjectName = projects.find((project) => project.id === activeProjectId)?.name ?? 'PiStudio'
+  const activeProjectName = projects.find((project) => project.id === activeProjectId)?.name ?? 'Ptx'
   const visibleProjects = useMemo(() => projects.filter((project) => !normalized || project.name.toLowerCase().includes(normalized) || (sessionsByProject.get(project.id) ?? []).some((session) => `${session.title} ${session.preview ?? ''}`.toLowerCase().includes(normalized))), [projects, sessionsByProject, normalized])
   const renderSessionRow = (session: SessionRecord, selected: boolean) => (
     <div key={session.id} className={`session-row-wrap session-row-wrap--${session.status} ${needsAttention(session) ? 'has-attention' : ''} ${selected && activeSessionId === session.id && activeView === 'session' ? 'is-selected' : ''}`}>

@@ -37,7 +37,7 @@ describe('TerminalService', () => {
     await service.kill(owner, first.terminalId)
   })
   it('runs configured commands without npm prefix overrides while preserving PREFIX', async () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'pistudio-project-run-')); dirs.push(cwd)
+    const cwd = mkdtempSync(join(tmpdir(), 'ptx-project-run-')); dirs.push(cwd)
     const events: Array<{ channel: string; payload: { terminalId?: string; data?: string; exitCode?: number } }> = []
     const owner = {
       id: 47,

@@ -1,12 +1,12 @@
-# PiStudio
+# Ptx
 
-PiStudio is a desktop workspace for [Pi](https://pi.dev/), [OMP](https://github.com/can1357/oh-my-pi), and [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent). It gives all three coding agents the same friendly interface on macOS, Linux, and Windows while leaving each harness in charge of its own models, logins, and saved sessions.
+Ptx is a desktop workspace for [Pi](https://pi.dev/), [OMP](https://github.com/can1357/oh-my-pi), and [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent). It gives all three coding agents the same friendly interface on macOS, Linux, and Windows while leaving each harness in charge of its own models, logins, and saved sessions.
 
-<img width="2234" height="1332" alt="PiStudio desktop workspace" src="https://github.com/user-attachments/assets/864ff0e1-71cc-49da-955f-f226710ef890" />
+<img width="2234" height="1332" alt="Ptx desktop workspace" src="https://github.com/user-attachments/assets/864ff0e1-71cc-49da-955f-f226710ef890" />
 
 ## Three harnesses, one workspace
 
-Use the switcher in the top-left corner to move between Pi Work, OMP Work, and Prime Work. PiStudio detects the harnesses installed on your computer and shows the ones that are ready. You can refresh detection or set a custom executable path in Settings.
+Use the switcher in the top-left corner to move between Pi Work, OMP Work, and Prime Work. Ptx detects the harnesses installed on your computer and shows the ones that are ready. You can refresh detection or set a custom executable path in Settings.
 
 Each harness keeps its own projects, sessions, model list, provider visibility, and running work. Switching harnesses changes the workspace without stopping work already running in another one.
 
@@ -32,7 +32,7 @@ You only need one harness to get started:
 - Add local folders and reopen sessions grouped by project.
 - Search projects, chats, and branches from the sidebar.
 - Switch between linked Git worktrees from the composer.
-- Create a branch worktree and open it as a new PiStudio workspace.
+- Create a branch worktree and open it as a new Ptx workspace.
 - Mention another top-level session with `@session`, copy its UUID, or let agents create and message model-selected sessions for parallel work.
 
 ### Use the built-in coding workspace
@@ -45,7 +45,7 @@ You only need one harness to get started:
 ### Browse with shared context
 
 - Use an isolated in-app browser with an address bar, navigation history, downloads, and an external-browser handoff.
-- Point at page elements and add notes. PiStudio attaches those annotations to your next message.
+- Point at page elements and add notes. Ptx attaches those annotations to your next message.
 - Enable browser control so an agent can open and operate its own tabs. You can watch its cursor and work in the same tabs when you want to take over.
 
 ### Automate repeat work
@@ -53,14 +53,14 @@ You only need one harness to get started:
 - Create one-time or recurring schedules for the active harness.
 - Pick the project or existing session, model, reasoning level, timezone, and Fast mode.
 - Run a schedule immediately, pause or resume it, and inspect the result and run history.
-- Manage Prime heartbeats alongside PiStudio schedules when Prime Agent exposes them.
-- On macOS, opt in under **Settings → General** to keep scheduled work running from the menu bar after closing the window, and optionally launch PiStudio in the background at login. The packaged app also accepts `--background` to start without opening its window.
+- Manage Prime heartbeats alongside Ptx schedules when Prime Agent exposes them.
+- On macOS, opt in under **Settings → General** to keep scheduled work running from the menu bar after closing the window, and optionally launch Ptx in the background at login. The packaged app also accepts `--background` to start without opening its window.
 
 ### Add capabilities
 
-The Capabilities page brings together packages, plugins, extensions, skills, prompts, and MCP servers. PiStudio can manage local stdio MCP definitions for OMP and adapter-enabled Pi. Network MCP and authentication stay under the selected harness's direct control; those entries are visible but read-only in PiStudio, with bounded definition-only removal available for cleanup. MCP discovery has an independent 2,500-definition-per-settings-file limit and reports an explicit warning when that limit is exceeded, so unrelated capabilities cannot hide supported MCP rows.
+The Capabilities page brings together packages, plugins, extensions, skills, prompts, and MCP servers. Ptx can manage local stdio MCP definitions for OMP and adapter-enabled Pi. Network MCP and authentication stay under the selected harness's direct control; those entries are visible but read-only in Ptx, with bounded definition-only removal available for cleanup. MCP discovery has an independent 2,500-definition-per-settings-file limit and reports an explicit warning when that limit is exceeded, so unrelated capabilities cannot hide supported MCP rows.
 
-PiStudio also ships optional capabilities for:
+Ptx also ships optional capabilities for:
 
 - Let an agent ask you a small set of questions in a native dialog.
 - Give agents controlled access to the in-app browser.
@@ -72,7 +72,7 @@ Ask User and computer control are off by default. You can enable, disable, or re
 
 - Dictate prompts with OpenAI, Groq, Deepgram, or a local `whisper.cpp` installation.
 - Open the realtime voice companion to search, discuss work, and start a task in the currently selected harness.
-- Choose an animated desktop pet that reacts while an agent works and carries the realtime voice controls. PiStudio includes the Orb and PiStudio pets and can discover compatible Codex pets.
+- Choose an animated desktop pet that reacts while an agent works and carries the realtime voice controls. Ptx includes the Orb and Ptx pets and can discover compatible Codex pets.
 
 ### Make it comfortable
 
@@ -84,10 +84,10 @@ Ask User and computer control are off by default. You can enable, disable, or re
 
 1. Install Pi, OMP, Prime Agent, or any combination of the three.
 2. Sign in or configure a model provider through each harness's own CLI.
-3. Download PiStudio from [GitHub Releases](https://github.com/am-will/pi-studio/releases), or run it from source.
+3. Download Ptx from [GitHub Releases](https://github.com/am-will/pi-studio/releases), or run it from source.
 4. Add a project folder and start a session.
 
-PiStudio checks common install locations automatically. If a harness is missing, open **Settings → Harness** to refresh detection or choose its executable.
+Ptx checks common install locations automatically. If a harness is missing, open **Settings → Harness** to refresh detection or choose its executable.
 
 GitHub Releases provides a DMG and ZIP for macOS, common Linux package formats plus AppImage, and a Windows installer and ZIP.
 
@@ -126,7 +126,7 @@ node node_modules/electron/install.js
 npm run dev
 ```
 
-`npm install --ignore-scripts` skips both Electron's platform download and the native dependency rebuild, so it is not enough on its own for running PiStudio from source. If you used it, the recovery sequence below runs those two steps explicitly.
+`npm install --ignore-scripts` skips both Electron's platform download and the native dependency rebuild, so it is not enough on its own for running Ptx from source. If you used it, the recovery sequence below runs those two steps explicitly.
 
 `node-pty` is a native dependency. If Electron cannot rebuild it with your default Python environment, point npm at a Python installation with the required build tools:
 
@@ -158,7 +158,7 @@ The Queue and Steer shortcuts can be swapped in **Settings → Harness → Messa
 
 ## Local data and safety
 
-PiStudio is built around local projects and local harness sessions. It does not rewrite session history or take ownership of Pi, OMP, or Prime Agent credentials.
+Ptx is built around local projects and local harness sessions. It does not rewrite session history or take ownership of Pi, OMP, or Prime Agent credentials.
 
 Remote pages open in a separate browser profile with Node access disabled. Project paths and desktop actions are checked in the main process, and third-party capabilities still run with your operating-system permissions. Review packages, commands, MCP servers, and projects before allowing them to act.
 
@@ -190,4 +190,4 @@ Build packages on their target operating system so native dependencies match the
 
 ## License
 
-PiStudio is released under the permissive [MIT License](LICENSE). See the [license text](LICENSE) for details.
+Ptx is released under the permissive [MIT License](LICENSE). See the [license text](LICENSE) for details.

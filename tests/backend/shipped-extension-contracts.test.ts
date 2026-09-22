@@ -101,7 +101,7 @@ const expectedRegistrations: Record<string, Registration[]> = {
     ...['scheduled_tasks_list', 'scheduled_task_create_once', 'scheduled_task_create_recurring', 'scheduled_task_update', 'scheduled_task_manage'].map((name) => ({ kind: 'tool' as const, name })),
   ],
   'pi-work-fast-mode.ts': [
-    { kind: 'command', name: 'pistudio-fast-mode' },
+    { kind: 'command', name: 'ptx-fast-mode' },
     { kind: 'event', name: 'before_provider_request' },
   ],
 }
@@ -109,7 +109,7 @@ const expectedRegistrations: Record<string, Registration[]> = {
 const brokerVariables: Partial<Record<ExtensionInjection['capability'], readonly [string, string]>> = {
   browser: ['PRIME_WORK_BROWSER_URL', 'PRIME_WORK_BROWSER_TOKEN'],
   schedule: ['PRIME_WORK_SCHEDULE_URL', 'PRIME_WORK_SCHEDULE_TOKEN'],
-  collaboration: ['PISTUDIO_COLLABORATION_URL', 'PISTUDIO_COLLABORATION_TOKEN'],
+  collaboration: ['PTX_COLLABORATION_URL', 'PTX_COLLABORATION_TOKEN'],
 }
 
 async function loadExtension(injection: ExtensionInjection, configured: boolean) {

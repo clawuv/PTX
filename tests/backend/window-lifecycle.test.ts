@@ -32,16 +32,16 @@ describe('application window lifecycle', () => {
   it('gives migration failures a dedicated actionable startup dialog', () => {
     const migration = new StateMigrationError(
       'Legacy authority retirement failed.',
-      'C:\\Users\\alice\\PiStudio\\prime-work-state-v4.json',
-      'C:\\Users\\alice\\PiStudio\\prime-work-state.json',
-      'C:\\Users\\alice\\PiStudio\\prime-work-state.json.migrated-v4-backup',
+      'C:\\Users\\alice\\Ptx\\prime-work-state-v4.json',
+      'C:\\Users\\alice\\Ptx\\prime-work-state.json',
+      'C:\\Users\\alice\\Ptx\\prime-work-state.json.migrated-v4-backup',
     )
 
     expect(startupFailureDialog(migration)).toMatchObject({
-      title: 'PiStudio state migration failed',
+      title: 'Ptx state migration failed',
       detail: expect.stringMatching(/startup stopped.*retry.*prime-work-state-v4\.json.*prime-work-state\.json.*migrated-v4-backup.*do not delete/i),
     })
-    expect(startupFailureDialog(new UnsupportedStateVersionError(99, '/tmp/state.json'))?.title).toBe('PiStudio update required')
+    expect(startupFailureDialog(new UnsupportedStateVersionError(99, '/tmp/state.json'))?.title).toBe('Ptx update required')
     expect(startupFailureDialog(new Error('ordinary startup failure'))).toBeNull()
   })
 
@@ -115,7 +115,7 @@ describe('application window lifecycle', () => {
   })
 
   it('resolves packaged renderer assets with Windows path separators', () => {
-    const root = 'C:\\PiStudio\\resources\\app.asar\\out\\renderer'
+    const root = 'C:\\Ptx\\resources\\app.asar\\out\\renderer'
     expect(resolveRendererAssetPath(root, '/index.html')).toBe(`${root}\\index.html`)
     expect(resolveRendererAssetPath(root, '/../main/index.js')).toBeNull()
     expect(resolveRendererAssetPath(root, '/assets/app.css')).toBe(`${root}\\assets\\app.css`)
@@ -142,32 +142,32 @@ describe('application window lifecycle', () => {
 
     expect(activeShutdownWork(runtimes, true)).toEqual({ runningAgents: 4, activeSchedules: true })
     expect(shutdownPrompt({ runningAgents: 4, activeSchedules: true })).toEqual({
-      message: 'Close PiStudio while an agent is running?',
-      detail: '4 agent runs are still in progress and will be stopped. Scheduled automations will not run while PiStudio is closed.',
+      message: 'Close Ptx while an agent is running?',
+      detail: '4 agent runs are still in progress and will be stopped. Scheduled automations will not run while Ptx is closed.',
     })
     expect(shutdownPrompt({ runningAgents: 1, activeSchedules: false })).toEqual({
-      message: 'Close PiStudio while an agent is running?',
+      message: 'Close Ptx while an agent is running?',
       detail: 'An agent run is still in progress and will be stopped.',
     })
     expect(shutdownPrompt({ runningAgents: 0, activeSchedules: true })).toEqual({
-      message: 'Close PiStudio?',
-      detail: 'Scheduled automations will not run while PiStudio is closed.',
+      message: 'Close Ptx?',
+      detail: 'Scheduled automations will not run while Ptx is closed.',
     })
   })
 
   it('defaults to cancel and uses the non-blocking dialog', async () => {
     const window = { isDestroyed: () => false } as unknown as BrowserWindow
-    const prompt = { message: 'Close PiStudio?', detail: 'Scheduled automations will not run while PiStudio is closed.' }
+    const prompt = { message: 'Close Ptx?', detail: 'Scheduled automations will not run while Ptx is closed.' }
     electron.dialog.showMessageBox.mockResolvedValueOnce({ response: 0 })
 
     await expect(confirmAppClose(window, prompt)).resolves.toBe(false)
     expect(electron.dialog.showMessageBox).toHaveBeenCalledWith(window, {
       type: 'warning',
-      buttons: ['Cancel', 'Close PiStudio'],
+      buttons: ['Cancel', 'Close Ptx'],
       defaultId: 0,
       cancelId: 0,
       noLink: true,
-      title: 'PiStudio',
+      title: 'Ptx',
       ...prompt,
     })
 
@@ -181,19 +181,19 @@ describe('application window lifecycle', () => {
 
   it('localizes the close confirmation for Simplified Chinese', () => {
     expect(shutdownPrompt({ runningAgents: 2, activeSchedules: false }, 'zh-CN')).toEqual({
-      message: '有代理任务正在运行，仍要关闭 PiStudio 吗？',
+      message: '有代理任务正在运行，仍要关闭 Ptx 吗？',
       detail: '2 个代理任务仍在运行，关闭后将被停止。',
     })
     expect(shutdownPrompt({ runningAgents: 0, activeSchedules: true }, 'zh-CN')).toEqual({
-      message: '要关闭 PiStudio 吗？',
-      detail: '关闭 PiStudio 后，定时自动化任务将不会运行。',
+      message: '要关闭 Ptx 吗？',
+      detail: '关闭 Ptx 后，定时自动化任务将不会运行。',
     })
 
     const window = { isDestroyed: () => false } as unknown as BrowserWindow
     electron.dialog.showMessageBox.mockResolvedValueOnce({ response: 1 })
-    void confirmAppClose(window, { message: '要关闭 PiStudio 吗？', detail: '' }, 'zh-CN')
+    void confirmAppClose(window, { message: '要关闭 Ptx 吗？', detail: '' }, 'zh-CN')
     expect(electron.dialog.showMessageBox).toHaveBeenLastCalledWith(window, expect.objectContaining({
-      buttons: ['取消', '关闭 PiStudio'],
+      buttons: ['取消', '关闭 Ptx'],
     }))
   })
 

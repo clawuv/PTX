@@ -57,24 +57,24 @@ function voiceSecretStorageStatus(platform: NodeJS.Platform, encryptionAvailable
   if (platform === 'linux' && backend === 'basic_text') {
     return {
       available: false,
-      message: 'PiStudio will not save voice API keys because this Linux desktop is using unprotected basic-text storage. Install and unlock GNOME Keyring (libsecret) or KWallet, then restart PiStudio.',
+      message: 'Ptx will not save voice API keys because this Linux desktop is using unprotected basic-text storage. Install and unlock GNOME Keyring (libsecret) or KWallet, then restart Ptx.',
     }
   }
   if (platform === 'linux' && backend === 'unknown') {
     return {
       available: false,
-      message: 'PiStudio cannot access a secure Linux credential store yet. Start it from a desktop session with GNOME Keyring (libsecret) or KWallet installed and unlocked, then restart PiStudio.',
+      message: 'Ptx cannot access a secure Linux credential store yet. Start it from a desktop session with GNOME Keyring (libsecret) or KWallet installed and unlocked, then restart Ptx.',
     }
   }
   if (!encryptionAvailable) {
     return platform === 'linux'
       ? {
           available: false,
-          message: 'PiStudio cannot find a secure Linux credential store. Install and unlock GNOME Keyring (libsecret) or KWallet, then restart PiStudio.',
+          message: 'Ptx cannot find a secure Linux credential store. Install and unlock GNOME Keyring (libsecret) or KWallet, then restart Ptx.',
         }
       : {
           available: false,
-          message: 'PiStudio cannot access your operating system’s secure credential store. Unlock or repair it, then restart PiStudio.',
+          message: 'Ptx cannot access your operating system’s secure credential store. Unlock or repair it, then restart Ptx.',
         }
   }
   return { available: true }
@@ -272,7 +272,7 @@ class VoiceSecretStore {
 function orchestrationInstructions(harness: HarnessId): string {
   const harnessName = HARNESSES[harness].agentName
   return [
-    'You are the voice orchestrator inside PiStudio, a desktop client for the Prime Agent, OMP, and Pi harnesses.',
+    'You are the voice orchestrator inside Ptx, a desktop client for the Prime Agent, OMP, and Pi harnesses.',
     `This voice session is locked to the currently selected ${harnessName} harness. Never switch harnesses.`,
     'Be concise and conversational. Answer general questions directly.',
     'Use get_local_context for the local date, time, time zone, approximate location, locale, or selected harness. Use search_web for current information. Use list_projects to resolve a project within the selected harness. Use list_models to resolve a requested model and its supported reasoning levels.',
@@ -311,7 +311,7 @@ function realtimeSession(settings: AppSettings, harness: HarnessId): Record<stri
       },
       {
         type: 'function', name: 'list_models',
-        description: `Find task models available from providers currently shown as active in PiStudio for the selected ${harnessName} harness. Search with the user’s approximate model wording; hidden, disabled, and unavailable models are never returned. Each result includes the exact key and supported reasoning levels.`,
+        description: `Find task models available from providers currently shown as active in Ptx for the selected ${harnessName} harness. Search with the user’s approximate model wording; hidden, disabled, and unavailable models are never returned. Each result includes the exact key and supported reasoning levels.`,
         parameters: {
           type: 'object', additionalProperties: false,
           properties: {

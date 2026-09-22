@@ -17,7 +17,7 @@ import { cursorMarkerScript, elementAtPointScript, evaluateScript, pageInfoScrip
 function logNavigationFailure(url: string, error: unknown): void {
   const message = error instanceof Error ? error.message : String(error)
   if (message.includes('ERR_ABORTED')) return
-  console.warn(`PiStudio browser could not load ${url}: ${message}`)
+  console.warn(`Ptx browser could not load ${url}: ${message}`)
 }
 
 const MAX_TABS_PER_SESSION = 6
@@ -227,7 +227,7 @@ export class AgentBrowserService {
     else if (action === 'reload') guest.reload()
     else if (action === 'url') {
       const url = requireString(urlValue, 'url', { min: 1, max: 2048, trim: true })
-      if (!isAllowedTabUrl(url)) throw new Error('Only credential-free http(s) URLs can be opened in the PiStudio browser')
+      if (!isAllowedTabUrl(url)) throw new Error('Only credential-free http(s) URLs can be opened in the Ptx browser')
       guest.loadURL(url).catch((error: unknown) => logNavigationFailure(url, error))
     } else throw new TypeError('action must be back, forward, reload, or url')
     return true
@@ -353,10 +353,10 @@ export class AgentBrowserService {
   async openTab(sessionKey: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
     this.requireOpen()
     const url = params.url === undefined ? 'about:blank' : requireString(params.url, 'url', { min: 1, max: 2048, trim: true })
-    if (!isAllowedTabUrl(url)) throw new Error('Only credential-free http(s) URLs can be opened in the PiStudio browser')
+    if (!isAllowedTabUrl(url)) throw new Error('Only credential-free http(s) URLs can be opened in the Ptx browser')
     const sessionTabs = [...this.tabs.values()].filter((tab) => tab.sessionKey === sessionKey)
     if (sessionTabs.length >= MAX_TABS_PER_SESSION) throw new Error(`This thread already has ${MAX_TABS_PER_SESSION} browser tabs. Close one with browser_tabs before opening another.`)
-    if (this.tabs.size >= MAX_TABS_TOTAL) throw new Error('PiStudio has too many open agent browser tabs. Close unused tabs first.')
+    if (this.tabs.size >= MAX_TABS_TOTAL) throw new Error('Ptx has too many open agent browser tabs. Close unused tabs first.')
     const tab: TabState = {
       tabId: `bt-${randomBytes(6).toString('hex')}`,
       sessionKey,
@@ -432,7 +432,7 @@ export class AgentBrowserService {
     return this.withTab(sessionKey, params, async (tab, guest) => {
       if (params.url !== undefined) {
         const url = requireString(params.url, 'url', { min: 1, max: 2048, trim: true })
-        if (!isAllowedTabUrl(url)) throw new Error('Only credential-free http(s) URLs can be opened in the PiStudio browser')
+        if (!isAllowedTabUrl(url)) throw new Error('Only credential-free http(s) URLs can be opened in the Ptx browser')
         await this.loadAndSettle(guest, url)
       } else {
         const action = requireString(params.action, 'action', { min: 1, max: 16, trim: true })
@@ -600,7 +600,7 @@ export class AgentBrowserService {
   // ---- internals -----------------------------------------------------------
 
   private requireOpen(): void {
-    if (this.closed) throw new Error('PiStudio is shutting down')
+    if (this.closed) throw new Error('Ptx is shutting down')
   }
 
   private requireTab(tabIdValue: unknown): TabState {
@@ -692,7 +692,7 @@ export class AgentBrowserService {
         reject,
         timer: setTimeout(() => {
           tab.attachWaiters = tab.attachWaiters.filter((candidate) => candidate !== waiter)
-          reject(new Error('The PiStudio browser pane did not attach this tab. Make sure the PiStudio window is open.'))
+          reject(new Error('The Ptx browser pane did not attach this tab. Make sure the Ptx window is open.'))
         }, this.attachTimeoutMs),
       }
       waiter.timer.unref?.()

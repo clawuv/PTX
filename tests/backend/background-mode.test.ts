@@ -90,10 +90,10 @@ beforeEach(() => {
 
 describe('macOS background startup', () => {
   it('recognizes login launches and the explicit flag only on macOS', () => {
-    expect(shouldStartInBackground(['/Applications/PiStudio', '--background'], false, 'darwin')).toBe(true)
-    expect(shouldStartInBackground(['/Applications/PiStudio'], true, 'darwin')).toBe(true)
-    expect(shouldStartInBackground(['/Applications/PiStudio'], false, 'darwin')).toBe(false)
-    expect(shouldStartInBackground(['PiStudio.exe', '--background'], true, 'win32')).toBe(false)
+    expect(shouldStartInBackground(['/Applications/Ptx', '--background'], false, 'darwin')).toBe(true)
+    expect(shouldStartInBackground(['/Applications/Ptx'], true, 'darwin')).toBe(true)
+    expect(shouldStartInBackground(['/Applications/Ptx'], false, 'darwin')).toBe(false)
+    expect(shouldStartInBackground(['Ptx.exe', '--background'], true, 'win32')).toBe(false)
   })
 
   it('starts normally without a tray or login-item mutation by default in development', () => {
@@ -132,7 +132,7 @@ describe('MacBackgroundController', () => {
     expect(electron.nativeImage.createFromPath).toHaveBeenCalledWith('/app/icon.png')
     expect(electron.trayImage.resize).toHaveBeenCalledWith({ width: 18, height: 18 })
     expect(electron.trayImage.setTemplateImage).toHaveBeenCalledWith(true)
-    expect(electron.templates[0].map((item) => item.label ?? item.type)).toEqual(['Open PiStudio', 'separator', 'Settings...', 'Quit'])
+    expect(electron.templates[0].map((item) => item.label ?? item.type)).toEqual(['Open Ptx', 'separator', 'Settings...', 'Quit'])
     expect(electron.templates[0].every((item) => item.accelerator === undefined)).toBe(true)
     expect(electron.templates[0].filter((item) => item.label).every((item) => item.icon)).toBe(true)
     expect(electron.nativeImage.createFromDataURL).toHaveBeenCalledTimes(3)
@@ -210,7 +210,7 @@ describe('MacBackgroundController', () => {
     controller.applySettings(base, chinese)
 
     const labels = electron.templates.at(-1)?.map((item) => item.label ?? item.type)
-    expect(labels).toEqual(['打开 PiStudio', 'separator', '设置...', '退出'])
+    expect(labels).toEqual(['打开 Ptx', 'separator', '设置...', '退出'])
     expect(electron.trays[0].destroy).not.toHaveBeenCalled()
   })
 })

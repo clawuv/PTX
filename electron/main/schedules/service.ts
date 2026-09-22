@@ -179,7 +179,7 @@ export class AutomationService {
           if (run.status !== 'queued' && run.status !== 'running') continue
           run.status = 'interrupted'
           run.finishedAt = finishedAt
-          run.error = 'PiStudio quit before this run could finish.'
+          run.error = 'Ptx quit before this run could finish.'
         }
       }
     })
@@ -251,7 +251,7 @@ export class AutomationService {
       runs: [],
     }
     await this.store.update((state) => {
-      if (state.schedules.length >= MAX_TASKS) throw new Error(`PiStudio supports at most ${MAX_TASKS} scheduled tasks`)
+      if (state.schedules.length >= MAX_TASKS) throw new Error(`Ptx supports at most ${MAX_TASKS} scheduled tasks`)
       state.schedules.push(task)
     })
     this.changed({ taskId: task.id, reason: 'created' })
@@ -424,7 +424,7 @@ export class AutomationService {
     const run: ScheduleRunRecord = {
       id: randomUUID(), taskId: snapshot.id, taskRevision: snapshot.revision, trigger: 'scheduled',
       scheduledFor, queuedAt: now.toISOString(), finishedAt: now.toISOString(), status: 'skipped',
-      execution: snapshot.execution, skippedCount: Math.max(1, missed), error: 'PiStudio was not available when this task was due.',
+      execution: snapshot.execution, skippedCount: Math.max(1, missed), error: 'Ptx was not available when this task was due.',
     }
     await this.store.update((state) => {
       const task = state.schedules.find((candidate) => candidate.id === snapshot.id)
@@ -593,7 +593,7 @@ export class AutomationService {
       current.consecutiveFailures = (current.consecutiveFailures ?? 0) + 1
       if (current.consecutiveFailures < MAX_CONSECUTIVE_FAILURES || current.status !== 'active') return
       current.status = 'blocked'
-      current.blockedReason = `PiStudio paused this task automatically after ${MAX_CONSECUTIVE_FAILURES} consecutive failed runs. Last error: ${error}`
+      current.blockedReason = `Ptx paused this task automatically after ${MAX_CONSECUTIVE_FAILURES} consecutive failed runs. Last error: ${error}`
       current.nextRunAt = undefined
       current.updatedAt = finishedAt
     })

@@ -17,7 +17,7 @@ function createTempDir(prefix: string): string {
 }
 
 function service(options: { openExternal?: (url: string) => Promise<void> } = {}): PrimeProviderService {
-  const dir = createTempDir('pistudio-provider-mcp-')
+  const dir = createTempDir('ptx-provider-mcp-')
   return new PrimeProviderService({
     authPath: join(dir, 'auth.json'),
     modelsPath: join(dir, 'models.json'),
@@ -32,8 +32,8 @@ describe('MCP OAuth boundary', () => {
     vi.stubGlobal('fetch', fetchMock)
     const providerService = service({ openExternal })
 
-    await expect(providerService.startOAuth('mcp:notion')).rejects.toThrow('Network MCP authentication is managed outside PiStudio')
-    await expect(providerService.saveApiKey('mcp:custom-server', 'secret')).rejects.toThrow('Network MCP authentication is managed outside PiStudio')
+    await expect(providerService.startOAuth('mcp:notion')).rejects.toThrow('Network MCP authentication is managed outside Ptx')
+    await expect(providerService.saveApiKey('mcp:custom-server', 'secret')).rejects.toThrow('Network MCP authentication is managed outside Ptx')
     expect(fetchMock).not.toHaveBeenCalled()
     expect(openExternal).not.toHaveBeenCalled()
   })

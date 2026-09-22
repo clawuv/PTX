@@ -8,7 +8,7 @@ const dirs: string[] = []
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }) })
 
 function makeRoot(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'pistudio-extension-install-'))
+  const dir = mkdtempSync(join(tmpdir(), 'ptx-extension-install-'))
   dirs.push(dir)
   return realpathSync(dir)
 }

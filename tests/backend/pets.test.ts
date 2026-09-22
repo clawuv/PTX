@@ -8,7 +8,7 @@ const roots: string[] = []
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
 
 function makeRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), 'pistudio-pets-'))
+  const root = mkdtempSync(join(tmpdir(), 'ptx-pets-'))
   roots.push(root)
   return root
 }
@@ -26,15 +26,15 @@ describe('PetService', () => {
     const root = makeRoot()
     const builtInRoot = join(root, 'built-in')
     const codexRoot = join(root, 'codex')
-    writePet(builtInRoot, 'pi-studio', 'pi-studio', 'PiStudio')
-    writePet(codexRoot, 'pi-studio', 'pi-studio', 'Duplicate PiStudio')
+    writePet(builtInRoot, 'pi-studio', 'pi-studio', 'Ptx')
+    writePet(codexRoot, 'pi-studio', 'pi-studio', 'Duplicate Ptx')
     writePet(codexRoot, 'rocky', 'rocky', 'Rocky')
     const service = new PetService({ builtInRoot, codexRoot })
 
     const pets = await service.list()
     expect(pets.map((pet) => [pet.id, pet.displayName, pet.source])).toEqual([
       ['orb', 'Orb', 'built-in'],
-      ['pi-studio', 'PiStudio', 'built-in'],
+      ['pi-studio', 'Ptx', 'built-in'],
       ['codex/rocky', 'Rocky', 'codex'],
     ])
     await expect(service.sprite('pi-studio')).resolves.toMatch(/^data:image\/webp;base64,/)
@@ -47,7 +47,7 @@ describe('PetService', () => {
     const root = makeRoot()
     const builtInRoot = join(root, 'built-in')
     const codexRoot = join(root, 'codex')
-    writePet(builtInRoot, 'pi-studio', 'pi-studio', 'PiStudio')
+    writePet(builtInRoot, 'pi-studio', 'pi-studio', 'Ptx')
     writePet(codexRoot, 'bad-manifest', 'bad id', 'Bad')
     const target = writePet(codexRoot, 'target', 'target', 'Target')
     symlinkSync(target, join(codexRoot, 'linked'))

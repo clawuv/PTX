@@ -16,7 +16,7 @@ import { findUnpackedDirectory, packagedExecutablePath } from './verify-cross-pl
  * electron/main/packaged-smoke.ts by tests/packaged-smoke.test.ts.
  */
 export const PACKAGED_SMOKE_FLAG = '--packaged-smoke='
-export const PACKAGED_SMOKE_READY_EVENT = 'pistudio-packaged-smoke-ready'
+export const PACKAGED_SMOKE_READY_EVENT = 'ptx-packaged-smoke-ready'
 export const MAX_MARKER_BYTES = 4 * 1024
 export const MAX_DIAGNOSTICS_BYTES = 64 * 1024
 export const SMOKE_TIMEOUT_MS = 45_000
@@ -148,7 +148,7 @@ export async function smokePackagedApp(target, architecture, { timeoutMs = SMOKE
   try {
     const unpacked = findUnpackedDirectory(outputDirectory, target)
     const executable = packagedExecutablePath(unpacked, target)
-    workspace = mkdtempSync(join(tmpdir(), 'pistudio-packaged-smoke-'))
+    workspace = mkdtempSync(join(tmpdir(), 'ptx-packaged-smoke-'))
     const markerPath = join(workspace, 'ready.json')
     launch = await runPackagedApp(executable, smokeArguments(markerPath, join(workspace, 'user-data')), { cwd: unpacked, timeoutMs })
     if (launch.timedOut) throw new Error(`Packaged application did not report renderer readiness within ${timeoutMs}ms`)

@@ -5,10 +5,10 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { readSessionMetadata } from '../../electron/main/sessions/metadata'
 import { readTranscript } from '../../electron/main/sessions/transcript'
-import { configurePiStudioAgentMessageSigning, encodePiStudioAgentMessage, loadOrCreatePiStudioAgentMessageKey, parsePiStudioAgentMessage } from '../../electron/main/collaboration/message-envelope'
+import { configurePtxAgentMessageSigning, encodePtxAgentMessage, loadOrCreatePtxAgentMessageKey, parsePtxAgentMessage } from '../../electron/main/collaboration/message-envelope'
 
 const dirs: string[] = []
-configurePiStudioAgentMessageSigning(Buffer.alloc(32, 7))
+configurePtxAgentMessageSigning(Buffer.alloc(32, 7))
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }) })
 
 describe('session file record tolerance', () => {
@@ -34,20 +34,20 @@ describe('session file record tolerance', () => {
   })
 })
 
-describe('PiStudio agent messages', () => {
+describe('Ptx agent messages', () => {
   it('creates and reuses an owner-only signing key in a fresh user-data directory', () => {
     const dir = mkdtempSync(join(tmpdir(), 'prime-work-message-key-'))
     dirs.push(dir)
     const path = join(dir, 'fresh-user-data', 'agent-message-signing.key')
-    const created = loadOrCreatePiStudioAgentMessageKey(path)
+    const created = loadOrCreatePtxAgentMessageKey(path)
     expect(created).toHaveLength(32)
-    expect(loadOrCreatePiStudioAgentMessageKey(path)).toEqual(created)
+    expect(loadOrCreatePtxAgentMessageKey(path)).toEqual(created)
     if (process.platform !== 'win32') expect(statSync(path).mode & 0o777).toBe(0o600)
   })
 
   it('persists a bounded envelope and renders it as a native agent message', async () => {
     const file = makeSessionFile()
-    const envelope = encodePiStudioAgentMessage({
+    const envelope = encodePtxAgentMessage({
       fromSessionId: '019f0000-0000-7000-8000-000000000001',
       text: 'Please coordinate ownership before editing.',
     })
@@ -61,7 +61,7 @@ describe('PiStudio agent messages', () => {
       '',
     ].join('\n'))
 
-    expect(parsePiStudioAgentMessage(envelope)).toEqual({
+    expect(parsePtxAgentMessage(envelope)).toEqual({
       fromSessionId: '019f0000-0000-7000-8000-000000000001',
       text: 'Please coordinate ownership before editing.',
     })
@@ -74,9 +74,9 @@ describe('PiStudio agent messages', () => {
   })
 
   it('leaves malformed envelopes as ordinary user messages', () => {
-    expect(parsePiStudioAgentMessage('===== BEGIN PISTUDIO AGENT MESSAGE =====\n{}\n===== END PISTUDIO AGENT MESSAGE =====\n\nhello')).toBeUndefined()
-    const signed = encodePiStudioAgentMessage({ fromSessionId: 'source', text: 'authentic' })
-    expect(parsePiStudioAgentMessage(signed.replace('authentic', 'forged'))).toBeUndefined()
+    expect(parsePtxAgentMessage('===== BEGIN PTX AGENT MESSAGE =====\n{}\n===== END PTX AGENT MESSAGE =====\n\nhello')).toBeUndefined()
+    const signed = encodePtxAgentMessage({ fromSessionId: 'source', text: 'authentic' })
+    expect(parsePtxAgentMessage(signed.replace('authentic', 'forged'))).toBeUndefined()
   })
 
   it('keeps signed version-1 messages readable without emitting their display metadata again', () => {
@@ -96,14 +96,14 @@ describe('PiStudio agent messages', () => {
       .update(text)
       .digest('base64url')
     const envelope = [
-      '===== BEGIN PISTUDIO AGENT MESSAGE =====',
+      '===== BEGIN PTX AGENT MESSAGE =====',
       JSON.stringify({ ...unsigned, signature }),
-      '===== END PISTUDIO AGENT MESSAGE =====',
+      '===== END PTX AGENT MESSAGE =====',
       '',
       text,
     ].join('\n')
 
-    expect(parsePiStudioAgentMessage(envelope)).toEqual({
+    expect(parsePtxAgentMessage(envelope)).toEqual({
       fromSessionId: 'legacy-source',
       fromTitle: 'Legacy planner title',
       fromHarness: 'prime',

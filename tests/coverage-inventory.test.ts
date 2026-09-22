@@ -100,7 +100,7 @@ describe('safety-critical coverage inventory', () => {
       'assets/extensions/prime-work-browser.ts',
     ])
 
-    const projectRoot = mkdtempSync(join(tmpdir(), 'pistudio-coverage-inventory-'))
+    const projectRoot = mkdtempSync(join(tmpdir(), 'ptx-coverage-inventory-'))
     temporaryDirectories.push(projectRoot)
     mkdirSync(join(projectRoot, 'production', 'nested'), { recursive: true })
     writeFileSync(join(projectRoot, 'production', 'existing.ts'), 'export const existing = true\n')
@@ -122,7 +122,7 @@ describe('safety-critical coverage inventory', () => {
   })
 
   it('rejects a family root that is a symbolic link or not a real directory', () => {
-    const projectRoot = mkdtempSync(join(tmpdir(), 'pistudio-coverage-family-root-'))
+    const projectRoot = mkdtempSync(join(tmpdir(), 'ptx-coverage-family-root-'))
     temporaryDirectories.push(projectRoot)
     mkdirSync(join(projectRoot, 'real-production'))
     writeFileSync(join(projectRoot, 'real-production', 'authority.ts'), 'export const authority = true\n')
@@ -142,7 +142,7 @@ describe('safety-critical coverage inventory', () => {
   })
 
   it('loads the explicit repository config coherently from another working directory', () => {
-    const foreignWorkingDirectory = mkdtempSync(join(tmpdir(), 'pistudio-coverage-config-cwd-'))
+    const foreignWorkingDirectory = mkdtempSync(join(tmpdir(), 'ptx-coverage-config-cwd-'))
     temporaryDirectories.push(foreignWorkingDirectory)
     const result = spawnSync(
       process.execPath,
@@ -154,7 +154,7 @@ describe('safety-critical coverage inventory', () => {
   })
 
   it('measures unexecuted inventoried files whose legal names contain glob metacharacters', () => {
-    const foreignWorkingDirectory = mkdtempSync(join(tmpdir(), 'pistudio-coverage-glob-cwd-'))
+    const foreignWorkingDirectory = mkdtempSync(join(tmpdir(), 'ptx-coverage-glob-cwd-'))
     temporaryDirectories.push(foreignWorkingDirectory)
     const reportsDirectory = join(foreignWorkingDirectory, 'coverage')
     const result = spawnSync(
@@ -164,7 +164,7 @@ describe('safety-critical coverage inventory', () => {
         cwd: foreignWorkingDirectory,
         encoding: 'utf8',
         timeout: 60_000,
-        env: { ...process.env, PISTUDIO_COVERAGE_FIXTURE_REPORTS: reportsDirectory },
+        env: { ...process.env, PTX_COVERAGE_FIXTURE_REPORTS: reportsDirectory },
       },
     )
 
@@ -186,7 +186,7 @@ describe('safety-critical coverage inventory', () => {
   })
 
   it('fails closed for undocumented, duplicate, or stale exclusions', () => {
-    const projectRoot = mkdtempSync(join(tmpdir(), 'pistudio-coverage-exclusions-'))
+    const projectRoot = mkdtempSync(join(tmpdir(), 'ptx-coverage-exclusions-'))
     temporaryDirectories.push(projectRoot)
     mkdirSync(join(projectRoot, 'production'))
     writeFileSync(join(projectRoot, 'production', 'authority.ts'), 'export const authority = true\n')

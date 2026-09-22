@@ -22,7 +22,7 @@ afterEach(() => {
 })
 
 function temporaryStatePath(): string {
-  const directory = mkdtempSync(join(tmpdir(), 'pistudio-privacy-settings-'))
+  const directory = mkdtempSync(join(tmpdir(), 'ptx-privacy-settings-'))
   temporaryDirectories.push(directory)
   return join(directory, 'state.json')
 }

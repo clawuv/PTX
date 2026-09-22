@@ -42,31 +42,31 @@ describe('packaged smoke contract', () => {
 
 describe('packaged smoke argument parsing', () => {
   it('reads an absolute marker path', () => {
-    expect(packagedSmokeMarkerPath(['pistudio', `${PACKAGED_SMOKE_FLAG}/tmp/ready.json`])).toBe('/tmp/ready.json')
+    expect(packagedSmokeMarkerPath(['ptx', `${PACKAGED_SMOKE_FLAG}/tmp/ready.json`])).toBe('/tmp/ready.json')
   })
 
   it('stays inactive without the flag', () => {
-    expect(packagedSmokeMarkerPath(['pistudio', '--user-data-dir=/tmp/data'])).toBeNull()
+    expect(packagedSmokeMarkerPath(['ptx', '--user-data-dir=/tmp/data'])).toBeNull()
   })
 
   it('rejects ambiguous, relative, empty, and multi-line marker paths', () => {
-    expect(() => packagedSmokeMarkerPath(['pistudio', `${PACKAGED_SMOKE_FLAG}/tmp/a.json`, `${PACKAGED_SMOKE_FLAG}/tmp/b.json`])).toThrow('exactly one')
-    expect(() => packagedSmokeMarkerPath(['pistudio', `${PACKAGED_SMOKE_FLAG}ready.json`])).toThrow('absolute single-line')
-    expect(() => packagedSmokeMarkerPath(['pistudio', PACKAGED_SMOKE_FLAG])).toThrow('absolute single-line')
-    expect(() => packagedSmokeMarkerPath(['pistudio', `${PACKAGED_SMOKE_FLAG}/tmp/ready.json\n/etc/passwd`])).toThrow('absolute single-line')
+    expect(() => packagedSmokeMarkerPath(['ptx', `${PACKAGED_SMOKE_FLAG}/tmp/a.json`, `${PACKAGED_SMOKE_FLAG}/tmp/b.json`])).toThrow('exactly one')
+    expect(() => packagedSmokeMarkerPath(['ptx', `${PACKAGED_SMOKE_FLAG}ready.json`])).toThrow('absolute single-line')
+    expect(() => packagedSmokeMarkerPath(['ptx', PACKAGED_SMOKE_FLAG])).toThrow('absolute single-line')
+    expect(() => packagedSmokeMarkerPath(['ptx', `${PACKAGED_SMOKE_FLAG}/tmp/ready.json\n/etc/passwd`])).toThrow('absolute single-line')
   })
 })
 
 describe('packaged smoke launcher invocation', () => {
   it('runs the executable directly when a display is available', () => {
-    expect(launcher.launchCommand('/app/pistudio', ['--flag'], { platform: 'linux', display: ':0' })).toEqual({ command: '/app/pistudio', args: ['--flag'] })
-    expect(launcher.launchCommand('C:\\app\\PiStudio.exe', ['--flag'], { platform: 'win32', display: '' })).toEqual({ command: 'C:\\app\\PiStudio.exe', args: ['--flag'] })
+    expect(launcher.launchCommand('/app/ptx', ['--flag'], { platform: 'linux', display: ':0' })).toEqual({ command: '/app/ptx', args: ['--flag'] })
+    expect(launcher.launchCommand('C:\\app\\Ptx.exe', ['--flag'], { platform: 'win32', display: '' })).toEqual({ command: 'C:\\app\\Ptx.exe', args: ['--flag'] })
   })
 
   it('wraps a headless Linux launch in a virtual display', () => {
-    expect(launcher.launchCommand('/app/pistudio', ['--flag'], { platform: 'linux', display: '' })).toEqual({
+    expect(launcher.launchCommand('/app/ptx', ['--flag'], { platform: 'linux', display: '' })).toEqual({
       command: 'xvfb-run',
-      args: ['--auto-servernum', '--server-args=-screen 0 1280x720x24', '/app/pistudio', '--flag'],
+      args: ['--auto-servernum', '--server-args=-screen 0 1280x720x24', '/app/ptx', '--flag'],
     })
   })
 
@@ -106,7 +106,7 @@ describe('packaged smoke launch', () => {
   let unpacked: string
 
   const writeFakeApplication = (script: string): void => {
-    const executable = join(unpacked, 'pistudio')
+    const executable = join(unpacked, 'ptx')
     writeFileSync(executable, `#!/usr/bin/env bash\nset -euo pipefail\n${script}\n`, { encoding: 'utf8' })
     chmodSync(executable, 0o755)
   }
@@ -114,7 +114,7 @@ describe('packaged smoke launch', () => {
   const markerArgument = 'for argument in "$@"; do case "$argument" in --packaged-smoke=*) marker="${argument#--packaged-smoke=}";; esac; done'
 
   beforeAll(() => {
-    sandbox = mkdtempSync(join(tmpdir(), 'pistudio-smoke-test-'))
+    sandbox = mkdtempSync(join(tmpdir(), 'ptx-smoke-test-'))
     unpacked = join(sandbox, 'release', 'linux', 'x64', 'linux-unpacked')
     mkdirSync(unpacked, { recursive: true })
     // The launcher resolves the release tree relative to the working directory,
@@ -132,7 +132,7 @@ describe('packaged smoke launch', () => {
     rmSync(join(sandbox, 'release', 'linux', 'x64', 'packaged-smoke-diagnostics.log'), { force: true })
   })
 
-  const temporaryWorkspaces = (): string[] => readdirSync(tmpdir()).filter((name) => name.startsWith('pistudio-packaged-smoke-'))
+  const temporaryWorkspaces = (): string[] => readdirSync(tmpdir()).filter((name) => name.startsWith('ptx-packaged-smoke-'))
 
   it('accepts an application that reports readiness and leaves no temporary state', async () => {
     writeFakeApplication(`${markerArgument}\nprintf '{"event":"${PACKAGED_SMOKE_READY_EVENT}","url":"${PACKAGED_RENDERER_URL}","version":"9.9.9"}' > "$marker"`)
@@ -171,7 +171,7 @@ describe('packaged smoke launch', () => {
   })
 
   it('reports a missing packaged executable rather than launching something else', async () => {
-    rmSync(join(unpacked, 'pistudio'), { force: true })
+    rmSync(join(unpacked, 'ptx'), { force: true })
 
     await expect(launcher.smokePackagedApp('linux', 'x64')).rejects.toThrow('missing its executable')
 

@@ -262,7 +262,7 @@ describe('transcript rendering', () => {
 
   it('hides model-only session UUID routing from the visible user transcript', () => {
     const html = render([{
-      id: 'session-reference', role: 'user', parts: [{ type: 'text', text: 'Coordinate with @API owner.\n\n===== BEGIN PISTUDIO SESSION REFERENCES =====\n- "@API owner": prime session UUID secret-uuid. Use session_read.\n===== END PISTUDIO SESSION REFERENCES =====' }],
+      id: 'session-reference', role: 'user', parts: [{ type: 'text', text: 'Coordinate with @API owner.\n\n===== BEGIN PTX SESSION REFERENCES =====\n- "@API owner": prime session UUID secret-uuid. Use session_read.\n===== END PTX SESSION REFERENCES =====' }],
     }])
     expect(html).toContain('Coordinate with ')
     expect(html).toContain('>@API owner</button>.')
@@ -270,7 +270,7 @@ describe('transcript rendering', () => {
     expect(html).toContain('type="button"')
     expect(html).toContain('aria-label="Open session API owner"')
     expect(html).not.toContain('secret-uuid')
-    expect(html).not.toContain('PISTUDIO SESSION REFERENCES')
+    expect(html).not.toContain('PTX SESSION REFERENCES')
   })
 
   it('renders goal summaries as collapsed disclosures rather than system errors', () => {

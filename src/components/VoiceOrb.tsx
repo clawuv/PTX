@@ -114,7 +114,7 @@ export function VoiceOrb({ voice, harness, onClose, onTaskStarted, pet, focusPet
       if (!active || channel.readyState !== 'open' || responseActive || pendingToolCalls > 0 || !continuationPending) return
       continuationPending = false
       responseActive = true
-      pendingResponseCreateEventId = `pistudio-response-${Date.now().toString(36)}-${++clientEventSequence}`
+      pendingResponseCreateEventId = `ptx-response-${Date.now().toString(36)}-${++clientEventSequence}`
       channel.send(JSON.stringify({ type: 'response.create', event_id: pendingResponseCreateEventId }))
     }
 

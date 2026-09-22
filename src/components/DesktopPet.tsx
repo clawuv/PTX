@@ -9,14 +9,14 @@ interface Position { x: number; y: number }
 interface DragState { pointerId: number; dx: number; dy: number; lastX: number; lastY: number; moved: boolean }
 
 const BUILT_INS: PetDefinition[] = [
-  { id: 'orb', petId: 'orb', displayName: 'Orb', description: 'A fluid voice orb that shifts with PiStudio activity.', source: 'built-in', kind: 'orb' },
-  { id: 'pi-studio', petId: 'pi-studio', displayName: 'PiStudio', description: 'A friendly purple jelly pet shaped like the mathematical pi symbol.', source: 'built-in', kind: 'spritesheet' },
+  { id: 'orb', petId: 'orb', displayName: 'Orb', description: 'A fluid voice orb that shifts with Ptx activity.', source: 'built-in', kind: 'orb' },
+  { id: 'pi-studio', petId: 'pi-studio', displayName: 'Ptx', description: 'A friendly purple jelly pet shaped like the mathematical pi symbol.', source: 'built-in', kind: 'spritesheet' },
 ]
 
 function initialPosition(): Position {
   const fallback = { x: Math.max(16, window.innerWidth - 150), y: Math.max(70, window.innerHeight - 180) }
   try {
-    const saved = JSON.parse(window.localStorage.getItem('pistudio:pet-position') ?? '') as Partial<Position>
+    const saved = JSON.parse(window.localStorage.getItem('ptx:pet-position') ?? '') as Partial<Position>
     return typeof saved.x === 'number' && typeof saved.y === 'number' ? { x: saved.x, y: saved.y } : fallback
   } catch { return fallback }
 }
@@ -163,7 +163,7 @@ export function DesktopPet({ pets, petId, agentBusy, voiceActive, reduceMotion, 
       onDismiss()
       return
     }
-    window.localStorage.setItem('pistudio:pet-position', JSON.stringify(positionRef.current))
+    window.localStorage.setItem('ptx:pet-position', JSON.stringify(positionRef.current))
     if (!drag.moved) setJumping(true)
   }
   const moveByKeyboard = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -178,7 +178,7 @@ export function DesktopPet({ pets, petId, agentBusy, voiceActive, reduceMotion, 
       setPosition((current) => {
         const next = constrained({ x: current.x + delta.x, y: current.y + delta.y }, surfaceHeight, surfaceWidth)
         positionRef.current = next
-        window.localStorage.setItem('pistudio:pet-position', JSON.stringify(next))
+        window.localStorage.setItem('ptx:pet-position', JSON.stringify(next))
         return next
       })
     } else if (event.key === 'Enter' || event.key === ' ') {

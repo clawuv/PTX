@@ -36,7 +36,7 @@ describe('ScheduledRunExecutor MCP auth policy', () => {
 
     const result = executor.run(task(harness, prompt))
     await expect(result).rejects.toBeInstanceOf(ScheduleBlockedError)
-    await expect(result).rejects.toThrow('Network MCP authentication is managed outside PiStudio')
+    await expect(result).rejects.toThrow('Network MCP authentication is managed outside Ptx')
     expect(projects.list).not.toHaveBeenCalled()
     expect(agents.startUnattended).not.toHaveBeenCalled()
   })

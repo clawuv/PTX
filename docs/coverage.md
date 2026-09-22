@@ -1,6 +1,6 @@
 # Safety-critical coverage gate
 
-PiStudio's coverage denominator is a filesystem inventory, not a hand-maintained list of selected modules. [`coverage-inventory.ts`](../scripts/release/coverage-inventory.ts) recursively enrolls runtime files from these first-party families:
+Ptx's coverage denominator is a filesystem inventory, not a hand-maintained list of selected modules. [`coverage-inventory.ts`](../scripts/release/coverage-inventory.ts) recursively enrolls runtime files from these first-party families:
 
 | Family | Current responsibility |
 |---|---|

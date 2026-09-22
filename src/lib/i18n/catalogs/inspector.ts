@@ -130,10 +130,10 @@ const en = {
 
   // Terminal drawer (TerminalDrawer.tsx)
   'termdraw.exit.code': '[Process exited with code {code}]',
-  'termdraw.bridge.title': 'PiStudio terminal',
+  'termdraw.bridge.title': 'Ptx terminal',
   'termdraw.bridge.hint': 'A live PTY will connect when the desktop bridge and project are available.',
   'termdraw.error.start': 'Unable to start terminal',
-  'termdraw.error.maxTabs': 'PiStudio supports at most {count} concurrent terminals.',
+  'termdraw.error.maxTabs': 'Ptx supports at most {count} concurrent terminals.',
   'termdraw.aria': 'Integrated terminal',
   'termdraw.resize': 'Resize terminal',
   'termdraw.tabs.aria': 'Terminal tabs',
@@ -270,10 +270,10 @@ export const inspectorCatalog = defineCatalog(en, {
   'changes.undo.body.after': ' 的已暂存和未暂存更改，并将该文件恢复到上一次提交。新建的未跟踪文件将被删除。',
 
   'termdraw.exit.code': '[进程已退出，退出码 {code}]',
-  'termdraw.bridge.title': 'PiStudio 终端',
+  'termdraw.bridge.title': 'Ptx 终端',
   'termdraw.bridge.hint': '桌面桥接和项目可用后，将会连接实时 PTY。',
   'termdraw.error.start': '无法启动终端',
-  'termdraw.error.maxTabs': 'PiStudio 最多支持 {count} 个并发终端。',
+  'termdraw.error.maxTabs': 'Ptx 最多支持 {count} 个并发终端。',
   'termdraw.aria': '集成终端',
   'termdraw.resize': '调整终端大小',
   'termdraw.tabs.aria': '终端标签页',

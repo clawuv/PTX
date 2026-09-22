@@ -7,14 +7,14 @@ import type { SettingsSectionProps } from './contracts'
 import { SettingsToggle } from './SettingsToggle'
 
 const BUILT_INS: PetDefinition[] = [
-  { id: 'orb', petId: 'orb', displayName: 'Orb', description: 'A fluid voice orb that shifts with PiStudio activity.', source: 'built-in', kind: 'orb' },
-  { id: 'pi-studio', petId: 'pi-studio', displayName: 'PiStudio', description: 'A friendly purple jelly pet shaped like the mathematical pi symbol.', source: 'built-in', kind: 'spritesheet' },
+  { id: 'orb', petId: 'orb', displayName: 'Orb', description: 'A fluid voice orb that shifts with Ptx activity.', source: 'built-in', kind: 'orb' },
+  { id: 'pi-studio', petId: 'pi-studio', displayName: 'Ptx', description: 'A friendly purple jelly pet shaped like the mathematical pi symbol.', source: 'built-in', kind: 'spritesheet' },
 ]
 
 /** Built-in pet descriptions are catalog messages; Codex pet descriptions arrive as data. */
 const BUILT_IN_DESCRIPTION_KEYS: Partial<Record<string, MessageKey>> = {
   'orb': 'settings.pets.orb.description',
-  'pi-studio': 'settings.pets.piStudio.description',
+  'pi-studio': 'settings.pets.ptx.description',
 }
 
 export function PetsSettings({ settings, onUpdate, pets }: SettingsSectionProps & { pets: PrimeWorkApi['pets'] | null }) {
@@ -67,7 +67,7 @@ export function PetsSettings({ settings, onUpdate, pets }: SettingsSectionProps 
               onClick={() => { void onUpdate({ petId: pet.id, petEnabled: true }) }}
             >
               <span className="pet-choice__art">
-                {pet.id === 'pi-studio' ? <img src="/pistudio-mascot.png" alt="" /> : pet.kind === 'orb' ? <PetAvatar pet={pet} pets={pets} size={48} reduceMotion={settings.reduceMotion} /> : <PawPrint size={24} />}
+                {pet.id === 'pi-studio' ? <img src="/ptx-mascot.png" alt="" /> : pet.kind === 'orb' ? <PetAvatar pet={pet} pets={pets} size={48} reduceMotion={settings.reduceMotion} /> : <PawPrint size={24} />}
               </span>
               <span><strong>{pet.displayName}</strong><small>{pet.source === 'built-in' ? t('settings.pets.source.builtIn') : t('settings.pets.source.codex')}</small></span>
             </button>

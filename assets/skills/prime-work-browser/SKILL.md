@@ -1,11 +1,11 @@
 ---
 name: prime-work-browser
-description: Drive the PiStudio in-app browser for this thread with the browser_* tools - open tabs, navigate, read pages, click, type, scroll, screenshot, and extract data. Use when the user asks to open, test, inspect, or interact with a website or a local dev server inside PiStudio.
+description: Drive the Ptx in-app browser for this thread with the browser_* tools - open tabs, navigate, read pages, click, type, scroll, screenshot, and extract data. Use when the user asks to open, test, inspect, or interact with a website or a local dev server inside Ptx.
 ---
 
-# PiStudio in-app browser
+# Ptx in-app browser
 
-This thread has its own tabs in the PiStudio Browser panel. The user sees every tab live and can interact alongside you. Tabs belong to this thread only; other threads cannot see or control them, and you cannot reach theirs.
+This thread has its own tabs in the Ptx Browser panel. The user sees every tab live and can interact alongside you. Tabs belong to this thread only; other threads cannot see or control them, and you cannot reach theirs.
 
 ## Tools
 

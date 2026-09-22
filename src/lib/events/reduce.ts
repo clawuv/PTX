@@ -43,17 +43,17 @@ export const RUNTIME_EXIT_PATTERN = /^The agent stopped unexpectedly \((.+)\)\. 
 export const EXIT_CODE_PREFIX = 'exit code '
 export const UNKNOWN_EXIT_REASON = 'an unknown error'
 export const FALLBACK_TOOL_NAME = 'Tool'
-const LOCAL_STEER_PICKUP = Symbol('pistudio-steer-pickup')
-const LOCAL_STEER_ACCEPTED = Symbol('pistudio-steer-accepted')
+const LOCAL_STEER_PICKUP = Symbol('ptx-steer-pickup')
+const LOCAL_STEER_ACCEPTED = Symbol('ptx-steer-accepted')
 
 /** Renderer-only event: fixes an admitted steer in history at response time. */
 export function createSteerAcceptedEvent(prompt: QueuedPrompt): Record<string, unknown> {
-  return { type: 'pistudio_steer_accepted', prompt, [LOCAL_STEER_ACCEPTED]: true }
+  return { type: 'ptx_steer_accepted', prompt, [LOCAL_STEER_ACCEPTED]: true }
 }
 
 /** Renderer-only event: the symbol prevents an agent frame from spoofing a local pickup. */
 export function createSteerPickupEvent(prompts: QueuedPrompt[]): Record<string, unknown> {
-  return { type: 'pistudio_steer_pickup', prompts, [LOCAL_STEER_PICKUP]: true }
+  return { type: 'ptx_steer_pickup', prompts, [LOCAL_STEER_PICKUP]: true }
 }
 
 export function replayPrimeEvents(
@@ -218,7 +218,7 @@ export function replayPrimeEvents(
     if (stats) stats.eventScans += 1
     const type = string(raw.type) ?? string(raw.event)
     if (!type) continue
-    if (type === 'pistudio_steer_accepted' && (raw as Record<PropertyKey, unknown>)[LOCAL_STEER_ACCEPTED] === true) {
+    if (type === 'ptx_steer_accepted' && (raw as Record<PropertyKey, unknown>)[LOCAL_STEER_ACCEPTED] === true) {
       const accepted = steerMessage(raw.prompt, 'accepted')
       if (!accepted || next.some((message) => message.id === accepted.id)) continue
       // Freeze the output already visible when the RPC response confirms
@@ -229,7 +229,7 @@ export function replayPrimeEvents(
       next.push(accepted)
       continue
     }
-    if (type === 'pistudio_steer_pickup' && (raw as Record<PropertyKey, unknown>)[LOCAL_STEER_PICKUP] === true) {
+    if (type === 'ptx_steer_pickup' && (raw as Record<PropertyKey, unknown>)[LOCAL_STEER_PICKUP] === true) {
       const prompts = Array.isArray(raw.prompts) ? raw.prompts : []
       const pickedUp = prompts.flatMap((value) => {
         const message = steerMessage(value, 'read')

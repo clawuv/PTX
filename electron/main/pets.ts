@@ -100,7 +100,7 @@ export class PetService {
       id: 'orb',
       petId: 'orb',
       displayName: 'Orb',
-      description: 'A fluid voice orb that shifts with PiStudio activity.',
+      description: 'A fluid voice orb that shifts with Ptx activity.',
       source: 'built-in',
       kind: 'orb',
     }

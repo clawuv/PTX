@@ -241,7 +241,7 @@ export interface PrimeModelDescriptor {
   availableThinkingLevels: PrimeThinkingLevel[]
   fastModeSupported: boolean
   available: boolean
-  /** PiStudio visibility policy for this harness; absent catalogs predate per-model controls. */
+  /** Ptx visibility policy for this harness; absent catalogs predate per-model controls. */
   enabled?: boolean
 }
 
@@ -488,7 +488,7 @@ export interface AppSettings {
   showFileChangesPopup: boolean
   /** Keep the desktop process available for scheduled work after its window closes. */
   keepRunningInBackground: boolean
-  /** Ask the operating system to launch PiStudio when the user signs in. */
+  /** Ask the operating system to launch Ptx when the user signs in. */
   launchAtLogin: boolean
   terminalOpen: boolean
   defaultInspectorTab: InspectorTab
@@ -508,9 +508,9 @@ export interface AppSettings {
    * The Privacy UI deliberately ignores this field; any reporting use needs separate review.
    */
   telemetry: boolean
-  /** PiStudio-managed ask_user tool, shared by every interactive harness. */
+  /** Ptx-managed ask_user tool, shared by every interactive harness. */
   askUserEnabled: boolean
-  /** Expose PiStudio's thread-scoped in-app browser controls to new sessions. */
+  /** Expose Ptx's thread-scoped in-app browser controls to new sessions. */
   browserEnabled: boolean
   /** Expose the separately installed TryCUA driver to new sessions through its official CLI. */
   computerUseEnabled: boolean

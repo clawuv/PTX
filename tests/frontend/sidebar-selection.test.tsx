@@ -13,7 +13,7 @@ const draining: ProjectRecord = {
   id: 'draining', harness: 'pi', name: 'draining', path: 'E:\\Go\\src\\draining', folders: ['E:\\Go\\src\\draining'], primaryFolder: 'E:\\Go\\src\\draining',
   pinned: false, createdAt: '2026-01-01T00:00:00.000Z', lastOpenedAt: '2026-01-01T00:00:00.000Z', sessionCount: 1,
 }
-const piStudio: ProjectRecord = {
+const ptx: ProjectRecord = {
   id: 'pi-studio', harness: 'pi', name: 'pi-studio', path: 'E:\\pi-studio', folders: ['E:\\pi-studio'], primaryFolder: 'E:\\pi-studio',
   pinned: false, createdAt: '2026-01-01T00:00:00.000Z', lastOpenedAt: '2026-01-01T00:00:00.000Z', sessionCount: 1,
 }
@@ -52,7 +52,7 @@ function Harness({ initialSessionId }: { initialSessionId?: string }) {
   const [activeSessionId, setActiveSessionId] = useState<string | undefined>(initialSessionId)
   return (
     <Sidebar
-      projects={[draining, piStudio]}
+      projects={[draining, ptx]}
       sessions={[sessionA, sessionB, sessionC]}
       activeSessionId={activeSessionId}
       activeView="session"

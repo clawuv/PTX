@@ -90,13 +90,13 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
   const [confirmDisable, setConfirmDisable] = useState<SkillRecord | null>(null)
   const [confirmRemove, setConfirmRemove] = useState<SkillRecord | null>(null)
   const [capabilityAlert, setCapabilityAlert] = useState('')
-  const piMcpAdapterInstalled = skills.some((skill) => skill.id === 'pistudio-pi-mcp' && skill.enabled)
+  const piMcpAdapterInstalled = skills.some((skill) => skill.id === 'ptx-pi-mcp' && skill.enabled)
   const canConfigureMcp = harness === 'omp' || harness === 'pi' && piMcpAdapterInstalled
 
-  const visible = useMemo(() => skills.map((skill) => skill.id === 'pistudio-ask-user'
+  const visible = useMemo(() => skills.map((skill) => skill.id === 'ptx-ask-user'
     ? { ...skill, enabled: askUserEnabled }
     : skill.id === 'prime-work-browser' || skill.id === 'omp-work-browser' ? { ...skill, enabled: browserEnabled }
-    : skill.id === 'pistudio-computer-use' ? { ...skill, enabled: computerUseEnabled } : skill).filter((skill) => {
+    : skill.id === 'ptx-computer-use' ? { ...skill, enabled: computerUseEnabled } : skill).filter((skill) => {
     const capability = skill.id === 'prime-work-browser' || skill.id === 'omp-work-browser' || skill.kind !== 'skill' && skill.kind !== 'prompt'
     return (tab === 'plugins' ? capability : !capability)
       && (filter === 'all' || filter === 'installed' && skill.enabled || filter === skill.location)
@@ -216,10 +216,10 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
   }
   const disableCapability = async (skill: SkillRecord) => {
     setConfirmDisable(null)
-    if (skill.id === 'pistudio-ask-user') await setAskUser(false)
+    if (skill.id === 'ptx-ask-user') await setAskUser(false)
     else if (skill.id === 'prime-work-browser' || skill.id === 'omp-work-browser') await setBrowser(false)
-    else if (skill.id === 'pistudio-computer-use') await setComputerUse(skill, false)
-    else if (skill.id === 'pistudio-pi-mcp') await setMcpSupport(skill, false)
+    else if (skill.id === 'ptx-computer-use') await setComputerUse(skill, false)
+    else if (skill.id === 'ptx-pi-mcp') await setMcpSupport(skill, false)
     else if (skill.kind === 'mcp') await setMcp(skill, false)
     else if (skill.kind === 'package') await mutate(skill, 'disable')
   }
@@ -253,7 +253,7 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
   }
   const capabilityControl = (skill: SkillRecord) => {
     if (skill.kind === 'mcp' && skill.availability?.available === false) {
-      const external = skill.availability.detail.includes('managed outside PiStudio')
+      const external = skill.availability.detail.includes('managed outside Ptx')
       const label = external ? t('plugins.externallyManagedNamed', { name: skill.name }) : harness === 'pi' ? t('plugins.adapterRequiredNamed', { name: skill.name }) : t('plugins.unavailableNamed', { name: skill.name })
       return <span className="plugin-toggle" role="img" aria-label={label} aria-describedby={capabilityDetailId(skill)}><ShieldCheck aria-hidden="true" size={14}/></span>
     }
@@ -261,18 +261,18 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
       return <span className="plugin-toggle" role="img" aria-label={t('plugins.adapterRequiredNamed', { name: skill.name })} aria-describedby={capabilityDetailId(skill)}><ShieldCheck aria-hidden="true" size={14}/></span>
     }
     const isBrowser = skill.id === 'prime-work-browser' || skill.id === 'omp-work-browser'
-    const actionable = skill.id === 'pistudio-ask-user' || isBrowser || skill.id === 'pistudio-computer-use' || skill.id === 'pistudio-pi-mcp' || skill.kind === 'mcp' || skill.kind === 'package'
+    const actionable = skill.id === 'ptx-ask-user' || isBrowser || skill.id === 'ptx-computer-use' || skill.id === 'ptx-pi-mcp' || skill.kind === 'mcp' || skill.kind === 'package'
     if (!actionable) return <span className={skill.enabled ? 'plugin-toggle is-enabled' : 'plugin-toggle'} aria-label={t(skill.enabled ? 'plugins.enabledNamed' : 'plugins.unavailableNamed', { name: skill.name })}>{skill.enabled ? <Check size={14}/> : <Plus size={14}/>}</span>
-    const updating = skill.id === 'pistudio-ask-user' ? askUserUpdating
+    const updating = skill.id === 'ptx-ask-user' ? askUserUpdating
       : isBrowser ? browserUpdating
-        : skill.id === 'pistudio-computer-use' ? computerUseUpdating
-          : skill.id === 'pistudio-pi-mcp' ? mcpSupportUpdating
+        : skill.id === 'ptx-computer-use' ? computerUseUpdating
+          : skill.id === 'ptx-pi-mcp' ? mcpSupportUpdating
             : capabilityUpdating === skill.id
     const enable = () => {
-      if (skill.id === 'pistudio-ask-user') return setAskUser(true)
+      if (skill.id === 'ptx-ask-user') return setAskUser(true)
       if (isBrowser) return setBrowser(true)
-      if (skill.id === 'pistudio-computer-use') return setComputerUse(skill, true)
-      if (skill.id === 'pistudio-pi-mcp') return setMcpSupport(skill, true)
+      if (skill.id === 'ptx-computer-use') return setComputerUse(skill, true)
+      if (skill.id === 'ptx-pi-mcp') return setMcpSupport(skill, true)
       if (skill.kind === 'package') return mutate(skill, 'enable')
       return setMcp(skill, true)
     }

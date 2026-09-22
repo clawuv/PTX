@@ -9,7 +9,7 @@ import { Modal } from '@/components/ui'
 type Translate = (key: MessageKey, values?: Record<string, string | number>) => string
 
 interface ProviderSettingsProps {
-  /** Active harness. OMP and Pi credentials stay CLI-owned; visibility toggles only affect PiStudio. */
+  /** Active harness. OMP and Pi credentials stay CLI-owned; visibility toggles only affect Ptx. */
   harness?: HarnessId
   catalog: PrimeModelCatalog | null
   onRefresh(): Promise<void>
@@ -39,7 +39,7 @@ function activeFirst<T extends { enabled?: boolean }>(items: readonly T[]): T[] 
 
 export function ProviderSettings({ harness = 'prime', catalog, onRefresh, onSaveApiKey, onLogout, onSetEnabled, onSetAllEnabled, onSetAllDisabled, onSetModelEnabled, onStartOAuth, onOpenDocs }: ProviderSettingsProps) {
   const { t } = useI18n()
-  // OMP and Pi own their credentials in their CLIs; PiStudio only toggles visibility.
+  // OMP and Pi own their credentials in their CLIs; Ptx only toggles visibility.
   const externalAuth = harness !== 'prime'
   const agentName = HARNESS_AGENT_NAMES[harness]
   const [view, setView] = useState<'providers' | 'models'>('providers')

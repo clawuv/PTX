@@ -380,11 +380,11 @@ export function PiMark({ size = 24 }: { size?: number }) {
   )
 }
 
-export function PiStudioMark({ size = 24 }: { size?: number }) {
+export function PtxMark({ size = 24 }: { size?: number }) {
   const { t } = useI18n()
   return (
-    <span className="pistudio-mark" style={{ width: size, height: size }} role="img" aria-label={t('shellui.mark.pistudio')}>
-      <img src="/pistudio-mascot.png" alt="" aria-hidden="true" />
+    <span className="ptx-mark" style={{ width: size, height: size }} role="img" aria-label={t('shellui.mark.ptx')}>
+      <img src="/ptx-mascot.png" alt="" aria-hidden="true" />
     </span>
   )
 }

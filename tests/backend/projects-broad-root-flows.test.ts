@@ -37,7 +37,7 @@ function folderIdentity(path: string) {
 }
 
 function setup() {
-  const dataDir = mkdtempSync(join(tmpdir(), 'pistudio-broad-flows-'))
+  const dataDir = mkdtempSync(join(tmpdir(), 'ptx-broad-flows-'))
   const root = join(dataDir, 'project')
   dirs.push(dataDir)
   const store = new JsonStateStore(join(dataDir, 'state.json'))

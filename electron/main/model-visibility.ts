@@ -1,6 +1,6 @@
 import type { PrimeModelCatalog } from '../../src/types/api'
 
-/** Applies PiStudio's synchronized provider/model visibility policy to a raw harness catalog. */
+/** Applies Ptx's synchronized provider/model visibility policy to a raw harness catalog. */
 export function withModelVisibility(
   catalog: PrimeModelCatalog,
   disabledProviders: ReadonlySet<string>,

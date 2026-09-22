@@ -352,7 +352,7 @@ describe('SessionMetadataCatalog known-file reconciliation', () => {
   })
 
   it('fully rescans when the watched root is replaced and the original leaf is hard-linked back', async () => {
-    const parent = mkdtempSync(join(tmpdir(), 'pistudio-session-root-identity-'))
+    const parent = mkdtempSync(join(tmpdir(), 'ptx-session-root-identity-'))
     realDirectories.push(parent)
     const watchedRoot = join(parent, 'sessions')
     const displacedRoot = join(parent, 'sessions-displaced')
@@ -394,7 +394,7 @@ describe('SessionMetadataCatalog known-file reconciliation', () => {
   })
 
   it('does not publish staged metadata when a bucket is replaced with a hard link during the read', async () => {
-    const parent = mkdtempSync(join(tmpdir(), 'pistudio-session-bucket-identity-'))
+    const parent = mkdtempSync(join(tmpdir(), 'ptx-session-bucket-identity-'))
     realDirectories.push(parent)
     const watchedRoot = join(parent, 'sessions')
     const bucket = join(watchedRoot, 'project-bucket')
@@ -446,7 +446,7 @@ describe('SessionMetadataCatalog known-file reconciliation', () => {
   })
 
   it('does not publish a truncated real-file read when the transcript is appended during reconciliation', async () => {
-    const watchedRoot = mkdtempSync(join(tmpdir(), 'pistudio-session-append-during-read-'))
+    const watchedRoot = mkdtempSync(join(tmpdir(), 'ptx-session-append-during-read-'))
     realDirectories.push(watchedRoot)
     const name = 'known.jsonl'
     const filePath = join(watchedRoot, name)

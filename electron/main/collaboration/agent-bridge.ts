@@ -8,7 +8,7 @@ import { CapabilityBridge, type CapabilityClaim } from '../lib/capability-bridge
 import type { ModelCatalogProvider } from '../model-catalog'
 import { availableModels, rankedModelMatches, resolveModel, resolveReasoning } from '../model-selection'
 import { requireBoolean, requireId, requireInteger, requireString } from '../validation'
-import { encodePiStudioAgentMessage } from './message-envelope'
+import { encodePtxAgentMessage } from './message-envelope'
 
 const MAX_LISTED_SESSIONS = 100
 const MAX_MESSAGES = 40
@@ -142,7 +142,7 @@ function cursorFor(session: SessionRecord, messages: CollaborationMessage[], liv
 /**
  * App-owned session collaboration for all harnesses. Session files remain
  * read-only: reads use each harness's bounded SessionService, while writes are
- * delivered through a live runtime owned by this PiStudio process (waking an
+ * delivered through a live runtime owned by this Ptx process (waking an
  * authorized saved target through the normal manager when needed).
  */
 export class AgentCollaborationBridge extends CapabilityBridge {
@@ -164,9 +164,9 @@ export class AgentCollaborationBridge extends CapabilityBridge {
 
   protected environmentEntries(url: string, token: string): NodeJS.ProcessEnv {
     return {
-      PISTUDIO_COLLABORATION_URL: url,
-      PISTUDIO_COLLABORATION_TOKEN: token,
-      PISTUDIO_COLLABORATION_EXTENSION_PATH: this.options.extensionPath,
+      PTX_COLLABORATION_URL: url,
+      PTX_COLLABORATION_TOKEN: token,
+      PTX_COLLABORATION_EXTENSION_PATH: this.options.extensionPath,
     }
   }
 
@@ -326,7 +326,7 @@ export class AgentCollaborationBridge extends CapabilityBridge {
     if (!created) {
       this.pendingRuntimeTokens.delete(runtime.runtimeId)
       await manager.stop(runtime.runtimeId).catch(() => false)
-      throw new Error('The harness created a runtime but its session is not yet readable from PiStudio')
+      throw new Error('The harness created a runtime but its session is not yet readable from Ptx')
     }
     return {
       created: true,
@@ -384,7 +384,7 @@ export class AgentCollaborationBridge extends CapabilityBridge {
     const existing = target.manager.getForSession(target.session.filePath)
     const runtime = existing ?? await this.wake(target)
     const before = await this.snapshot(target)
-    const attribution = encodePiStudioAgentMessage({
+    const attribution = encodePtxAgentMessage({
       fromSessionId: source.session.id,
       text: message,
     })

@@ -1029,7 +1029,7 @@ describe('SessionService orchestration', () => {
     const service = new SessionService(new JsonStateStore(join(dir, 'state.json')), null)
 
     await expect(service.followUp(join(dir, 'missing.jsonl'), '/mcp login notion'))
-      .rejects.toThrow('Network MCP authentication is managed outside PiStudio')
+      .rejects.toThrow('Network MCP authentication is managed outside Ptx')
   })
 
   it('queues a follow-up through the active Prime Agent daemon instead of resuming its locked session', async () => {

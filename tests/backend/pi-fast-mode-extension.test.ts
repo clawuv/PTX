@@ -10,7 +10,7 @@ function loadExtension(): { provider: ProviderHandler; command: CommandHandler }
   const api: PiFastModeExtensionApi = {
     on: (_event, handler) => { provider = handler },
     registerCommand: (name, options) => {
-      expect(name).toBe('pistudio-fast-mode')
+      expect(name).toBe('ptx-fast-mode')
       command = options.handler
     },
   }
@@ -39,6 +39,6 @@ describe('Pi fast-mode compatibility extension', () => {
 
     expect(extension.provider({ payload: { input: [] } }, { model: { ...supportedModel, id: 'gpt-5.3-codex' } })).toBeUndefined()
     expect(extension.provider({ payload: [] }, { model: supportedModel })).toBeUndefined()
-    expect(() => extension.command('turbo')).toThrow('Invalid PiStudio fast-mode tier')
+    expect(() => extension.command('turbo')).toThrow('Invalid Ptx fast-mode tier')
   })
 })

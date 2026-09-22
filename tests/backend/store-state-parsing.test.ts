@@ -9,7 +9,7 @@ const dirs: string[] = []
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }) })
 
 function loadState(value: unknown): DesktopState {
-  const dir = mkdtempSync(join(tmpdir(), 'pistudio-store-parse-'))
+  const dir = mkdtempSync(join(tmpdir(), 'ptx-store-parse-'))
   dirs.push(dir)
   const path = join(dir, 'state.json')
   writeFileSync(path, JSON.stringify(value))
@@ -51,7 +51,7 @@ describe('persisted project parsing', () => {
       projects: [{
         id: 'project-1',
         harness: 'prime',
-        name: 'PiStudio',
+        name: 'Ptx',
         path: '/repos/pi-studio',
         primaryFolder: '/repos/pi-studio',
         pinned: 'yes',
@@ -79,7 +79,7 @@ describe('persisted project parsing', () => {
       projects: [{
         id: 'project-1',
         harness: 'prime',
-        name: 'PiStudio',
+        name: 'Ptx',
         path: '/repos/pi-studio',
         folders: ['/repos/pi-studio', 7],
         primaryFolder: '/repos/pi-studio',
@@ -118,7 +118,7 @@ describe('persisted project parsing', () => {
   it.each([3, 4])('drops version %s projects whose harness is absent or unknown', (version) => {
     const project = {
       id: 'project-1',
-      name: 'PiStudio',
+      name: 'Ptx',
       path: '/repos/pi-studio',
       folders: ['/repos/pi-studio'],
       primaryFolder: '/repos/pi-studio',
@@ -134,7 +134,7 @@ describe('persisted project parsing', () => {
     const project = {
       id: 'project-1',
       harness: 'prime',
-      name: 'PiStudio',
+      name: 'Ptx',
       path: '/repos/pi-studio',
       folders: ['/repos/pi-studio'],
       primaryFolder: '/repos/pi-studio',

@@ -9,7 +9,7 @@ import type { PetDefinition, PrimeWorkApi } from '../../src/types/api'
 
 const definitions: PetDefinition[] = [
   { id: 'orb', petId: 'orb', displayName: 'Orb', description: 'Orb.', source: 'built-in', kind: 'orb' },
-  { id: 'pi-studio', petId: 'pi-studio', displayName: 'PiStudio', description: 'PiStudio.', source: 'built-in', kind: 'spritesheet' },
+  { id: 'pi-studio', petId: 'pi-studio', displayName: 'Ptx', description: 'Ptx.', source: 'built-in', kind: 'spritesheet' },
 ]
 
 describe('DesktopPet', () => {
@@ -117,7 +117,7 @@ describe('DesktopPet', () => {
   it('keeps an expanded voice pet inside a small viewport and exposes the voice landmark', async () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 320 })
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 })
-    localStorage.setItem('pistudio:pet-position', JSON.stringify({ x: 999, y: 999 }))
+    localStorage.setItem('ptx:pet-position', JSON.stringify({ x: 999, y: 999 }))
     const bounds = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       const height = this.classList.contains('desktop-pet') ? 340 : 0
       return { x: 0, y: 0, top: 0, right: 120, bottom: height, left: 0, width: 120, height, toJSON: () => ({}) }
@@ -138,7 +138,7 @@ describe('DesktopPet', () => {
   it('reserves enough edge space for unscaled voice status at the minimum pet size', async () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 320 })
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 })
-    localStorage.setItem('pistudio:pet-position', JSON.stringify({ x: 999, y: 100 }))
+    localStorage.setItem('ptx:pet-position', JSON.stringify({ x: 999, y: 100 }))
     await act(async () => { root.render(<DesktopPet pets={pets} petId="pi-studio" petSize={50} agentBusy={false} reduceMotion={false} voiceActive voiceStatus="Voice unavailable" onToggleVoiceMute={vi.fn()} onCloseVoice={vi.fn()} />); await Promise.resolve() })
     const surface = container.querySelector<HTMLElement>('.desktop-pet')!
     expect(surface.style.getPropertyValue('--pet-surface-width')).toBe('112px')
@@ -148,7 +148,7 @@ describe('DesktopPet', () => {
   it('moves a bottom-positioned pet only as far as its measured voice controls require', async () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 600 })
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 })
-    localStorage.setItem('pistudio:pet-position', JSON.stringify({ x: 450, y: 338 }))
+    localStorage.setItem('ptx:pet-position', JSON.stringify({ x: 450, y: 338 }))
     const bounds = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       const height = this.classList.contains('desktop-pet') ? 190 : 0
       return { x: 0, y: 0, top: 0, right: 120, bottom: height, left: 0, width: 120, height, toJSON: () => ({}) }
@@ -165,7 +165,7 @@ describe('DesktopPet', () => {
   it('resizes the live pet around its bottom anchor without position glitches', async () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 600 })
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 })
-    localStorage.setItem('pistudio:pet-position', JSON.stringify({ x: 450, y: 338 }))
+    localStorage.setItem('ptx:pet-position', JSON.stringify({ x: 450, y: 338 }))
     const bounds = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       const height = this.classList.contains('desktop-pet') ? Number.parseFloat(this.style.getPropertyValue('--pet-surface-min-height')) + 8 : 0
       return { x: 0, y: 0, top: 0, right: 120, bottom: height, left: 0, width: 120, height, toJSON: () => ({}) }

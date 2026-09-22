@@ -14,7 +14,7 @@ describe('repository security policy', () => {
   test('uses GitHub-recognized placement and identifies supported versions', () => {
     expect(existsSync(policyPath)).toBe(true)
     expect(policy).toContain('# Security Policy')
-    expect(policy).toMatch(/latest (?:PiStudio )?release/i)
+    expect(policy).toMatch(/latest (?:Ptx )?release/i)
     expect(policy).toContain('| Earlier releases | No |')
   })
 

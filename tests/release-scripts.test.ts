@@ -122,9 +122,7 @@ function writeMacReleaseFixture(directory: string, { omit }: { omit?: string } =
     if (name === omit) continue
     const artifactDirectory = join(inputDirectory, `artifact-${index}`)
     mkdirSync(artifactDirectory, { recursive: true })
-    const content = name.endsWith('.yml')
-      ? 'version: 0.2.0\nfiles:\n  - url: PiStudio-0.2.0-x64.zip\n    sha512: x64-digest\n    size: 42\npath: PiStudio-0.2.0-x64.zip\nsha512: x64-digest\n'
-      : `asset ${index}`
+    const content = name.endsWith('.yml') ? 'version: 0.2.0\nfiles:\n  - url: Ptx-0.2.0-x64.zip\n    sha512: x64-digest\n    size: 42\npath: Ptx-0.2.0-x64.zip\nsha512: x64-digest\n' : `asset ${index}`
     writeFileSync(join(artifactDirectory, name), content)
   }
   return { projectDirectory, inputDirectory }
@@ -164,7 +162,7 @@ function npmArtifactManifest(size: number, overrides: Record<string, unknown> = 
 }
 
 function createPinnedNpmArtifactFixture(contents = Buffer.from('verified npm archive fixture')) {
-  const temporaryDirectory = mkdtempSync(join(tmpdir(), 'pistudio npm artifact & '))
+  const temporaryDirectory = mkdtempSync(join(tmpdir(), 'ptx npm artifact & '))
   const repositoryRoot = join(temporaryDirectory, 'repository with spaces & metacharacters')
   const artifactPath = join(repositoryRoot, 'vendor', 'npm-12.0.2.tgz')
   mkdirSync(dirname(artifactPath), { recursive: true })
@@ -333,7 +331,7 @@ describe('release preflight', () => {
   })
 
   test('probes npm through its JavaScript CLI and both release entry points reject an old npm', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'pistudio-npm-version-'))
+    const directory = mkdtempSync(join(tmpdir(), 'ptx-npm-version-'))
     const npmCli = join(directory, 'npm-cli.mjs')
     writeFileSync(npmCli, "process.stdout.write('12.0.1\\n')\n")
     const env = { ...process.env, npm_execpath: npmCli }
@@ -377,7 +375,7 @@ describe('release preflight', () => {
   })
 
   test('exact npm CLI verification ignores a stale lifecycle npm_execpath', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'pistudio exact npm & version-'))
+    const directory = mkdtempSync(join(tmpdir(), 'ptx exact npm & version-'))
     const staleCli = join(directory, 'stale-npm-cli.mjs')
     const installedCli = join(directory, 'installed-npm-cli.mjs')
     writeFileSync(staleCli, "process.stdout.write('11.12.1\\n')\n")
@@ -446,7 +444,7 @@ describe('release preflight', () => {
 
   test('executes the installed npm CLI and selects its shim for the next workflow step', () => {
     const fixture = createPinnedNpmArtifactFixture()
-    const directory = mkdtempSync(join(tmpdir(), 'pistudio stale npm & bootstrap-'))
+    const directory = mkdtempSync(join(tmpdir(), 'ptx stale npm & bootstrap-'))
     const prefix = join(directory, 'configured global')
     const root = process.platform === 'win32' ? join(prefix, 'node_modules') : join(prefix, 'lib', 'node_modules')
     const layout = resolveNpmGlobalLayout(prefix, root)
@@ -485,7 +483,7 @@ else if (JSON.stringify(args) === ${JSON.stringify(JSON.stringify(expectedInstal
   })
 
   test('installs the checked-in npm archive into a fresh prefix without network access', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'pistudio real npm bootstrap & '))
+    const directory = mkdtempSync(join(tmpdir(), 'ptx real npm bootstrap & '))
     const prefix = join(directory, 'fresh global prefix')
     const githubPath = join(directory, 'github-path')
     const cache = join(directory, 'npm cache')
@@ -508,7 +506,7 @@ else if (JSON.stringify(args) === ${JSON.stringify(JSON.stringify(expectedInstal
   }, 30_000)
 
   test('persists only a validated npm shim directory for the next GitHub Actions step', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'pistudio-github-path-'))
+    const directory = mkdtempSync(join(tmpdir(), 'ptx-github-path-'))
     const githubPath = join(directory, 'github-path')
     writeFileSync(githubPath, '/existing/tool\n')
     try {
@@ -526,7 +524,7 @@ else if (JSON.stringify(args) === ${JSON.stringify(JSON.stringify(expectedInstal
   })
 
   test('persists the bootstrapped npm CLI for direct Node release entry points', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'pistudio-github-env-'))
+    const directory = mkdtempSync(join(tmpdir(), 'ptx-github-env-'))
     const githubEnv = join(directory, 'github-env')
     writeFileSync(githubEnv, '')
     try {
@@ -850,11 +848,11 @@ else if (JSON.stringify(args) === ${JSON.stringify(JSON.stringify(expectedInstal
 
   test('passes the expected Authenticode signer to Windows packaging', () => {
     const workflow = readFileSync('.github/workflows/release.yml', 'utf8')
-    expect(workflow).toContain('PISTUDIO_WINDOWS_CERT_SUBJECT: ${{ vars.PISTUDIO_WINDOWS_CERT_SUBJECT }}')
-    expect(workflow).toContain('PISTUDIO_WINDOWS_CERT_THUMBPRINT: ${{ vars.PISTUDIO_WINDOWS_CERT_THUMBPRINT }}')
+    expect(workflow).toContain('PTX_WINDOWS_CERT_SUBJECT: ${{ vars.PTX_WINDOWS_CERT_SUBJECT }}')
+    expect(workflow).toContain('PTX_WINDOWS_CERT_THUMBPRINT: ${{ vars.PTX_WINDOWS_CERT_THUMBPRINT }}')
     const security = readFileSync('docs/security.md', 'utf8')
-    expect(security).toContain('`PISTUDIO_WINDOWS_CERT_SUBJECT`')
-    expect(security).toContain('`PISTUDIO_WINDOWS_CERT_THUMBPRINT`')
+    expect(security).toContain('`PTX_WINDOWS_CERT_SUBJECT`')
+    expect(security).toContain('`PTX_WINDOWS_CERT_THUMBPRINT`')
     expect(security).toContain('when neither is configured, public Windows packaging fails closed')
   })
 
@@ -870,7 +868,7 @@ else if (JSON.stringify(args) === ${JSON.stringify(JSON.stringify(expectedInstal
     // The explicit target arch drives packaging, and each leg uploads only its
     // own arch directory under a per-arch artifact name and cache key.
     expect(releaseWorkflow).toContain('npm run package:mac -- --skip-verify --arch ${{ matrix.arch }}')
-    expect(releaseWorkflow).toContain('name: pistudio-public-macos-${{ matrix.arch }}')
+    expect(releaseWorkflow).toContain('name: ptx-public-macos-${{ matrix.arch }}')
     expect(releaseWorkflow).toContain('release/mac/${{ matrix.arch }}/*.dmg')
     expect(releaseWorkflow).toContain('release/mac/${{ matrix.arch }}/*.zip')
     expect(releaseWorkflow).toContain('electron-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles(')
@@ -885,7 +883,7 @@ else if (JSON.stringify(args) === ${JSON.stringify(JSON.stringify(expectedInstal
     expect(releaseWorkflow).toMatch(/- arch: x64\n {12}runner: ubuntu-22\.04/)
     expect(releaseWorkflow).toContain('runs-on: ${{ matrix.runner }}')
     expect(releaseWorkflow).toContain('npm run package:linux -- --skip-verify --arch ${{ matrix.arch }}')
-    expect(releaseWorkflow).toContain('name: pistudio-public-linux-${{ matrix.arch }}')
+    expect(releaseWorkflow).toContain('name: ptx-public-linux-${{ matrix.arch }}')
     expect(releaseWorkflow).toContain('release/linux/${{ matrix.arch }}/*.AppImage')
     expect(releaseWorkflow).toContain('release/linux/${{ matrix.arch }}/latest*.yml')
     expect(releaseWorkflow).toContain('electron-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles(')
@@ -895,24 +893,18 @@ else if (JSON.stringify(args) === ${JSON.stringify(JSON.stringify(expectedInstal
 describe('GitHub Release publication', () => {
   test('selects an exact enabled platform set', () => {
     expect(parseReleasePlatforms('mac,linux')).toEqual(['mac', 'linux'])
-    expect(expectedGitHubReleaseAssets('0.2.0', ['mac', 'linux'])).not.toContain('PiStudio-0.2.0-win-x64.exe')
-    expect(expectedGitHubReleaseAssets('0.2.0', ['mac'])).toEqual([
-      'PiStudio-0.2.0-arm64.zip',
-      'PiStudio-0.2.0-intel-chip.dmg',
-      'PiStudio-0.2.0-m-chip.dmg',
-      'PiStudio-0.2.0-x64.zip',
-      'latest-mac.yml',
-    ])
-    expect(expectedDownloadedReleaseAssets('0.2.0', ['mac'])).toEqual(['PiStudio-0.2.0-arm64.zip', 'PiStudio-0.2.0-x64.dmg', 'PiStudio-0.2.0-arm64.dmg', 'PiStudio-0.2.0-x64.zip', 'latest-mac.yml'])
+    expect(expectedGitHubReleaseAssets('0.2.0', ['mac', 'linux'])).not.toContain('Ptx-0.2.0-win-x64.exe')
+    expect(expectedGitHubReleaseAssets('0.2.0', ['mac'])).toEqual(['Ptx-0.2.0-arm64.zip', 'Ptx-0.2.0-intel-chip.dmg', 'Ptx-0.2.0-m-chip.dmg', 'Ptx-0.2.0-x64.zip', 'latest-mac.yml'])
+    expect(expectedDownloadedReleaseAssets('0.2.0', ['mac'])).toEqual(['Ptx-0.2.0-arm64.zip', 'Ptx-0.2.0-x64.dmg', 'Ptx-0.2.0-arm64.dmg', 'Ptx-0.2.0-x64.zip', 'latest-mac.yml'])
     expect(expectedGitHubReleaseAssets('0.2.0', ['linux'])).toEqual([
-      'PiStudio-0.2.0-linux-aarch64.pacman',
-      'PiStudio-0.2.0-linux-aarch64.rpm',
-      'PiStudio-0.2.0-linux-amd64.deb',
-      'PiStudio-0.2.0-linux-arm64.AppImage',
-      'PiStudio-0.2.0-linux-arm64.deb',
-      'PiStudio-0.2.0-linux-x64.pacman',
-      'PiStudio-0.2.0-linux-x86_64.AppImage',
-      'PiStudio-0.2.0-linux-x86_64.rpm',
+      'Ptx-0.2.0-linux-aarch64.pacman',
+      'Ptx-0.2.0-linux-aarch64.rpm',
+      'Ptx-0.2.0-linux-amd64.deb',
+      'Ptx-0.2.0-linux-arm64.AppImage',
+      'Ptx-0.2.0-linux-arm64.deb',
+      'Ptx-0.2.0-linux-x64.pacman',
+      'Ptx-0.2.0-linux-x86_64.AppImage',
+      'Ptx-0.2.0-linux-x86_64.rpm',
       'latest-linux-arm64.yml',
       'latest-linux.yml',
     ])
@@ -936,9 +928,9 @@ describe('GitHub Release publication', () => {
     expect(produced).toHaveLength(targetCount)
     // Only the two macOS DMGs are renamed for the public download page.
     expect([...names].filter(([published, downloaded]) => published !== downloaded)).toEqual([
-      ['PiStudio-0.2.0-intel-chip.dmg', 'PiStudio-0.2.0-x64.dmg'],
-      ['PiStudio-0.2.0-m-chip.dmg', 'PiStudio-0.2.0-arm64.dmg'],
-      ['PiStudio-0.2.0-win-x64.msix', 'PiStudio-0.2.0-win-x64.appx'],
+      ['Ptx-0.2.0-intel-chip.dmg', 'Ptx-0.2.0-x64.dmg'],
+      ['Ptx-0.2.0-m-chip.dmg', 'Ptx-0.2.0-arm64.dmg'],
+      ['Ptx-0.2.0-win-x64.msix', 'Ptx-0.2.0-win-x64.appx'],
     ])
   })
 
@@ -955,13 +947,13 @@ describe('GitHub Release publication', () => {
   })
 
   test('reports the published name of a missing artifact through the rename map', async () => {
-    const directory = mkdtempSync(join(tmpdir(), 'pistudio-github-release-missing-'))
+    const directory = mkdtempSync(join(tmpdir(), 'ptx-github-release-missing-'))
     try {
-      const { projectDirectory, inputDirectory } = writeMacReleaseFixture(directory, { omit: 'PiStudio-0.2.0-arm64.dmg' })
+      const { projectDirectory, inputDirectory } = writeMacReleaseFixture(directory, { omit: 'Ptx-0.2.0-arm64.dmg' })
       // The arm64 DMG publishes as m-chip.dmg: the report must name the missing
       // published asset, not whichever entry happens to share its sort index.
       await expect(prepareGitHubRelease({ inputDirectory, outputDirectory: join(directory, 'out'), projectDirectory, platforms: ['mac'], tag: 'v0.2.0' })).rejects.toThrow(
-        /incomplete; missing PiStudio-0\.2\.0-m-chip\.dmg$/,
+        /incomplete; missing Ptx-0\.2\.0-m-chip\.dmg$/,
       )
     } finally {
       rmSync(directory, { recursive: true, force: true })
@@ -969,19 +961,19 @@ describe('GitHub Release publication', () => {
   })
 
   test('takes legacy updater fields from the primary architecture manifest, not the first sorted path', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'pistudio-update-metadata-'))
+    const directory = mkdtempSync(join(tmpdir(), 'ptx-update-metadata-'))
     try {
-      const arm64 = writeUpdateManifest(directory, 'a-arm64', 'PiStudio-0.2.0-arm64.zip', 'arm64-digest', '2026-01-01T00:00:00.000Z')
-      const x64 = writeUpdateManifest(directory, 'z-x64', 'PiStudio-0.2.0-x64.zip', 'x64-digest', '2026-02-02T00:00:00.000Z')
+      const arm64 = writeUpdateManifest(directory, 'a-arm64', 'Ptx-0.2.0-arm64.zip', 'arm64-digest', '2026-01-01T00:00:00.000Z')
+      const x64 = writeUpdateManifest(directory, 'z-x64', 'Ptx-0.2.0-x64.zip', 'x64-digest', '2026-02-02T00:00:00.000Z')
       const merged = mergeUpdateMetadata([arm64, x64], '0.2.0')
-      expect(merged.path).toBe('PiStudio-0.2.0-x64.zip')
+      expect(merged.path).toBe('Ptx-0.2.0-x64.zip')
       expect(merged.sha512).toBe('x64-digest')
       expect(merged.releaseDate).toBe('2026-02-02T00:00:00.000Z')
-      expect(merged.files.map((file: { url: string }) => file.url)).toEqual(['PiStudio-0.2.0-arm64.zip', 'PiStudio-0.2.0-x64.zip'])
+      expect(merged.files.map((file: { url: string }) => file.url)).toEqual(['Ptx-0.2.0-arm64.zip', 'Ptx-0.2.0-x64.zip'])
       // Renaming the artifact directories reverses the path sort order without
       // changing which manifest supplies the legacy fields.
-      const swappedArm64 = writeUpdateManifest(directory, 'z-arm', 'PiStudio-0.2.0-arm64.zip', 'arm64-digest', '2026-01-01T00:00:00.000Z')
-      const swappedX64 = writeUpdateManifest(directory, 'a-intel', 'PiStudio-0.2.0-x64.zip', 'x64-digest', '2026-02-02T00:00:00.000Z')
+      const swappedArm64 = writeUpdateManifest(directory, 'z-arm', 'Ptx-0.2.0-arm64.zip', 'arm64-digest', '2026-01-01T00:00:00.000Z')
+      const swappedX64 = writeUpdateManifest(directory, 'a-intel', 'Ptx-0.2.0-x64.zip', 'x64-digest', '2026-02-02T00:00:00.000Z')
       expect(mergeUpdateMetadata([swappedArm64, swappedX64], '0.2.0')).toEqual(merged)
       expect(mergeUpdateMetadata([swappedX64, swappedArm64], '0.2.0')).toEqual(merged)
     } finally {
@@ -990,19 +982,19 @@ describe('GitHub Release publication', () => {
   })
 
   test('rejects updater metadata without a usable size or digest', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'pistudio-update-metadata-invalid-'))
+    const directory = mkdtempSync(join(tmpdir(), 'ptx-update-metadata-invalid-'))
     try {
       const write = (name: string, file: string) => {
         const path = join(directory, name)
         writeFileSync(path, `version: 0.2.0\nfiles:\n${file}`)
         return path
       }
-      const sized = (size: string) => `  - url: PiStudio-0.2.0-x64.zip\n    sha512: digest\n    size: ${size}\n`
-      expect(() => mergeUpdateMetadata([write('missing-size.yml', '  - url: PiStudio-0.2.0-x64.zip\n    sha512: digest\n')], '0.2.0')).toThrow(/invalid size/)
+      const sized = (size: string) => `  - url: Ptx-0.2.0-x64.zip\n    sha512: digest\n    size: ${size}\n`
+      expect(() => mergeUpdateMetadata([write('missing-size.yml', '  - url: Ptx-0.2.0-x64.zip\n    sha512: digest\n')], '0.2.0')).toThrow(/invalid size/)
       expect(() => mergeUpdateMetadata([write('zero-size.yml', sized('0'))], '0.2.0')).toThrow(/invalid size/)
       expect(() => mergeUpdateMetadata([write('negative-size.yml', sized('-1'))], '0.2.0')).toThrow(/invalid size/)
       expect(() => mergeUpdateMetadata([write('text-size.yml', sized("'42'"))], '0.2.0')).toThrow(/invalid size/)
-      expect(() => mergeUpdateMetadata([write('empty-digest.yml', "  - url: PiStudio-0.2.0-x64.zip\n    sha512: ''\n    size: 42\n")], '0.2.0')).toThrow(/no sha512/)
+      expect(() => mergeUpdateMetadata([write('empty-digest.yml', "  - url: Ptx-0.2.0-x64.zip\n    sha512: ''\n    size: 42\n")], '0.2.0')).toThrow(/no sha512/)
       expect(() => mergeUpdateMetadata([write('valid.yml', sized('42'))], '0.2.0')).not.toThrow()
       expect(() => mergeUpdateMetadata([write('a.yml', sized('42')), write('b.yml', sized('43'))], '0.2.0')).toThrow(/disagrees/)
       expect(() => mergeUpdateMetadata([], '0.2.0')).toThrow(/missing/)
@@ -1012,9 +1004,9 @@ describe('GitHub Release publication', () => {
   })
 
   test('deletes only unexpected assets from a resumed draft release', () => {
-    const assets = ['PiStudio-0.2.0-m-chip.dmg', 'PiStudio-0.1.9-arm64.dmg', 'latest-mac.yml', 'SHA256SUMS.txt']
-    const expected = ['PiStudio-0.2.0-m-chip.dmg', 'latest-mac.yml', 'SHA256SUMS.txt']
-    expect(staleDraftReleaseAssets(assets, expected)).toEqual(['PiStudio-0.1.9-arm64.dmg'])
+    const assets = ['Ptx-0.2.0-m-chip.dmg', 'Ptx-0.1.9-arm64.dmg', 'latest-mac.yml', 'SHA256SUMS.txt']
+    const expected = ['Ptx-0.2.0-m-chip.dmg', 'latest-mac.yml', 'SHA256SUMS.txt']
+    expect(staleDraftReleaseAssets(assets, expected)).toEqual(['Ptx-0.1.9-arm64.dmg'])
     expect(staleDraftReleaseAssets(expected, expected)).toEqual([])
     // An empty expected set would delete the whole draft, so it fails instead.
     expect(() => staleDraftReleaseAssets(assets, [])).toThrow(/expected release asset set is empty/)
@@ -1024,15 +1016,15 @@ describe('GitHub Release publication', () => {
   })
 
   test('prints the stale draft assets when run as a script', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'pistudio-draft-prune-'))
+    const directory = mkdtempSync(join(tmpdir(), 'ptx-draft-prune-'))
     try {
       mkdirSync(join(directory, 'release-assets'))
-      for (const name of ['PiStudio-0.2.0-m-chip.dmg', 'SHA256SUMS.txt']) writeFileSync(join(directory, 'release-assets', name), 'asset')
-      writeFileSync(join(directory, 'draft.json'), JSON.stringify({ assets: [{ name: 'PiStudio-0.2.0-m-chip.dmg' }, { name: 'PiStudio-0.1.9-arm64.dmg' }] }))
+      for (const name of ['Ptx-0.2.0-m-chip.dmg', 'SHA256SUMS.txt']) writeFileSync(join(directory, 'release-assets', name), 'asset')
+      writeFileSync(join(directory, 'draft.json'), JSON.stringify({ assets: [{ name: 'Ptx-0.2.0-m-chip.dmg' }, { name: 'Ptx-0.1.9-arm64.dmg' }] }))
       const args = ['scripts/release/prune-draft-release-assets.mjs', '--assets', join(directory, 'draft.json'), '--expected', join(directory, 'release-assets')]
       const result = spawnSync(process.execPath, args, { encoding: 'utf8' })
       expect(result.status).toBe(0)
-      expect(result.stdout.trim().split('\n')).toEqual(['PiStudio-0.1.9-arm64.dmg'])
+      expect(result.stdout.trim().split('\n')).toEqual(['Ptx-0.1.9-arm64.dmg'])
       const failed = spawnSync(process.execPath, args.slice(0, 3), { encoding: 'utf8' })
       expect(failed.status).toBe(1)
       expect(failed.stderr).toMatch(/Draft release asset pruning failed/)
@@ -1051,7 +1043,7 @@ describe('GitHub Release publication', () => {
   })
 
   test('selects the exact cross-platform asset set and writes reproducible checksums', async () => {
-    const directory = mkdtempSync(join(tmpdir(), 'pistudio-github-release-'))
+    const directory = mkdtempSync(join(tmpdir(), 'ptx-github-release-'))
     const projectDirectory = join(directory, 'project')
     const inputDirectory = join(directory, 'downloaded')
     const outputDirectory = join(directory, 'release-assets')
@@ -1066,20 +1058,20 @@ describe('GitHub Release publication', () => {
       mkdirSync(artifactDirectory)
       const updateTarget =
         name === 'latest-mac.yml'
-          ? 'PiStudio-0.2.0-arm64.zip'
+          ? 'Ptx-0.2.0-arm64.zip'
           : name === 'latest-linux.yml'
-            ? 'PiStudio-0.2.0-linux-x86_64.AppImage'
+            ? 'Ptx-0.2.0-linux-x86_64.AppImage'
             : name === 'latest-linux-arm64.yml'
-              ? 'PiStudio-0.2.0-linux-arm64.AppImage'
-              : 'PiStudio-0.2.0-win-x64.exe'
+              ? 'Ptx-0.2.0-linux-arm64.AppImage'
+              : 'Ptx-0.2.0-win-x64.exe'
       const content = name.startsWith('latest')
-        ? `version: 0.2.0\nfiles:\n  - url: ${updateTarget}\n    sha512: checksum-${index}\n    size: ${index + 1}\n${name === 'latest-mac.yml' ? '  - url: PiStudio-0.2.0-arm64.dmg\n    sha512: checksum-arm64-dmg\n    size: 44\n' : ''}path: ${updateTarget}\nsha512: checksum-${index}\n`
+        ? `version: 0.2.0\nfiles:\n  - url: ${updateTarget}\n    sha512: checksum-${index}\n    size: ${index + 1}\n${name === 'latest-mac.yml' ? '  - url: Ptx-0.2.0-arm64.dmg\n    sha512: checksum-arm64-dmg\n    size: 44\n' : ''}path: ${updateTarget}\nsha512: checksum-${index}\n`
         : `asset ${index}`
       writeFileSync(join(artifactDirectory, name), content)
     }
     const secondMacManifest = join(inputDirectory, 'macos-x64')
     mkdirSync(secondMacManifest)
-    writeFileSync(join(secondMacManifest, 'latest-mac.yml'), 'version: 0.2.0\nfiles:\n  - url: PiStudio-0.2.0-x64.zip\n    sha512: checksum-x64\n    size: 42\n')
+    writeFileSync(join(secondMacManifest, 'latest-mac.yml'), 'version: 0.2.0\nfiles:\n  - url: Ptx-0.2.0-x64.zip\n    sha512: checksum-x64\n    size: 42\n')
     try {
       const result = await prepareGitHubRelease({ inputDirectory, outputDirectory, projectDirectory, tag: 'v0.2.0' })
       expect(result.assets).toEqual(expected)
@@ -1093,23 +1085,23 @@ describe('GitHub Release publication', () => {
         expect(checksums).toContain(`${digest}  ${name}`)
       }
       const macFeed = readFileSync(join(outputDirectory, 'latest-mac.yml'), 'utf8')
-      expect(macFeed).toContain('PiStudio-0.2.0-arm64.zip')
-      expect(macFeed).toContain('PiStudio-0.2.0-x64.zip')
-      expect(macFeed).toContain('PiStudio-0.2.0-m-chip.dmg')
-      expect(macFeed).not.toContain('PiStudio-0.2.0-arm64.dmg')
+      expect(macFeed).toContain('Ptx-0.2.0-arm64.zip')
+      expect(macFeed).toContain('Ptx-0.2.0-x64.zip')
+      expect(macFeed).toContain('Ptx-0.2.0-m-chip.dmg')
+      expect(macFeed).not.toContain('Ptx-0.2.0-arm64.dmg')
       const linuxFeed = readFileSync(join(outputDirectory, 'latest-linux.yml'), 'utf8')
-      expect(linuxFeed).toContain('PiStudio-0.2.0-linux-x86_64.AppImage')
-      expect(linuxFeed).not.toContain('PiStudio-0.2.0-linux-arm64.AppImage')
+      expect(linuxFeed).toContain('Ptx-0.2.0-linux-x86_64.AppImage')
+      expect(linuxFeed).not.toContain('Ptx-0.2.0-linux-arm64.AppImage')
       const linuxArmFeed = readFileSync(join(outputDirectory, 'latest-linux-arm64.yml'), 'utf8')
-      expect(linuxArmFeed).toContain('PiStudio-0.2.0-linux-arm64.AppImage')
-      expect(linuxArmFeed).not.toContain('PiStudio-0.2.0-linux-x86_64.AppImage')
+      expect(linuxArmFeed).toContain('Ptx-0.2.0-linux-arm64.AppImage')
+      expect(linuxArmFeed).not.toContain('Ptx-0.2.0-linux-x86_64.AppImage')
     } finally {
       rmSync(directory, { recursive: true, force: true })
     }
   })
 
   test('rejects incomplete and duplicate downloaded release assets', async () => {
-    const directory = mkdtempSync(join(tmpdir(), 'pistudio-github-release-invalid-'))
+    const directory = mkdtempSync(join(tmpdir(), 'ptx-github-release-invalid-'))
     const projectDirectory = join(directory, 'project')
     const inputDirectory = join(directory, 'downloaded')
     mkdirSync(projectDirectory, { recursive: true })
@@ -1125,12 +1117,12 @@ describe('GitHub Release publication', () => {
         mkdirSync(artifactDirectory)
         const updateTarget =
           name === 'latest-mac.yml'
-            ? 'PiStudio-0.2.0-arm64.zip'
+            ? 'Ptx-0.2.0-arm64.zip'
             : name === 'latest-linux.yml'
-              ? 'PiStudio-0.2.0-linux-x86_64.AppImage'
+              ? 'Ptx-0.2.0-linux-x86_64.AppImage'
               : name === 'latest-linux-arm64.yml'
-                ? 'PiStudio-0.2.0-linux-arm64.AppImage'
-                : 'PiStudio-0.2.0-win-x64.exe'
+                ? 'Ptx-0.2.0-linux-arm64.AppImage'
+                : 'Ptx-0.2.0-win-x64.exe'
         writeFileSync(join(artifactDirectory, name), name.startsWith('latest') ? `version: 0.2.0\nfiles:\n  - url: ${updateTarget}\n    sha512: checksum-${index}\n` : `asset ${index}`)
       }
       const duplicateDirectory = join(inputDirectory, 'duplicate')
@@ -1203,12 +1195,12 @@ describe('post-package verification helpers', () => {
 
   test('keeps every platform native unpack allowlist exact and architecture-specific', () => {
     const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
-    expect(packageJson.author).toEqual({ name: 'PiStudio contributors', email: '42459108+am-will@users.noreply.github.com' })
+    expect(packageJson.author).toEqual({ name: 'Ptx contributors', email: '42459108+am-will@users.noreply.github.com' })
     expect(packageJson.description).toBe('A desktop workspace for Pi, OMP, and Prime Agent')
     expect(packageJson.homepage).toBe('https://github.com/am-will/pi-studio')
-    expect(packageJson.build.productName).toBe('PiStudio')
-    expect(packageJson.build.appId).toBe('app.pistudio.desktop')
-    expect(packageJson.desktopName).toBe('pistudio.desktop')
+    expect(packageJson.build.productName).toBe('Ptx')
+    expect(packageJson.build.appId).toBe('app.ptx.desktop')
+    expect(packageJson.desktopName).toBe('ptx.desktop')
     expect(packageJson.build.linux.synopsis).toBe(packageJson.description)
     expect(packageJson.build.linux.syncDesktopName).toBe(true)
     expect(packageJson.build.mac.icon).toBe('assets/icon.icns')
@@ -1226,7 +1218,7 @@ describe('post-package verification helpers', () => {
       offset += size
     }
     // The previous checked-in ICNS silently contained Prime artwork. Anchor
-    // its full-size layer to PiStudio's canonical PNG and retain small layers.
+    // its full-size layer to Ptx's canonical PNG and retain small layers.
     expect(macIconChunks.get('ic10')).toEqual(readFileSync('assets/icon.png'))
     expect(macIconChunks.has('ic04')).toBe(true)
     expect(macIconChunks.has('ic11')).toBe(true)
@@ -1262,59 +1254,59 @@ describe('post-package verification helpers', () => {
   })
 
   test('fails closed when Windows Authenticode verification is not valid', () => {
-    const signerEnvironment = { PISTUDIO_WINDOWS_CERT_SUBJECT: 'CN=Example Ltd' }
+    const signerEnvironment = { PTX_WINDOWS_CERT_SUBJECT: 'CN=Example Ltd' }
     const calls: Array<{ file: string; args: string[]; path: string | undefined }> = []
     const validSpawn = (file: string, args: string[], options: { env?: NodeJS.ProcessEnv }) => {
-      calls.push({ file, args, path: options.env?.PISTUDIO_SIGNED_FILE })
+      calls.push({ file, args, path: options.env?.PTX_SIGNED_FILE })
       return { status: 0, stdout: '', stderr: '' }
     }
     const spawn = validSpawn as unknown as Parameters<typeof assertValidAuthenticode>[1]
-    expect(() => assertValidAuthenticode('C:\\release\\PiStudio.exe', spawn, signerEnvironment)).not.toThrow()
+    expect(() => assertValidAuthenticode('C:\\release\\Ptx.exe', spawn, signerEnvironment)).not.toThrow()
     expect(calls).toEqual([
       {
         file: 'powershell.exe',
         args: expect.arrayContaining(['-NoProfile', '-NonInteractive', '-Command']),
-        path: 'C:\\release\\PiStudio.exe',
+        path: 'C:\\release\\Ptx.exe',
       },
     ])
     const invalidSpawn = () => ({ status: 1, stdout: '', stderr: 'NotSigned' })
-    expect(() => assertValidAuthenticode('C:\\release\\PiStudio.exe', invalidSpawn as unknown as Parameters<typeof assertValidAuthenticode>[1], signerEnvironment)).toThrow(/NotSigned/)
+    expect(() => assertValidAuthenticode('C:\\release\\Ptx.exe', invalidSpawn as unknown as Parameters<typeof assertValidAuthenticode>[1], signerEnvironment)).toThrow(/NotSigned/)
   })
 
   test('asserts the expected Authenticode signer instead of any trusted certificate', () => {
-    expect(expectedAuthenticodeSigner({ PISTUDIO_WINDOWS_CERT_SUBJECT: '  CN=Example Ltd, C=GB  ' })).toEqual({ subject: 'CN=Example Ltd, C=GB', thumbprint: '' })
-    expect(expectedAuthenticodeSigner({ PISTUDIO_WINDOWS_CERT_THUMBPRINT: 'a1:b2 c3d4e5f60718293a4b5c6d7e8f901a2b3c4d' })).toEqual({
+    expect(expectedAuthenticodeSigner({ PTX_WINDOWS_CERT_SUBJECT: '  CN=Example Ltd, C=GB  ' })).toEqual({ subject: 'CN=Example Ltd, C=GB', thumbprint: '' })
+    expect(expectedAuthenticodeSigner({ PTX_WINDOWS_CERT_THUMBPRINT: 'a1:b2 c3d4e5f60718293a4b5c6d7e8f901a2b3c4d' })).toEqual({
       subject: '',
       thumbprint: 'A1B2C3D4E5F60718293A4B5C6D7E8F901A2B3C4D',
     })
-    expect(() => expectedAuthenticodeSigner({ PISTUDIO_WINDOWS_CERT_THUMBPRINT: 'not-a-thumbprint' })).toThrow(/40-character SHA-1 certificate thumbprint/)
+    expect(() => expectedAuthenticodeSigner({ PTX_WINDOWS_CERT_THUMBPRINT: 'not-a-thumbprint' })).toThrow(/40-character SHA-1 certificate thumbprint/)
     // Unconfigured fails closed rather than accepting whoever the runner trusts.
-    expect(() => expectedAuthenticodeSigner({})).toThrow(/PISTUDIO_WINDOWS_CERT_SUBJECT and\/or PISTUDIO_WINDOWS_CERT_THUMBPRINT/)
+    expect(() => expectedAuthenticodeSigner({})).toThrow(/PTX_WINDOWS_CERT_SUBJECT and\/or PTX_WINDOWS_CERT_THUMBPRINT/)
 
     const calls: Array<{ args: string[]; env: NodeJS.ProcessEnv | undefined }> = []
     const spawn = (_file: string, args: string[], options: { env?: NodeJS.ProcessEnv }) => {
       calls.push({ args, env: options.env })
       return { status: 0, stdout: '', stderr: '' }
     }
-    assertValidAuthenticode('C:\\release\\PiStudio.exe', spawn as unknown as Parameters<typeof assertValidAuthenticode>[1], {
-      PISTUDIO_WINDOWS_CERT_SUBJECT: 'CN=Example Ltd',
-      PISTUDIO_WINDOWS_CERT_THUMBPRINT: 'a1b2c3d4e5f60718293a4b5c6d7e8f901a2b3c4d',
+    assertValidAuthenticode('C:\\release\\Ptx.exe', spawn as unknown as Parameters<typeof assertValidAuthenticode>[1], {
+      PTX_WINDOWS_CERT_SUBJECT: 'CN=Example Ltd',
+      PTX_WINDOWS_CERT_THUMBPRINT: 'a1b2c3d4e5f60718293a4b5c6d7e8f901a2b3c4d',
     })
     // The file path and expected signer are passed as environment variables, never
     // interpolated into the script, and a terminating error exits non-zero.
     expect(calls[0].env).toMatchObject({
-      PISTUDIO_SIGNED_FILE: 'C:\\release\\PiStudio.exe',
-      PISTUDIO_WINDOWS_CERT_SUBJECT: 'CN=Example Ltd',
-      PISTUDIO_WINDOWS_CERT_THUMBPRINT: 'A1B2C3D4E5F60718293A4B5C6D7E8F901A2B3C4D',
+      PTX_SIGNED_FILE: 'C:\\release\\Ptx.exe',
+      PTX_WINDOWS_CERT_SUBJECT: 'CN=Example Ltd',
+      PTX_WINDOWS_CERT_THUMBPRINT: 'A1B2C3D4E5F60718293A4B5C6D7E8F901A2B3C4D',
     })
     const script = calls[0].args.at(-1) as string
-    expect(script).not.toContain('C:\\release\\PiStudio.exe')
+    expect(script).not.toContain('C:\\release\\Ptx.exe')
     expect(script).toContain("$ErrorActionPreference = 'Stop'")
     expect(script).toContain('try {')
     expect(script).toContain('} catch {')
     expect(script).toContain('exit 1')
-    expect(script).toContain('$certificate.Subject -ne $env:PISTUDIO_WINDOWS_CERT_SUBJECT')
-    expect(script).toContain('$certificate.Thumbprint.ToUpperInvariant() -ne $env:PISTUDIO_WINDOWS_CERT_THUMBPRINT')
+    expect(script).toContain('$certificate.Subject -ne $env:PTX_WINDOWS_CERT_SUBJECT')
+    expect(script).toContain('$certificate.Thumbprint.ToUpperInvariant() -ne $env:PTX_WINDOWS_CERT_THUMBPRINT')
   })
 
   test('excludes other platform native build trees and declares zeromq directly', () => {
@@ -1854,7 +1846,7 @@ describe('production dependency audit', () => {
 
 describe('packaged extension resources', () => {
   function createFixture() {
-    const directory = mkdtempSync(join(tmpdir(), 'pistudio-packaged-extensions-'))
+    const directory = mkdtempSync(join(tmpdir(), 'ptx-packaged-extensions-'))
     const resources = join(directory, 'resources')
     const extensions = join(resources, 'extensions')
     mkdirSync(extensions, { recursive: true })

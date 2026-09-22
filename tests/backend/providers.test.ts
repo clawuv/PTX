@@ -371,9 +371,9 @@ describe('Prime provider adapter', () => {
     internals.authStorage.set = set
     internals.authStorage.logout = logout
 
-    await expect(providerService.startOAuth('mcp:notion')).rejects.toThrow('Network MCP authentication is managed outside PiStudio')
-    await expect(providerService.saveApiKey('mcp:notion', 'secret')).rejects.toThrow('Network MCP authentication is managed outside PiStudio')
-    await expect(providerService.logout('mcp:notion')).rejects.toThrow('Network MCP authentication is managed outside PiStudio')
+    await expect(providerService.startOAuth('mcp:notion')).rejects.toThrow('Network MCP authentication is managed outside Ptx')
+    await expect(providerService.saveApiKey('mcp:notion', 'secret')).rejects.toThrow('Network MCP authentication is managed outside Ptx')
+    await expect(providerService.logout('mcp:notion')).rejects.toThrow('Network MCP authentication is managed outside Ptx')
     expect(login).not.toHaveBeenCalled()
     expect(set).not.toHaveBeenCalled()
     expect(logout).not.toHaveBeenCalled()
@@ -388,7 +388,7 @@ describe('Prime provider adapter', () => {
     internals.authStorage.get = get
     expect(providerService.mcpCapabilities()).toContainEqual(expect.objectContaining({
       name: 'Notion', kind: 'mcp', location: 'bundled', enabled: false,
-      availability: { available: false, detail: expect.stringContaining('managed outside PiStudio') },
+      availability: { available: false, detail: expect.stringContaining('managed outside Ptx') },
     }))
     expect(get).not.toHaveBeenCalled()
   })

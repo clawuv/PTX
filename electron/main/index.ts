@@ -8,7 +8,7 @@ import { AgentBrowserBridge } from './browser/agent-bridge'
 import { AgentBrowserService } from './browser/agent-service'
 import { BrowserDownloadGuard } from './browser-downloads'
 import { AgentCollaborationBridge } from './collaboration/agent-bridge'
-import { configurePiStudioAgentMessageSigning, loadOrCreatePiStudioAgentMessageKey } from './collaboration/message-envelope'
+import { configurePtxAgentMessageSigning, loadOrCreatePtxAgentMessageKey } from './collaboration/message-envelope'
 import { assertNoMcpAuthenticationCommand } from '../../src/lib/mcp-policy'
 import { type ApplicationMenuCommand, type ApplicationMenuName, BROWSER_PARTITION, type AppMeta, type AppUpdateState, type HarnessId, type LocalePreference, type PrimeEventEnvelope, type ProviderAuthEvent, type RuntimeInfo, type ThemeMode } from '../../src/types/api'
 import { AgentRpcManager, OMP_RPC_ADAPTER, PI_RPC_ADAPTER } from './agent-rpc'
@@ -257,7 +257,7 @@ export async function confirmAppClose(window: BrowserWindow | null, prompt: Shut
     defaultId: 0,
     cancelId: 0,
     noLink: true,
-    title: 'PiStudio',
+    title: 'Ptx',
     ...prompt,
   }
   const { response } = window && !window.isDestroyed()
@@ -283,7 +283,7 @@ function requestShutdown(window: BrowserWindow | null, prompt: ShutdownPrompt): 
     shutdownApproved = true
     app.quit()
   }).catch((error: unknown) => {
-    console.error(`PiStudio close confirmation failed: ${boundedErrorMessage(error)}`)
+    console.error(`Ptx close confirmation failed: ${boundedErrorMessage(error)}`)
   }).finally(() => { confirmingShutdown = false })
 }
 
@@ -524,10 +524,10 @@ export interface StartupFailureDialog {
 
 export function startupFailureDialog(error: unknown): StartupFailureDialog | null {
   if (error instanceof StateMigrationError) {
-    return { title: 'PiStudio state migration failed', detail: boundedErrorMessage(error, 2_048) }
+    return { title: 'Ptx state migration failed', detail: boundedErrorMessage(error, 2_048) }
   }
   if (error instanceof StateCompatibilityError) {
-    return { title: 'PiStudio update required', detail: boundedErrorMessage(error, 2_048) }
+    return { title: 'Ptx update required', detail: boundedErrorMessage(error, 2_048) }
   }
   return null
 }
@@ -562,7 +562,7 @@ export function extensionRuntimeEnvironment(
     PRIME_WORK_SCHEDULE_EXTENSION_PATH: extensionPaths.schedule,
     PRIME_WORK_BROWSER_EXTENSION_PATH: browserEnabled ? extensionPaths.browser : undefined,
     PRIME_WORK_ASK_USER_EXTENSION_PATH: askUserEnabled ? extensionPaths.askUser : undefined,
-    PISTUDIO_MANAGES_ASK_USER: '1',
+    PTX_MANAGES_ASK_USER: '1',
   }
 }
 
@@ -574,13 +574,13 @@ export async function settleShutdown(
   const watchdogMs = options.watchdogMs ?? 10_000
   const settled = Promise.allSettled(steps).then((results) => {
     for (const result of results) {
-      if (result.status === 'rejected') log(`PiStudio shutdown step failed: ${boundedErrorMessage(result.reason)}`)
+      if (result.status === 'rejected') log(`Ptx shutdown step failed: ${boundedErrorMessage(result.reason)}`)
     }
   })
   let timer: NodeJS.Timeout | undefined
   const watchdog = new Promise<void>((resolve) => {
     timer = setTimeout(() => {
-      log(`PiStudio shutdown did not finish within ${watchdogMs} ms; quitting anyway`)
+      log(`Ptx shutdown did not finish within ${watchdogMs} ms; quitting anyway`)
       resolve()
     }, watchdogMs)
     timer.unref?.()
@@ -602,7 +602,7 @@ function requestWindow(reason: 'activation' | 'second instance' | 'menu bar' | '
     }
     afterOpen?.(window)
   }).catch((error: unknown) => {
-    if (!shutdownStarted) console.error(`PiStudio failed to open a window after ${reason}: ${boundedErrorMessage(error)}`)
+    if (!shutdownStarted) console.error(`Ptx failed to open a window after ${reason}: ${boundedErrorMessage(error)}`)
   })
 }
 
@@ -622,7 +622,7 @@ export function routeAllWindowsClosed(
 
 async function bootstrap(): Promise<void> {
   const userDataPath = app.getPath('userData')
-  configurePiStudioAgentMessageSigning(loadOrCreatePiStudioAgentMessageKey(join(userDataPath, 'agent-message-signing.key')))
+  configurePtxAgentMessageSigning(loadOrCreatePtxAgentMessageKey(join(userDataPath, 'agent-message-signing.key')))
   const stateStore = await openDesktopStateStore(userDataPath)
   store = stateStore
   backgroundMode = new MacBackgroundController({
@@ -823,8 +823,8 @@ async function bootstrap(): Promise<void> {
     ? join(process.resourcesPath, 'skills', 'prime-work-browser')
     : join(app.getAppPath(), 'assets', 'skills', 'prime-work-browser')
   const computerUseSkillPath = app.isPackaged
-    ? join(process.resourcesPath, 'skills', 'pistudio-computer-use', 'SKILL.md')
-    : join(app.getAppPath(), 'assets', 'skills', 'pistudio-computer-use', 'SKILL.md')
+    ? join(process.resourcesPath, 'skills', 'ptx-computer-use', 'SKILL.md')
+    : join(app.getAppPath(), 'assets', 'skills', 'ptx-computer-use', 'SKILL.md')
   const extensionPathContext = {
     isPackaged: app.isPackaged,
     appPath: app.getAppPath(),
@@ -841,7 +841,7 @@ async function bootstrap(): Promise<void> {
   const computerUseSkill = async () => {
     const status = await cuaDriver.status()
     return {
-      id: 'pistudio-computer-use', name: 'Computer Use | TryCUA',
+      id: 'ptx-computer-use', name: 'Computer Use | TryCUA',
       description: 'Drive native apps through a separately installed TryCUA driver. Install the driver before enabling.',
       kind: 'extension' as const, location: 'system' as const, path: computerUseSkillPath,
       enabled: stateStore.getSettings().computerUseEnabled,
@@ -854,8 +854,8 @@ async function bootstrap(): Promise<void> {
       description: 'Create and manage durable project and thread schedules from an agent.',
       kind: 'skill', location: 'system', path: scheduleSkillPath, enabled: true,
     }, {
-      id: 'pistudio-ask-user', name: 'Ask user',
-      description: 'Ask focused multiple-choice questions in the PiStudio app across Prime, OMP, and Pi.',
+      id: 'ptx-ask-user', name: 'Ask user',
+      description: 'Ask focused multiple-choice questions in the Ptx app across Prime, OMP, and Pi.',
       kind: 'extension', location: 'system', path: ompAskUserExtensionPath, enabled: stateStore.getSettings().askUserEnabled,
     }, {
       id: 'prime-work-browser', name: 'Browser',
@@ -867,15 +867,15 @@ async function bootstrap(): Promise<void> {
     harness: 'omp',
     builtInSkills: async () => [{
       id: 'omp-work-schedules', name: 'Scheduled tasks',
-      description: 'OMP extension for durable project and thread schedules managed by PiStudio.',
+      description: 'OMP extension for durable project and thread schedules managed by Ptx.',
       kind: 'extension', location: 'system', path: ompScheduleExtensionPath, enabled: true,
     }, {
       id: 'omp-work-browser', name: 'Browser',
       description: 'OMP extension for driving this thread\'s in-app browser.',
       kind: 'extension', location: 'system', path: ompBrowserExtensionPath, enabled: stateStore.getSettings().browserEnabled,
     }, {
-      id: 'pistudio-ask-user', name: 'Ask user',
-      description: 'OMP extension for asking focused multiple-choice questions in the PiStudio app.',
+      id: 'ptx-ask-user', name: 'Ask user',
+      description: 'OMP extension for asking focused multiple-choice questions in the Ptx app.',
       kind: 'extension', location: 'system', path: ompAskUserExtensionPath, enabled: stateStore.getSettings().askUserEnabled,
     }, await computerUseSkill()],
   })
@@ -885,15 +885,15 @@ async function bootstrap(): Promise<void> {
     harness: 'pi',
     builtInSkills: async () => [{
       id: 'omp-work-schedules', name: 'Scheduled tasks',
-      description: 'Pi extension for durable project and thread schedules managed by PiStudio.',
+      description: 'Pi extension for durable project and thread schedules managed by Ptx.',
       kind: 'extension', location: 'system', path: ompScheduleExtensionPath, enabled: true,
     }, {
       id: 'omp-work-browser', name: 'Browser',
       description: 'Pi extension for driving this thread\'s in-app browser.',
       kind: 'extension', location: 'system', path: ompBrowserExtensionPath, enabled: stateStore.getSettings().browserEnabled,
     }, {
-      id: 'pistudio-ask-user', name: 'Ask user',
-      description: 'Pi extension for asking focused multiple-choice questions in the PiStudio app.',
+      id: 'ptx-ask-user', name: 'Ask user',
+      description: 'Pi extension for asking focused multiple-choice questions in the Ptx app.',
       kind: 'extension', location: 'system', path: ompAskUserExtensionPath, enabled: stateStore.getSettings().askUserEnabled,
     }, await computerUseSkill()],
   })
@@ -1043,11 +1043,11 @@ async function bootstrap(): Promise<void> {
     const claims: Array<[string, { revoke(token: string | undefined): boolean }, string | undefined]> = [
       ['schedule', runtimeScheduleBridge, environment.PRIME_WORK_SCHEDULE_TOKEN],
       ['browser', browserBridge, environment.PRIME_WORK_BROWSER_TOKEN],
-      ['collaboration', collaborationBridge, environment.PISTUDIO_COLLABORATION_TOKEN],
+      ['collaboration', collaborationBridge, environment.PTX_COLLABORATION_TOKEN],
     ]
     for (const [name, bridge, token] of claims) {
       try { bridge.revoke(token) } catch (error) {
-        console.error(`PiStudio failed to revoke ${name} runtime capability: ${boundedErrorMessage(error)}`)
+        console.error(`Ptx failed to revoke ${name} runtime capability: ${boundedErrorMessage(error)}`)
       }
     }
   }
@@ -1056,13 +1056,13 @@ async function bootstrap(): Promise<void> {
     ...(stateStore.getSettings().browserEnabled ? browserBridge.environmentFor(scope) : {}),
     ...collaborationBridge.environmentFor({ ...scope, harness: 'prime' }),
     PRIME_WORK_ASK_USER_EXTENSION_PATH: stateStore.getSettings().askUserEnabled && scope.interactive ? ompAskUserExtensionPath : undefined,
-    PISTUDIO_MANAGES_ASK_USER: '1',
-    PISTUDIO_CUA_DRIVER_PATH: stateStore.getSettings().computerUseEnabled ? cuaDriver.executable() ?? undefined : undefined,
-    PISTUDIO_COMPUTER_USE_SKILL_PATH: stateStore.getSettings().computerUseEnabled && cuaDriver.executable() ? computerUseSkillPath : undefined,
+    PTX_MANAGES_ASK_USER: '1',
+    PTX_CUA_DRIVER_PATH: stateStore.getSettings().computerUseEnabled ? cuaDriver.executable() ?? undefined : undefined,
+    PTX_COMPUTER_USE_SKILL_PATH: stateStore.getSettings().computerUseEnabled && cuaDriver.executable() ? computerUseSkillPath : undefined,
   }))
   agents.setRuntimeStartListener((environment, info) => {
     browserBridge.bindSession(environment.PRIME_WORK_BROWSER_TOKEN, info.sessionFile)
-    collaborationBridge.bindSession(environment.PISTUDIO_COLLABORATION_TOKEN, info.sessionFile, info.runtimeId)
+    collaborationBridge.bindSession(environment.PTX_COLLABORATION_TOKEN, info.sessionFile, info.runtimeId)
   })
   agents.setRuntimeEndListener((environment) => revokeRuntimeCapabilities(environment, scheduleBridge))
   // OMP runtimes get the same capability-scoped brokers through OMP-flavored
@@ -1076,12 +1076,12 @@ async function bootstrap(): Promise<void> {
   ompManager.setRuntimeEnvironmentProvider((scope) => ({
     ...extensionRuntimeEnvironment(ompScheduleBridge.environmentFor(scope), () => browserBridge.environmentFor(scope), capabilityExtensionPaths, stateStore.getSettings().askUserEnabled && scope.interactive, stateStore.getSettings().browserEnabled),
     ...collaborationBridge.environmentFor({ ...scope, harness: 'omp' }),
-    PISTUDIO_CUA_DRIVER_PATH: stateStore.getSettings().computerUseEnabled ? cuaDriver.executable() ?? undefined : undefined,
-    PISTUDIO_COMPUTER_USE_SKILL_PATH: stateStore.getSettings().computerUseEnabled && cuaDriver.executable() ? computerUseSkillPath : undefined,
+    PTX_CUA_DRIVER_PATH: stateStore.getSettings().computerUseEnabled ? cuaDriver.executable() ?? undefined : undefined,
+    PTX_COMPUTER_USE_SKILL_PATH: stateStore.getSettings().computerUseEnabled && cuaDriver.executable() ? computerUseSkillPath : undefined,
   }))
   ompManager.setRuntimeStartListener((environment, info) => {
     browserBridge.bindSession(environment.PRIME_WORK_BROWSER_TOKEN, info.sessionFile)
-    collaborationBridge.bindSession(environment.PISTUDIO_COLLABORATION_TOKEN, info.sessionFile, info.runtimeId)
+    collaborationBridge.bindSession(environment.PTX_COLLABORATION_TOKEN, info.sessionFile, info.runtimeId)
   })
   ompManager.setRuntimeEndListener((environment) => revokeRuntimeCapabilities(environment, ompScheduleBridge))
   // Pi runtimes receive the identical capability surface: pi's extension API
@@ -1089,13 +1089,13 @@ async function bootstrap(): Promise<void> {
   piManager.setRuntimeEnvironmentProvider((scope) => ({
     ...extensionRuntimeEnvironment(piScheduleBridge.environmentFor(scope), () => browserBridge.environmentFor(scope), capabilityExtensionPaths, stateStore.getSettings().askUserEnabled && scope.interactive, stateStore.getSettings().browserEnabled),
     ...collaborationBridge.environmentFor({ ...scope, harness: 'pi' }),
-    PISTUDIO_PI_FAST_MODE_EXTENSION_PATH: piFastModeExtensionPath,
-    PISTUDIO_CUA_DRIVER_PATH: stateStore.getSettings().computerUseEnabled ? cuaDriver.executable() ?? undefined : undefined,
-    PISTUDIO_COMPUTER_USE_SKILL_PATH: stateStore.getSettings().computerUseEnabled && cuaDriver.executable() ? computerUseSkillPath : undefined,
+    PTX_PI_FAST_MODE_EXTENSION_PATH: piFastModeExtensionPath,
+    PTX_CUA_DRIVER_PATH: stateStore.getSettings().computerUseEnabled ? cuaDriver.executable() ?? undefined : undefined,
+    PTX_COMPUTER_USE_SKILL_PATH: stateStore.getSettings().computerUseEnabled && cuaDriver.executable() ? computerUseSkillPath : undefined,
   }))
   piManager.setRuntimeStartListener((environment, info) => {
     browserBridge.bindSession(environment.PRIME_WORK_BROWSER_TOKEN, info.sessionFile)
-    collaborationBridge.bindSession(environment.PISTUDIO_COLLABORATION_TOKEN, info.sessionFile, info.runtimeId)
+    collaborationBridge.bindSession(environment.PTX_COLLABORATION_TOKEN, info.sessionFile, info.runtimeId)
   })
   piManager.setRuntimeEndListener((environment) => revokeRuntimeCapabilities(environment, piScheduleBridge))
   if (shutdownStarted) return
@@ -1154,7 +1154,7 @@ async function bootstrap(): Promise<void> {
     }
   })
   const applicationMenuOptions = {
-    appName: 'PiStudio',
+    appName: 'Ptx',
     updatesEnabled: updates.isEnabled(),
     closeWindow: () => {
       const window = mainWindow
@@ -1164,7 +1164,7 @@ async function bootstrap(): Promise<void> {
     checkForUpdates: createManualUpdateCheck(() => updates.check(), async (notification) => {
       await dialog.showMessageBox({
         type: notification.type,
-        title: 'PiStudio',
+        title: 'Ptx',
         message: notification.message,
         detail: notification.detail,
       })
@@ -1253,7 +1253,7 @@ else void app.whenReady().then(async () => {
 }).catch((error: unknown) => {
   const failureDialog = startupFailureDialog(error)
   if (failureDialog) dialog.showErrorBox(failureDialog.title, failureDialog.detail)
-  if (!shutdownStarted) console.error(`PiStudio failed to start: ${boundedErrorMessage(error)}`)
+  if (!shutdownStarted) console.error(`Ptx failed to start: ${boundedErrorMessage(error)}`)
   app.quit()
 })
 
@@ -1299,6 +1299,6 @@ app.on('before-quit', (event) => {
     stopChildProcesses(),
   ]).then(async () => {
     // Await the drain so the final persist lands before the process exits.
-    try { await store?.beginShutdown() } catch (error) { console.error(`PiStudio store shutdown failed: ${boundedErrorMessage(error)}`) }
+    try { await store?.beginShutdown() } catch (error) { console.error(`Ptx store shutdown failed: ${boundedErrorMessage(error)}`) }
   }).finally(() => app.quit())
 })

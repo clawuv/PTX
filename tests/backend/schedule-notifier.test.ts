@@ -74,7 +74,7 @@ describe('ScheduleRunNotifier', () => {
     const notifier = new ScheduleRunNotifier({ show })
     notifier.onRunOutcome(
       outcome({
-        task: { status: 'blocked', blockedReason: 'PiStudio paused this task automatically after 3 consecutive failed runs. Last error: provider down' },
+        task: { status: 'blocked', blockedReason: 'Ptx paused this task automatically after 3 consecutive failed runs. Last error: provider down' },
         run: { status: 'failed', error: 'provider down' },
       }),
     )

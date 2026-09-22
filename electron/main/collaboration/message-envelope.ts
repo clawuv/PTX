@@ -4,13 +4,13 @@ import { dirname } from 'node:path'
 import type { HarnessId } from '../../../src/types/api'
 import { isRecord } from '../validation'
 
-const BEGIN = '===== BEGIN PISTUDIO AGENT MESSAGE ====='
-const END = '===== END PISTUDIO AGENT MESSAGE ====='
+const BEGIN = '===== BEGIN PTX AGENT MESSAGE ====='
+const END = '===== END PTX AGENT MESSAGE ====='
 const HARNESSES = new Set<HarnessId>(['prime', 'omp', 'pi'])
 const KEY_BYTES = 32
 let signingKey: Buffer | undefined
 
-export interface PiStudioAgentMessage {
+export interface PtxAgentMessage {
   fromSessionId: string
   /** Legacy display metadata is parsed for saved v1 messages, never emitted in new model-facing envelopes. */
   fromTitle?: string
@@ -39,18 +39,18 @@ interface SignedMetadataV2 {
 type SignedMetadata = SignedMetadataV1 | SignedMetadataV2
 
 function signature(metadata: SignedMetadata, text: string): Buffer {
-  if (!signingKey) throw new Error('PiStudio agent-message signing is not initialized')
+  if (!signingKey) throw new Error('Ptx agent-message signing is not initialized')
   return createHmac('sha256', signingKey).update(JSON.stringify(metadata)).update('\0').update(text).digest()
 }
 
 /** Loads the app-local signing key, creating it with owner-only permissions on first use. */
-export function loadOrCreatePiStudioAgentMessageKey(path: string): Buffer {
+export function loadOrCreatePtxAgentMessageKey(path: string): Buffer {
   const readExisting = (): Buffer => {
     const stat = lstatSync(path)
-    if (!stat.isFile() || stat.size !== KEY_BYTES) throw new Error('The PiStudio agent-message signing key is invalid')
+    if (!stat.isFile() || stat.size !== KEY_BYTES) throw new Error('The Ptx agent-message signing key is invalid')
     if (process.platform !== 'win32' && (stat.mode & 0o077) !== 0) chmodSync(path, 0o600)
     const existing = readFileSync(path)
-    if (existing.length !== KEY_BYTES) throw new Error('The PiStudio agent-message signing key is invalid')
+    if (existing.length !== KEY_BYTES) throw new Error('The Ptx agent-message signing key is invalid')
     return existing
   }
   try {
@@ -68,12 +68,12 @@ export function loadOrCreatePiStudioAgentMessageKey(path: string): Buffer {
   return created
 }
 
-export function configurePiStudioAgentMessageSigning(key: Uint8Array): void {
-  if (key.byteLength !== KEY_BYTES) throw new Error('The PiStudio agent-message signing key must be 32 bytes')
+export function configurePtxAgentMessageSigning(key: Uint8Array): void {
+  if (key.byteLength !== KEY_BYTES) throw new Error('The Ptx agent-message signing key must be 32 bytes')
   signingKey = Buffer.from(key)
 }
 
-export function encodePiStudioAgentMessage(message: Pick<PiStudioAgentMessage, 'fromSessionId' | 'text'>): string {
+export function encodePtxAgentMessage(message: Pick<PtxAgentMessage, 'fromSessionId' | 'text'>): string {
   const unsigned: SignedMetadataV2 = {
     version: 2,
     from_session_id: message.fromSessionId,
@@ -86,7 +86,7 @@ export function encodePiStudioAgentMessage(message: Pick<PiStudioAgentMessage, '
 }
 
 /** Recognizes only the exact app-owned envelope shape at the start of a user record. */
-export function parsePiStudioAgentMessage(value: string): PiStudioAgentMessage | undefined {
+export function parsePtxAgentMessage(value: string): PtxAgentMessage | undefined {
   if (!value.startsWith(`${BEGIN}\n`)) return undefined
   const metadataEnd = value.indexOf(`\n${END}\n`, BEGIN.length + 1)
   if (metadataEnd < 0) return undefined

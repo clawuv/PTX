@@ -6,7 +6,7 @@ import { saveComposerDraftFromDom } from './lib/composer-draft'
 import './styles.css'
 
 const root = document.getElementById('root')
-if (!root) throw new Error('PiStudio root element was not found')
+if (!root) throw new Error('Ptx root element was not found')
 
 createRoot(root).render(
   <StrictMode>
@@ -14,10 +14,10 @@ createRoot(root).render(
       onCatch={saveComposerDraftFromDom}
       fallback={(
         <div className="empty-state app-error-fallback" role="alert">
-          <h2>PiStudio hit an unexpected error</h2>
+          <h2>Ptx hit an unexpected error</h2>
           <p>Reload to continue. Any message you were typing is preserved.</p>
           <div className="empty-state__action">
-            <button type="button" className="button button--primary" onClick={() => window.location.reload()}>Reload PiStudio</button>
+            <button type="button" className="button button--primary" onClick={() => window.location.reload()}>Reload Ptx</button>
           </div>
         </div>
       )}

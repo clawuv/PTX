@@ -119,7 +119,7 @@ export class MacBackgroundController {
     const icon = nativeImage.createFromPath(this.options.iconPath).resize({ width: 18, height: 18 })
     icon.setTemplateImage(true)
     const tray = new Tray(icon)
-    tray.setToolTip('PiStudio')
+    tray.setToolTip('Ptx')
     tray.setContextMenu(Menu.buildFromTemplate(this.trayContextMenu()))
     this.tray = tray
   }
@@ -148,7 +148,7 @@ export class MacBackgroundController {
       if (app.getLoginItemSettings().openAtLogin === openAtLogin) return
       app.setLoginItemSettings({ openAtLogin })
     } catch (error) {
-      console.error(`PiStudio could not update its login item: ${error instanceof Error ? error.message : String(error)}`)
+      console.error(`Ptx could not update its login item: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 

@@ -44,7 +44,7 @@ export class UnsupportedStateVersionError extends StateCompatibilityError {
     readonly stateVersion: number,
     readonly statePath: string,
   ) {
-    super(`Desktop state schema version ${stateVersion} at ${statePath} is newer than supported version ${CURRENT_DESKTOP_STATE_VERSION}. Upgrade PiStudio to a compatible version; the state file was left unchanged.`)
+    super(`Desktop state schema version ${stateVersion} at ${statePath} is newer than supported version ${CURRENT_DESKTOP_STATE_VERSION}. Upgrade Ptx to a compatible version; the state file was left unchanged.`)
     this.name = 'UnsupportedStateVersionError'
   }
 }
@@ -72,7 +72,7 @@ interface WindowsLegacyTombstone {
   reason: WindowsLegacyTombstoneReason
 }
 
-const WINDOWS_LEGACY_TOMBSTONE_KEY = 'piStudioV4Migration'
+const WINDOWS_LEGACY_TOMBSTONE_KEY = 'ptxV4Migration'
 
 function parseWindowsLegacyTombstone(value: unknown): WindowsLegacyTombstone | null {
   if (!isRecord(value) || value.version !== 3) return null
@@ -493,7 +493,7 @@ export class JsonStateStore {
         }
       }
       if (size > MAX_STATE_FILE_BYTES) {
-        throw new StateCompatibilityError(`Desktop state file at ${sourcePath} is ${size} bytes, which exceeds the ${MAX_STATE_FILE_BYTES}-byte safe parse limit. It was left unchanged; use the PiStudio version that created it, or move it aside only after making a backup.`)
+        throw new StateCompatibilityError(`Desktop state file at ${sourcePath} is ${size} bytes, which exceeds the ${MAX_STATE_FILE_BYTES}-byte safe parse limit. It was left unchanged; use the Ptx version that created it, or move it aside only after making a backup.`)
       }
       const rawState = readFileSync(sourcePath)
       const serializedState: unknown = JSON.parse(rawState.toString('utf8'))
@@ -513,7 +513,7 @@ export class JsonStateStore {
       }
       const needsPersist = sourceKind === 'legacy' || (legacyFilePath !== undefined && parsed.sourceVersion !== CURRENT_DESKTOP_STATE_VERSION)
       if (needsPersist || legacyFilePath !== undefined) {
-        this.scheduleInitialization(needsPersist, legacyFilePath !== undefined, 'PiStudio desktop state migration could not be completed')
+        this.scheduleInitialization(needsPersist, legacyFilePath !== undefined, 'Ptx desktop state migration could not be completed')
       }
     } catch (error) {
       if (error instanceof StateCompatibilityError) {
@@ -522,13 +522,13 @@ export class JsonStateStore {
           if (this.platform === 'win32') {
             this.scheduleInitializationOperation(
               () => this.ensureWindowsLegacyProtection(false),
-              'PiStudio could not protect incompatible v4 state from a downgraded Windows binary',
+              'Ptx could not protect incompatible v4 state from a downgraded Windows binary',
             )
           } else {
             this.scheduleInitialization(
               false,
               true,
-              'PiStudio could not protect incompatible v4 state from a downgraded binary',
+              'Ptx could not protect incompatible v4 state from a downgraded binary',
             )
           }
         }
@@ -538,7 +538,7 @@ export class JsonStateStore {
       let preservationFailure: unknown
       try {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-          console.error(`PiStudio desktop state was reset and backed up: ${error instanceof Error ? error.message : String(error)}`)
+          console.error(`Ptx desktop state was reset and backed up: ${error instanceof Error ? error.message : String(error)}`)
           recoveryPath = `${sourcePath}.corrupt-${Date.now()}`
           renameSync(sourcePath, recoveryPath)
         }
@@ -547,7 +547,7 @@ export class JsonStateStore {
         recoveryPath = undefined
       }
       if (this.platform === 'win32' && legacyFilePath) this.scheduleWindowsRecoveryInitialization(sourceKind, recoveryPath, preservationFailure)
-      else this.scheduleInitialization(true, legacyFilePath !== undefined, 'PiStudio desktop state could not be rewritten after the reset')
+      else this.scheduleInitialization(true, legacyFilePath !== undefined, 'Ptx desktop state could not be rewritten after the reset')
     }
   }
 
@@ -612,14 +612,14 @@ export class JsonStateStore {
   private scheduleFreshInitialization(): void {
     this.scheduleInitializationOperation(
       () => this.persist(this.state),
-      'PiStudio desktop state could not be initialized',
+      'Ptx desktop state could not be initialized',
     )
   }
 
   private scheduleWindowsFreshInitialization(): void {
     this.scheduleInitializationOperation(
       () => this.initializeWindowsFreshState(),
-      'PiStudio could not establish the Windows v4 compatibility marker',
+      'Ptx could not establish the Windows v4 compatibility marker',
     )
   }
 
@@ -643,13 +643,13 @@ export class JsonStateStore {
         if (error instanceof StateCompatibilityError || error instanceof StateMigrationError) throw error
         throw this.migrationError(`The Windows desktop-state migration was interrupted: ${this.errorMessage(error)}`, this.verifiedBackupFile(backupPath))
       }
-    }, 'PiStudio could not complete the Windows desktop-state migration')
+    }, 'Ptx could not complete the Windows desktop-state migration')
   }
 
   private scheduleWindowsTombstoneRecovery(tombstone: WindowsLegacyTombstone): void {
     this.scheduleInitializationOperation(
       () => this.resumeWindowsTombstone(tombstone),
-      'PiStudio could not resume the interrupted Windows desktop-state migration',
+      'Ptx could not resume the interrupted Windows desktop-state migration',
     )
   }
 
@@ -691,7 +691,7 @@ export class JsonStateStore {
   private scheduleWindowsLegacyProtection(): void {
     this.scheduleInitializationOperation(
       () => this.ensureWindowsLegacyProtection(true),
-      'PiStudio could not protect v4 state from a downgraded Windows binary',
+      'Ptx could not protect v4 state from a downgraded Windows binary',
     )
   }
 
@@ -709,7 +709,7 @@ export class JsonStateStore {
         return
       }
       await this.initializeWindowsFreshState()
-    }, 'PiStudio desktop state could not be safely rewritten after reset')
+    }, 'Ptx desktop state could not be safely rewritten after reset')
   }
 
   private scheduleInitializationOperation(operation: () => Promise<void>, failurePrefix: string): void {

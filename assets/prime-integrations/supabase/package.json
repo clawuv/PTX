@@ -1,9 +1,9 @@
 {
-  "name": "pistudio-prime-supabase",
+  "name": "ptx-prime-supabase",
   "version": "0.1.0",
   "private": true,
   "description": "Prime Agent Python integration for Supabase's official hosted MCP server.",
-  "pistudio": {
+  "ptx": {
     "mcpServers": ["supabase"]
   },
   "license": "MIT",

@@ -48,7 +48,7 @@ describe('capability extension environment parity (OMP and pi)', () => {
     expect(environment.PRIME_WORK_SCHEDULE_EXTENSION_PATH).toBe('/app/extensions/omp-work-schedules.ts')
     expect(environment.PRIME_WORK_BROWSER_EXTENSION_PATH).toBe('/app/extensions/omp-work-browser.ts')
     expect(environment.PRIME_WORK_ASK_USER_EXTENSION_PATH).toBe('/app/extensions/omp-work-ask-user.ts')
-    expect(environment.PISTUDIO_MANAGES_ASK_USER).toBe('1')
+    expect(environment.PTX_MANAGES_ASK_USER).toBe('1')
     // The Prime-only --skill inputs never reach an extension-based harness.
     expect(environment.PRIME_WORK_SCHEDULE_SKILL_PATH).toBeUndefined()
     expect(environment.PRIME_WORK_BROWSER_SKILL_PATH).toBeUndefined()
@@ -82,7 +82,7 @@ describe('capability extension environment parity (OMP and pi)', () => {
   it('injects the Pi-only fast-mode compatibility extension without adding it to OMP', () => {
     const environment = {
       ...extensionRuntimeEnvironment(scheduleBridgeEnvironment, () => browserBridgeEnvironment, extensionPaths),
-      PISTUDIO_PI_FAST_MODE_EXTENSION_PATH: '/app/extensions/pi-work-fast-mode.ts',
+      PTX_PI_FAST_MODE_EXTENSION_PATH: '/app/extensions/pi-work-fast-mode.ts',
     }
     expect(PI_RPC_ADAPTER.buildStartArgs({ cwd: '/work', environment })).toContain('/app/extensions/pi-work-fast-mode.ts')
     expect(OMP_RPC_ADAPTER.buildStartArgs({ cwd: '/work', environment })).not.toContain('/app/extensions/pi-work-fast-mode.ts')
@@ -90,7 +90,7 @@ describe('capability extension environment parity (OMP and pi)', () => {
 
   it('keeps standalone copies suppressed while omitting the bundled tool when disabled', () => {
     const environment = extensionRuntimeEnvironment(scheduleBridgeEnvironment, () => browserBridgeEnvironment, extensionPaths, false)
-    expect(environment.PISTUDIO_MANAGES_ASK_USER).toBe('1')
+    expect(environment.PTX_MANAGES_ASK_USER).toBe('1')
     expect(environment.PRIME_WORK_ASK_USER_EXTENSION_PATH).toBeUndefined()
     for (const adapter of [OMP_RPC_ADAPTER, PI_RPC_ADAPTER]) {
       expect(adapter.buildStartArgs({ cwd: '/work', environment })).not.toContain(extensionPaths.askUser)
@@ -123,9 +123,9 @@ describe('capability extension environment parity (OMP and pi)', () => {
     ['omp', OMP_RPC_ADAPTER],
     ['pi', PI_RPC_ADAPTER],
   ] as const)('injects session collaboration into %s without accepting an unsafe path', (_harness, adapter) => {
-    const args = adapter.buildStartArgs({ cwd: '/work', environment: { PISTUDIO_COLLABORATION_EXTENSION_PATH: '/app/extensions/omp-work-collaboration.ts' } })
+    const args = adapter.buildStartArgs({ cwd: '/work', environment: { PTX_COLLABORATION_EXTENSION_PATH: '/app/extensions/omp-work-collaboration.ts' } })
     expect(args.slice(-2)).toEqual(['--extension', '/app/extensions/omp-work-collaboration.ts'])
-    const unsafe = adapter.buildStartArgs({ cwd: '/work', environment: { PISTUDIO_COLLABORATION_EXTENSION_PATH: '--session-injection' } })
+    const unsafe = adapter.buildStartArgs({ cwd: '/work', environment: { PTX_COLLABORATION_EXTENSION_PATH: '--session-injection' } })
     expect(unsafe).not.toContain('--session-injection')
   })
 })

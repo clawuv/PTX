@@ -178,7 +178,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: pistudio-public-macos-${{ matrix.arch }}
+          name: ptx-public-macos-${{ matrix.arch }}
           path: |
             release/mac/${{ matrix.arch }}/*.dmg
             release/mac/${{ matrix.arch }}/*.zip
@@ -239,7 +239,7 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: pistudio-public-linux-${{ matrix.arch }}
+          name: ptx-public-linux-${{ matrix.arch }}
           path: |
             release/linux/${{ matrix.arch }}/*.AppImage
             release/linux/${{ matrix.arch }}/*.deb
@@ -276,8 +276,8 @@ jobs:
         env:
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-          PISTUDIO_WINDOWS_CERT_SUBJECT: ${{ vars.PISTUDIO_WINDOWS_CERT_SUBJECT }}
-          PISTUDIO_WINDOWS_CERT_THUMBPRINT: ${{ vars.PISTUDIO_WINDOWS_CERT_THUMBPRINT }}
+          PTX_WINDOWS_CERT_SUBJECT: ${{ vars.PTX_WINDOWS_CERT_SUBJECT }}
+          PTX_WINDOWS_CERT_THUMBPRINT: ${{ vars.PTX_WINDOWS_CERT_THUMBPRINT }}
       - name: Build unsigned Windows packages for beta distribution
         if: (github.event_name == 'workflow_dispatch' && inputs.include_windows_unsigned && !inputs.include_windows) || (github.event_name == 'push' && vars.RELEASE_WINDOWS_UNSIGNED_ENABLED == 'true' && vars.RELEASE_WINDOWS_ENABLED != 'true')
         run: node scripts/release/package.mjs --qa --platform win --skip-verify
@@ -292,7 +292,7 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: pistudio-public-windows
+          name: ptx-public-windows
           path: |
             release/win/**/*.exe
             release/win/**/*.zip
@@ -337,7 +337,7 @@ jobs:
       - run: npm run release:preflight:toolchain
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
-          pattern: pistudio-public-*
+          pattern: ptx-public-*
           path: downloaded-release-artifacts
       - name: Select release assets and generate SHA-256 checksums
         run: |
@@ -371,7 +371,7 @@ jobs:
               --fail-on-no-commits \
               --generate-notes \
               --notes "Every installer and archive is covered by SHA256SUMS.txt and GitHub build-provenance attestations." \
-              --title "PiStudio ${RELEASE_TAG#v}" \
+              --title "Ptx ${RELEASE_TAG#v}" \
               --latest
           fi
         env:

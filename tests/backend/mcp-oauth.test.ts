@@ -23,7 +23,7 @@ describe('vendored MCP OAuth compatibility', () => {
         const registration = JSON.parse(String(init?.body)) as Record<string, unknown>
         expect(registration.token_endpoint_auth_method).toBe('client_secret_basic')
         return new Response(JSON.stringify({
-          client_id: 'pistudio-client',
+          client_id: 'ptx-client',
           client_secret: 'supabase-secret',
           // The registration response is authoritative even when it differs
           // from the method requested using authorization-server metadata.
@@ -32,7 +32,7 @@ describe('vendored MCP OAuth compatibility', () => {
       }
       if (url.endsWith('/v1/oauth/token')) {
         const body = new URLSearchParams(String(init?.body))
-        expect(body.get('client_id')).toBe('pistudio-client')
+        expect(body.get('client_id')).toBe('ptx-client')
         expect(body.get('client_secret')).toBe('supabase-secret')
         expect(new Headers(init?.headers).has('authorization')).toBe(false)
         if (body.get('grant_type') === 'refresh_token') {
@@ -61,11 +61,11 @@ describe('vendored MCP OAuth compatibility', () => {
     })
 
     expect(authUrls).toHaveLength(1)
-    expect(new URL(authUrls[0]).searchParams.get('client_id')).toBe('pistudio-client')
+    expect(new URL(authUrls[0]).searchParams.get('client_id')).toBe('ptx-client')
     expect(credentials).toMatchObject({
       access: 'access-one',
       refresh: 'refresh-one',
-      clientId: 'pistudio-client',
+      clientId: 'ptx-client',
       clientSecret: 'supabase-secret',
       tokenEndpointAuthMethod: 'client_secret_post',
     })

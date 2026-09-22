@@ -509,7 +509,7 @@ export async function updatePackageState(
       const packages = Array.isArray(snapshot.settings.packages) ? snapshot.settings.packages : []
       const index = packages.findIndex((item) => item === source || (isRecord(item) && item.source === source))
       if (index < 0) return { ok: false, reason: 'blocked', output: `Package “${source}” was not found in this scope.` }
-      const saved = isRecord(snapshot.settings.pistudioDisabledPackages) ? { ...snapshot.settings.pistudioDisabledPackages } : {}
+      const saved = isRecord(snapshot.settings.ptxDisabledPackages) ? { ...snapshot.settings.ptxDisabledPackages } : {}
       const next = [...packages]
       if (input.action === 'disable') {
         if (saved[source] === undefined) saved[source] = next[index]
@@ -523,8 +523,8 @@ export async function updatePackageState(
         delete saved[source]
       }
       snapshot.settings.packages = next
-      if (Object.keys(saved).length) snapshot.settings.pistudioDisabledPackages = saved
-      else delete snapshot.settings.pistudioDisabledPackages
+      if (Object.keys(saved).length) snapshot.settings.ptxDisabledPackages = saved
+      else delete snapshot.settings.ptxDisabledPackages
       if (await writeSettingsAtomically(settingsPath, snapshot.settings, snapshot.fingerprint, snapshot.source, fingerprint, verify)) {
         const verb = input.action === 'enable' ? 'Enabled' : input.action === 'disable' ? 'Disabled' : 'Removed'
         return { ok: true, output: `${verb} package “${source}”.` }

@@ -61,7 +61,7 @@ function stateWithSchedules(schedules: AutomationScheduleRecord[]) {
 }
 
 function stateFile(state: unknown): { path: string; store: JsonStateStore } {
-  const dir = mkdtempSync(join(tmpdir(), 'pistudio-run-retention-'))
+  const dir = mkdtempSync(join(tmpdir(), 'ptx-run-retention-'))
   dirs.push(dir)
   const path = join(dir, 'state.json')
   writeFileSync(path, JSON.stringify(state))
@@ -181,7 +181,7 @@ describe('scheduled run history retention', () => {
   })
 
   it('evicts another task\'s oldest terminal record for the first run of a new task at the boundary', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'pistudio-run-retention-service-'))
+    const dir = mkdtempSync(join(tmpdir(), 'ptx-run-retention-service-'))
     dirs.push(dir)
     const store = new JsonStateStore(join(dir, 'state.json'))
     let releaseRun: () => void = () => undefined

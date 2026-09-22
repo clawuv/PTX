@@ -2,7 +2,7 @@
 
 ## Overview
 
-PiStudio (`package.json` name `pistudio`) is an Electron desktop app that gives the Pi, OMP, and Prime Agent coding-agent harnesses one shared GUI on macOS, Linux, and Windows.
+Ptx (`package.json` name `ptx`) is an Electron desktop app that gives the Pi, OMP, and Prime Agent coding-agent harnesses one shared GUI on macOS, Linux, and Windows.
 
 - `electron/main/` — privileged main process: IPC trust gate, per-harness adapters, session JSONL catalog, agent RPC, terminal (`node-pty`), in-app browser, git, schedules, voice, pets, plugins, persistence.
 - `electron/preload/index.ts` — the single narrow preload API bridge.
@@ -30,7 +30,7 @@ PiStudio (`package.json` name `pistudio`) is an Electron desktop app that gives 
 - Per-harness adapter pattern: transport, event, and UI machinery is shared; each harness (Prime, OMP, Pi) gets a thin adapter for protocol differences. Read [`docs/omp-integration.md`](docs/omp-integration.md) and [`docs/pi-integration.md`](docs/pi-integration.md) before touching harness integration; their protocol facts are verified against pinned CLI versions.
 - Session JSONL transcripts are sensitive and read-only: never rewrite them.
 - Project folders are explicit grants validated in the main process. Git/package/MCP mutations use fixed executables and argv arrays, never shell interpolation.
-- Harness credentials belong to the harness; PiStudio never reads or writes them (e.g. `~/.pi/agent/auth.json`).
+- Harness credentials belong to the harness; Ptx never reads or writes them (e.g. `~/.pi/agent/auth.json`).
 - Native dependencies (`node-pty`, `zeromq`) and packaging are platform-specific: run packaging commands on the matching OS, and don't treat a simulated `platform: 'win32'` as a substitute for the real Windows state-migration CI job.
 
 ## Code style
@@ -66,7 +66,7 @@ on `PATH`, so select the pinned toolchain before running `node`/`npm` if `node
 export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use >/dev/null
 ```
 
-PiStudio is a GUI Electron app with no background services, so there is nothing to
+Ptx is a GUI Electron app with no background services, so there is nothing to
 auto-start. To run the app or the Playwright Electron e2e suite headlessly, wrap
 the command with a virtual display:
 

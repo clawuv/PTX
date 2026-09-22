@@ -231,7 +231,7 @@ export class SessionService {
     if (activeSessionId.startsWith('-')) throw new Error('Prime Agent returned an invalid active session identifier')
 
     const status = await runProcess(primeAgentPath, ['status', '--json'], { timeoutMs: 15_000, maxBytes: 1024 * 1024 })
-    if (status.code !== 0 || status.timedOut || status.outputExceeded) throw new Error('PiStudio could not inspect the Prime Agent daemon')
+    if (status.code !== 0 || status.timedOut || status.outputExceeded) throw new Error('Ptx could not inspect the Prime Agent daemon')
     let statuses: unknown
     try { statuses = JSON.parse(status.stdout) } catch { throw new Error('Prime Agent returned an invalid daemon status') }
     if (!Array.isArray(statuses) || statuses.length > 64) throw new Error('Prime Agent returned an invalid daemon status')

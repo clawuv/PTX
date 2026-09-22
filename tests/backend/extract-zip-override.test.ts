@@ -86,7 +86,7 @@ function writeZip(path: string, entries: ZipEntry[]) {
 
 describe('extract-zip override', () => {
   it('extracts a nested file inside the staging directory', async () => {
-    const root = tempDirectory('pistudio-extract-zip-')
+    const root = tempDirectory('ptx-extract-zip-')
     const staging = join(root, 'staging')
     const archive = join(root, 'nested.zip')
     writeZip(archive, [{ name: 'nested/file.txt', contents: 'inside' }])
@@ -97,7 +97,7 @@ describe('extract-zip override', () => {
   })
 
   it.skipIf(process.platform === 'win32')('does not extract a symlink outside the staging directory', async () => {
-    const root = tempDirectory('pistudio-extract-zip-')
+    const root = tempDirectory('ptx-extract-zip-')
     const outside = join(root, 'outside')
     const staging = join(root, 'staging')
     const archive = join(root, 'symlink.zip')
@@ -114,7 +114,7 @@ describe('extract-zip override', () => {
   })
 
   it('rejects an entry that traverses outside the staging directory', async () => {
-    const root = tempDirectory('pistudio-extract-zip-')
+    const root = tempDirectory('ptx-extract-zip-')
     const staging = join(root, 'staging')
     const archive = join(root, 'traversal.zip')
     const outsideFile = join(root, 'evil.txt')

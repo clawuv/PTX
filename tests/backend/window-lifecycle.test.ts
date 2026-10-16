@@ -61,7 +61,7 @@ describe('application window lifecycle', () => {
     const macOptions = mainWindowChromeOptions('darwin')
     expect(macOptions).toMatchObject({
       titleBarStyle: 'hiddenInset',
-      trafficLightPosition: { x: 18, y: 18 },
+      trafficLightPosition: { x: 18, y: 13 },
       transparent: true,
       backgroundColor: '#00000000',
       vibrancy: 'sidebar',

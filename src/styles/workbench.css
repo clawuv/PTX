@@ -9,9 +9,9 @@
   background: var(--canvas);
   isolation: isolate;
 }
-/* macOS: taller strip so the nav cluster centers on the traffic lights; the strip lives inside the sidebar column while the workbench keeps a same-height drag band at its top. */
+/* macOS: the strip matches the 40px drag band so the nav cluster, the traffic lights, and the header's right-side controls share one centerline; the strip lives inside the sidebar column while the workbench keeps a same-height drag band at its top. */
 .app-shell[data-platform="darwin"] {
-  --toolbar-height: 42px;
+  --toolbar-height: 40px;
   background: transparent;
 }
 .app-shell[data-platform="darwin"] .app-shell__body,

@@ -304,7 +304,7 @@ type ResolvedTheme = Exclude<ThemeMode, 'system'>
 export function mainWindowChromeOptions(platform: NodeJS.Platform = process.platform): BrowserWindowConstructorOptions {
   if (platform === 'darwin') return {
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 18, y: 18 },
+    trafficLightPosition: { x: 18, y: 13 },
     transparent: true,
     backgroundColor: '#00000000',
     vibrancy: 'sidebar',

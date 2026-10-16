@@ -345,10 +345,14 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
             {visibleProjects.map((project) => {
               const projectSessions = (sessionsByProject.get(project.id) ?? []).filter((session) => !normalized || `${session.title} ${session.preview ?? ''}`.toLowerCase().includes(normalized))
               const collapsed = collapsedProjects.has(project.id)
+              // Selecting a session highlights only that child row; the parent
+              // project row keeps its own highlight solely when no session of
+              // this project is the active one.
+              const hasSelectedSession = activeView === 'session' && (sessionsByProject.get(project.id) ?? []).some((session) => session.id === activeSessionId)
               return (
                 <div className="project-group" key={project.id}>
                   <div
-                    className={`project-row${activeProjectId === project.id && activeView === 'session' ? ' is-selected' : ''}`}
+                    className={`project-row${activeProjectId === project.id && activeView === 'session' && !hasSelectedSession ? ' is-selected' : ''}`}
                     onContextMenu={(event) => { event.preventDefault(); setProjectMenu(project.id) }}
                   >
                     <button className="project-row__main" type="button" title={project.name} onClick={() => setCollapsedProjects((current) => { const next = new Set(current); if (next.has(project.id)) next.delete(project.id); else next.add(project.id); return next })}>

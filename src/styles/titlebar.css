@@ -28,7 +28,6 @@
   background: transparent;
 }
 .app-shell[data-platform="darwin"] .title-toolbar {
-  padding-top: 2px;
   right: auto;
   width: var(--sidebar-width, 240px);
 }
@@ -104,33 +103,37 @@
   color: var(--titlebar-arrow-back);
   background: transparent;
 }
-/* macOS: tighter cluster pulled toward the traffic lights, with slightly smaller glyphs and hover feedback. */
+/* macOS: arrows lead right after the traffic lights with comfortable spacing,
+   and the sidebar toggle sits at the right end of the cluster. Boxes match the
+   header's right-side toggles (28px) so the hover cells read as one family. */
 .app-shell[data-platform="darwin"] .titlebar-arrows {
-  gap: 10px;
-  margin-left: 14px;
+  gap: 4px;
+  margin-left: 4px;
 }
 .app-shell[data-platform="darwin"] .title-toolbar__nav .icon-button {
-  width: 20px;
-  height: 20px;
-  min-width: 20px;
-  margin: -2px;
-  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 7px;
+  order: 1;
+  margin-left: 4px;
 }
 .app-shell[data-platform="darwin"] .title-toolbar__nav .icon-button:hover {
   background: var(--surface-hover);
   color: var(--text);
 }
 .app-shell[data-platform="darwin"] .title-toolbar__nav .icon-button svg {
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 13px;
 }
 .app-shell[data-platform="darwin"] .titlebar-arrows svg {
   width: 15px;
   height: 15px;
 }
 .app-shell[data-platform="darwin"] .titlebar-arrow {
-  width: 21px;
-  height: 21px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   transition: background 130ms ease-out;
 }
 .app-shell[data-platform="darwin"] .titlebar-arrow:hover:not(:disabled),
@@ -226,6 +229,9 @@
   flex: 0 0 66px;
 }
 .traffic-light-clearance--toolbar {
+  /* Matches the native 23px light pitch: the green light center sits at x≈66.5,
+     and the toggle box starting at 12+72 keeps every title-strip control on
+     that same 23px center rhythm. */
   width: 72px;
   flex-basis: 72px;
 }

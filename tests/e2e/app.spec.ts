@@ -656,6 +656,24 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(sidebar).toBeVisible()
   })
 
+  test('keeps the sidebar toggle clickable after opening settings', async () => {
+    await page.locator('.sidebar__settings-entry').click()
+    await expect(page.getByRole('heading', { name: 'General', exact: true })).toBeVisible()
+    const toggle = page.locator('.title-toolbar__nav > button')
+    for (let cycle = 0; cycle < 2; cycle += 1) {
+      await toggle.click()
+      await expect(page.locator('.sidebar')).toHaveCount(0)
+      const overlap = await toggle.evaluate((button) => {
+        const rect = button.getBoundingClientRect()
+        const drag = document.querySelector('.workbench-titlebar-drag-region')?.getBoundingClientRect()
+        return !!drag && rect.left < drag.right && rect.right > drag.left && rect.top < drag.bottom && rect.bottom > drag.top
+      })
+      expect(overlap).toBe(false)
+      await toggle.click()
+      await expect(page.locator('.sidebar__settings-nav')).toBeVisible()
+    }
+  })
+
   test('opens General settings when the main process requests Settings', async () => {
     await page.locator('.sidebar__footer button').filter({ hasText: 'Settings' }).click()
     await page.getByRole('button', { name: 'Appearance', exact: true }).click()

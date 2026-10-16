@@ -20,7 +20,6 @@ function render(messages: TranscriptMessage[], active = false, showTools = true)
     active,
     showTools,
     onOpenChanges: noop,
-    onSuggestion: noop,
   }))
 }
 
@@ -167,7 +166,6 @@ describe('transcript rendering', () => {
       harness,
       active: true,
       onOpenChanges: noop,
-      onSuggestion: noop,
     }))
 
     expect(html).toContain('Current response')
@@ -218,7 +216,6 @@ describe('transcript rendering', () => {
       ],
       turnChanges: [{ key: 'turn-1', messageId: 'assistant', files: [{ path: 'src/App.tsx', status: 'M', staged: false, additions: 2, deletions: 1 }] }],
       onOpenChanges: noop,
-      onSuggestion: noop,
     }))
     expect(html.match(/class="changes-card"/g)).toHaveLength(1)
     // The summary sits inside the reply, above its copy action (the user
@@ -236,7 +233,6 @@ describe('transcript rendering', () => {
         { key: 'turn-2', messageId: 'assistant-live-11', files: [{ path: 'src/b.go', status: 'M', staged: false, additions: 1, deletions: 0 }, { path: 'src/c.go', status: 'M', staged: false, additions: 0, deletions: 2 }] },
       ],
       onOpenChanges: noop,
-      onSuggestion: noop,
     }))
     // Both restored records stay visible after the transcript, in turn order.
     expect(html.match(/class="changes-card"/g)).toHaveLength(2)

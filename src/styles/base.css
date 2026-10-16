@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
-  --canvas: #ffffff;
-  --sidebar: #f9f9f9;
+  --canvas: #fcfcfb;
+  --sidebar: #fbfbf9;
   --surface-subtle: #f8f8f7;
   --surface-hover: #ececea;
   --surface-selected: #e8e8e6;
@@ -98,12 +98,12 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   /* Codex-style dark palette: near-black chrome, one-step-raised inputs. */
-  --canvas: #181818;
-  --sidebar: #121212;
+  --canvas: #151515;
+  --sidebar: #111111;
   --surface-subtle: #1f1f1f;
-  --surface-hover: #232323;
+  --surface-hover: #292929;
   --surface-selected: #262626;
-  --surface-raised: #343434;
+  --surface-raised: #232323;
   --code-block-bg: #1a1a18;
   --text: #d6d6d6;
   --menu-label: #8c8c8c;

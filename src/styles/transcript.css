@@ -16,17 +16,6 @@
 .session-welcome { max-width: var(--conversation-width); margin: min(31vh, 245px) -24px 0; padding: 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .session-welcome h1 { margin: 26px 0 0; font-size: 28px; line-height: 1.25; font-weight: 400; letter-spacing: 0; color: var(--text); }
 .session-welcome .welcome-project { text-decoration: underline dotted var(--text-tertiary); text-decoration-thickness: 1.5px; text-underline-offset: 7px; }
-.hero-cards { display: flex; flex-wrap: nowrap; justify-content: center; gap: 11px; width: 100%; margin: 28px 0 0; }
-.hero-card { width: auto; flex: 1 1 150px; max-width: 170px; height: 64px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 10px 12px 9px; border: 1px solid var(--border); border-radius: 10px; color: var(--text); background: transparent; text-align: left; transition: background 130ms ease-out, border-color 130ms ease-out; }
-/* Single row of suggestion cards: show as many as fit the pane width, hide the rest. */
-@container (max-width: 700px) { .hero-card:nth-child(4) { display: none; } }
-@container (max-width: 520px) { .hero-card:nth-child(3) { display: none; } }
-@container (max-width: 390px) { .hero-card:nth-child(2) { display: none; } }
-.hero-card:hover:not(:disabled) { background: var(--surface-subtle); border-color: var(--border-strong); }
-.hero-card:disabled { opacity: .45; cursor: default; }
-.hero-card__icon { display: block; }
-.hero-card__icon svg { width: 17px; height: 17px; }
-.hero-card__label { font-size: 12px; line-height: 1.4; }
 .message { width: 100%; margin-bottom: 22px; }
 .message--user { display: flex; flex-direction: column; align-items: flex-end; padding-left: 12%; }
 .message__steer-state { margin-top: 5px; color: var(--text-tertiary); font-size: 11px; }

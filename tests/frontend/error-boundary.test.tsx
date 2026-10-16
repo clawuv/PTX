@@ -63,7 +63,6 @@ describe('transcript per-message boundary', () => {
       root.render(<Transcript
         messages={[{ id: 'user-pending-steer', role: 'user', steerState: 'accepted', timestamp: 1, parts: [{ type: 'text', text: 'redirect' }] }]}
         onOpenChanges={vi.fn()}
-        onSuggestion={vi.fn()}
       />)
     })
     expect(container.textContent).toContain('Accepted — waiting for the next safe steering point')
@@ -77,7 +76,6 @@ describe('transcript per-message boundary', () => {
       root.render(<Transcript
         messages={[good, broken]}
         onOpenChanges={vi.fn()}
-        onSuggestion={vi.fn()}
       />)
     })
     expect(container.textContent).toContain('still here')

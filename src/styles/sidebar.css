@@ -1,5 +1,5 @@
 /* Sidebar — Codex replica layout: 240px rail, flat project rows, recent chats, footer row. */
-.sidebar { --sidebar-row-height: 28px; --sidebar-row-spacing: 4px; --sidebar-row-radius: 8px; --sidebar-row-font-size: 12.5px; --sidebar-row-gap: 9px; --sidebar-row-background: var(--surface-hover); --sidebar-menu-ink: color-mix(in srgb, var(--text) 90%, var(--sidebar)); font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; font-size: 14px; line-height: 20px; position: relative; z-index: 30; width: var(--sidebar-width, 240px); flex: 0 0 var(--sidebar-width, 240px); height: 100%; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--chrome-divider); background: var(--sidebar); user-select: none; }
+.sidebar { --sidebar-row-height: 30px; --sidebar-row-spacing: 3px; --sidebar-row-radius: 8px; --sidebar-row-font-size: 13px; --sidebar-row-gap: 10px; --sidebar-row-background: var(--surface-hover); --sidebar-menu-ink: color-mix(in srgb, var(--text) 90%, var(--sidebar)); font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; font-size: 14px; line-height: 20px; position: relative; z-index: 30; width: var(--sidebar-width, 240px); flex: 0 0 var(--sidebar-width, 240px); height: 100%; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--chrome-divider); background: var(--sidebar); user-select: none; }
 /* Win/Linux: the divider is drawn by the workbench's left border instead, so it bends with the rounded corner instead of running past it. */
 .app-shell[data-platform='win32'] .sidebar, .app-shell[data-platform='linux'] .sidebar { border-right: 0; }
 .sidebar__titlebar { height: 40px; flex: 0 0 40px; margin-top: 4px; display: flex; align-items: center; gap: 7px; padding-left: 24px; padding-right: 14px; }
@@ -12,7 +12,7 @@
 .brand-switcher__trigger:hover, .brand-switcher__trigger[aria-expanded='true'] { background: var(--sidebar-row-background); }
 .brand-switcher__trigger > svg { flex: 0 0 auto; color: var(--text-tertiary); }
 .brand-switcher__name { min-width: 0; display: flex; flex-direction: column; line-height: 1.05; text-align: left; }
-.brand-switcher__name strong { font-size: 18px; font-weight: 600; letter-spacing: -.2px; color: var(--text-secondary); }
+.brand-switcher__name strong { font-size: 18px; font-weight: 600; letter-spacing: -.2px; color: var(--text); }
 .brand-switcher__menu { position: absolute; z-index: 140; top: calc(100% + 4px); left: -5px; min-width: 186px; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-raised); box-shadow: var(--shadow-popover); }
 .brand-switcher__menu button { width: 100%; min-height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-radius: 6px; color: var(--text-secondary); background: transparent; text-align: left; }
 .brand-switcher__menu button:hover, .brand-switcher__menu button:focus-visible { color: var(--text); background: var(--sidebar-row-background); }
@@ -27,7 +27,7 @@
 
 /* Sessions nested under their project: flat title lines, like the replica's project group. */
 .project-sessions { display: flex; flex-direction: column; gap: var(--sidebar-row-spacing); margin-top: var(--sidebar-row-spacing); }
-.project-sessions .session-row { padding: 2px 6px 2px 33px; }
+.project-sessions .session-row { padding: 2px 6px 2px 41px; }
 .session-line-more { min-height: 24px; display: flex; align-items: center; width: 100%; padding: 2px 8px 2px 33px; border-radius: 6px; color: var(--text-tertiary); background: transparent; font-size: 12px; text-align: left; }
 .session-line-more:hover { color: var(--text-secondary); background: var(--sidebar-row-background); }
 
@@ -66,13 +66,13 @@
 .sidebar__primary > button.is-active, .sidebar__footer > .sidebar__settings-entry.is-active { color: var(--text); background: var(--sidebar-row-background); }
 .sidebar__primary > button span:not(.nav-count), .sidebar__footer > .sidebar__settings-entry span { flex: 1; }
 .sidebar__primary > button svg, .sidebar__footer > .sidebar__settings-entry > svg { color: var(--text-tertiary); }
-.sidebar__primary > button > svg, .project-row__main > svg { width: 14px; height: 14px; color: var(--text-tertiary); }
+.sidebar__primary > button > svg, .project-row__main > svg { width: 15px; height: 15px; color: var(--text-tertiary); }
 .sidebar__primary kbd, .sidebar__footer kbd { opacity: 0; transition: opacity 130ms ease-out; }
 .sidebar__primary button:hover kbd, .sidebar__footer button:hover kbd { opacity: 1; }
 .nav-count { min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 5px; border-radius: 9px; color: var(--accent); background: var(--accent-soft); font-size: 10.5px; font-weight: 650; }
 
 .sidebar__scroll { flex: 1; min-height: 0; overflow: auto; padding: 0 8px; }
-.sidebar__section-heading { min-height: 25px; display: flex; align-items: center; justify-content: space-between; padding: 0 4px 0 16px; margin: 10px 0 3px; color: var(--text-tertiary); font-size: 13px; font-weight: 600; }
+.sidebar__section-heading { min-height: 26px; display: flex; align-items: center; justify-content: space-between; padding: 0 4px 0 16px; margin: 14px 0 4px; color: var(--text-tertiary); font-size: 13px; font-weight: 600; }
 .sidebar__section-heading:first-child { margin-top: 18px; }
 .sidebar__section-heading--recent { margin-top: 12px; }
 .sidebar__section-heading .icon-button { color: var(--text-tertiary); }
@@ -80,8 +80,8 @@
 /* Main and project rows use the same inset as settings menu rows. */
 /* Session titles align with project labels while status marks occupy their own slot. */
 .sidebar__primary > button, .sidebar__scroll .project-row { padding-left: 16px; }
-.sidebar__scroll .session-row { padding-left: 39px; }
-.sidebar__section-heading { padding-left: 16px; font-size: 12px; font-weight: 600; letter-spacing: 0; }
+.sidebar__scroll .session-row { padding-left: 41px; }
+.sidebar__section-heading { padding-left: 16px; font-size: 11px; font-weight: 600; letter-spacing: .05em; }
 .sidebar__empty { margin-left: 8px; }
 .project-group { margin-bottom: var(--sidebar-row-spacing); }
 .project-row { position: relative; height: var(--sidebar-row-height); display: flex; align-items: center; padding: 0 16px; border-radius: var(--sidebar-row-radius); color: var(--sidebar-menu-ink); }
@@ -129,8 +129,6 @@
 
 /* Compact footer with settings and a persistent software-update control. */
 .sidebar__footer { flex: 0 0 auto; display: flex; align-items: center; gap: 9px; margin-top: auto; height: 40px; padding: 0 8px 0 8px; border-top: 1px solid var(--chrome-divider); }
-:root:not([data-theme='dark']) .app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__footer { border-top-color: #d8d8d8; }
-:root[data-theme='dark'] .app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__footer { border-top-color: #4a4a4a; }
 .sidebar__footer > .sidebar__settings-entry { height: var(--sidebar-row-height); width: auto; flex: 1 1 auto; min-width: 0; padding: 0 10px 0 8px; gap: var(--sidebar-row-gap); font-size: var(--sidebar-row-font-size); color: var(--text-tertiary); }
 .sidebar__footer > .sidebar__settings-entry svg { width: 16px; height: 16px; color: var(--text-tertiary); }
 .sidebar-update { order: 2; width: 20px; height: 20px; min-height: 20px; display: grid; place-items: center; flex: 0 0 20px; margin-left: auto; padding: 0; border: 0; border-radius: 50%; color: var(--on-tint); background: #339cff; }
@@ -138,22 +136,8 @@
 .sidebar-update:hover:not(:disabled) { filter: brightness(1.08); }
 .sidebar-update--downloading { background: conic-gradient(var(--accent) var(--update-progress), var(--accent-soft) 0); color: var(--on-tint); }
 
-/* A translucent sidebar needs one subtle hover layer. The session button sits
-   inside its hoverable wrapper, so keeping the button transparent avoids a
-   darker double-tint beneath the pointer. */
-.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar { --sidebar-hover: color-mix(in srgb, var(--text) 6%, transparent); }
-.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__primary > button:hover,
-.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__primary > button.is-active,
-.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__footer > .sidebar__settings-entry:hover,
-.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__footer > .sidebar__settings-entry.is-active,
-.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__settings-nav button:hover,
-.app-shell[data-platform='darwin'][data-window-focused='true'] .sidebar__settings-nav button.is-active,
-.app-shell[data-platform='darwin'][data-window-focused='true'] .project-row:hover,
-.app-shell[data-platform='darwin'][data-window-focused='true'] .project-row.is-selected,
-.app-shell[data-platform='darwin'][data-window-focused='true'] .session-row-wrap:hover,
-.app-shell[data-platform='darwin'][data-window-focused='true'] .session-row-wrap:focus-within,
-.app-shell[data-platform='darwin'][data-window-focused='true'] .session-row-wrap.is-selected { background: var(--sidebar-hover); }
-.app-shell[data-platform='darwin'][data-window-focused='true'] .session-row:hover { background: transparent; }
+/* Focused and blurred windows share one appearance: hover/selection uses the
+   base rules above in both states, so no window-focused overrides live here. */
 .sidebar-update--downloading .sidebar-update__icon { background: transparent; }
 .sidebar-update--error { color: var(--on-tint); background: var(--danger); }
 .sidebar-update--checking, .sidebar-update--available, .sidebar-update--indeterminate { animation: update-pulse 1.4s ease-in-out infinite; }

@@ -48,8 +48,6 @@ interface TranscriptProps {
   showReasoning?: boolean
   showTools?: boolean
   onOpenChanges(): void
-  onSuggestion(prompt: string): void
-  suggestionsDisabled?: boolean
   /** Per-turn change summaries written into the flow when each turn ends, keyed by their anchor message. */
   turnChanges?: TurnChanges[]
   /** Repository directory and read-only flag for the changes cards' undo action. */
@@ -67,57 +65,7 @@ function AssistantMark({ harness, size = 24 }: { harness: HarnessId; size?: numb
   return <Mark size={size} />
 }
 
-type WelcomeCardKey = 'explore' | 'build' | 'review' | 'fix'
-function WelcomeCardIcon({ card }: { card: WelcomeCardKey }) {
-  const shared = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true } as const
-  if (card === 'explore') {
-    return (
-      <svg {...shared} aria-hidden="true" style={{ color: '#339cff' }}>
-        <g transform="rotate(-45 12 12)">
-          <path d="m3 11 18-5v12L3 13v-2z" />
-          <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
-        </g>
-      </svg>
-    )
-  }
-  if (card === 'build') {
-    return (
-      <svg {...shared} aria-hidden="true" style={{ color: '#a070e0' }}>
-        <path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9" />
-        <path d="m18 15 4-4" />
-        <path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5" />
-      </svg>
-    )
-  }
-  if (card === 'review') {
-    return (
-      <svg {...shared} aria-hidden="true" style={{ color: '#35b06f' }}>
-        <path d="M21 12a9 9 0 1 1-2.64-6.36L21 8" />
-        <path d="M21 3v5h-5" />
-        <path d="m9.6 12 1.9 1.9 3.6-3.8" />
-      </svg>
-    )
-  }
-  return (
-    <svg {...shared} aria-hidden="true" style={{ color: '#f0641f' }}>
-      <path d="m8 2 1.88 1.88" />
-      <path d="M14.12 3.88 16 2" />
-      <path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" />
-      <path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6" />
-      <path d="M12 20v-9" />
-      <path d="M6.53 9C4.6 8.8 3 7.1 3 5" />
-      <path d="M6 13H2" />
-      <path d="M3 21c0-2.1 1.7-3.9 3.8-4" />
-      <path d="M17.47 9c1.93-.2 3.53-1.9 3.53-4" />
-      <path d="M22 13h-4" />
-      <path d="M21 21c0-2.1-1.7-3.9-3.8-4" />
-    </svg>
-  )
-}
-
-const WELCOME_CARDS: readonly WelcomeCardKey[] = ['explore', 'build', 'review', 'fix']
-
-function SessionWelcome({ harness, projectName, suggestionsDisabled, onSuggestion }: { harness: HarnessId; projectName?: string; suggestionsDisabled?: boolean; onSuggestion(prompt: string): void }) {
+function SessionWelcome({ harness, projectName }: { harness: HarnessId; projectName?: string }) {
   const { t } = useI18n()
   return (
     <div className="session-welcome">
@@ -131,16 +79,6 @@ function SessionWelcome({ harness, projectName, suggestionsDisabled, onSuggestio
           t('welcome.title.generic')
         )}
       </h1>
-      <div className="hero-cards">
-        {WELCOME_CARDS.map((card) => (
-          <button key={card} type="button" className="hero-card" disabled={suggestionsDisabled} onClick={() => onSuggestion(t(`welcome.prompt.${card}`))}>
-            <span className="hero-card__icon" aria-hidden="true">
-              <WelcomeCardIcon card={card} />
-            </span>
-            <span className="hero-card__label">{t(`welcome.card.${card}`)}</span>
-          </button>
-        ))}
-      </div>
     </div>
   )
 }
@@ -177,8 +115,6 @@ export function Transcript({
   showReasoning = true,
   showTools = true,
   onOpenChanges,
-  onSuggestion,
-  suggestionsDisabled,
   turnChanges = [],
   changesCwd,
   changesReadOnly,
@@ -215,7 +151,7 @@ export function Transcript({
               <LoaderCircle className="spin" size={16} /> {t('transcript.loading')}
             </div>
           ) : null}
-          {showWelcome ? <SessionWelcome harness={harness} projectName={projectName} suggestionsDisabled={suggestionsDisabled} onSuggestion={onSuggestion} /> : null}
+          {showWelcome ? <SessionWelcome harness={harness} projectName={projectName} /> : null}
           {hiddenCount > 0 ? (
             <button type="button" className="transcript__show-earlier" onClick={showEarlier}>
               {t('transcript.showEarlier', { count: Math.min(250, hiddenCount) })}

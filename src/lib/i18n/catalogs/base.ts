@@ -72,14 +72,6 @@ const en = {
   'welcome.title.after': '?',
   'welcome.title.generic': 'What should we work on?',
   'welcome.description': '{short} can inspect this project, edit files, run tools, and keep working across sessions.',
-  'welcome.card.explore': 'Explore and understand the code',
-  'welcome.card.build': 'Build a new feature, app, or tool',
-  'welcome.card.review': 'Review code and suggest improvements',
-  'welcome.card.fix': 'Fix problems and failures',
-  'welcome.prompt.explore': 'Explore this project and explain how it is structured.',
-  'welcome.prompt.build': 'Build a new feature, app, or tool in this project.',
-  'welcome.prompt.review': 'Review the code in this project and suggest improvements.',
-  'welcome.prompt.fix': 'Find and fix problems or failing tests in this project.',
 } as const
 
 const zh = {
@@ -153,14 +145,6 @@ const zh = {
   'welcome.title.after': '中构建什么？',
   'welcome.title.generic': '接下来你想让我们构建什么？',
   'welcome.description': '{short} 可以检查项目、编辑文件、运行工具，并跨会话持续工作。',
-  'welcome.card.explore': '探索并理解代码',
-  'welcome.card.build': '构建新功能、应用或工具',
-  'welcome.card.review': '审查代码并提出修改建议',
-  'welcome.card.fix': '修复问题和失败',
-  'welcome.prompt.explore': '探索这个项目并说明它的结构。',
-  'welcome.prompt.build': '在这个项目中构建一个新功能、应用或工具。',
-  'welcome.prompt.review': '审查这个项目的代码并提出修改建议。',
-  'welcome.prompt.fix': '找出并修复项目中的问题或失败的测试。',
 }
 
 export const baseCatalog = defineCatalog(en, zh)

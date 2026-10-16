@@ -1096,10 +1096,6 @@ export default function App() {
                           showReasoning={settingsState.settings.showReasoningSummaries}
                           showTools={settingsState.settings.showToolCalls}
                           onOpenChanges={openChanges}
-                          onSuggestion={(prompt) => {
-                            void sendPrompt(prompt).catch(() => undefined)
-                          }}
-                          suggestionsDisabled={!activeProject || workspace.loadingSession || submitting}
                           turnChanges={settingsState.settings.showFileChangesPopup ? turnChanges : []}
                           changesCwd={activeCwd}
                           changesReadOnly={activeProject?.readOnly === true}

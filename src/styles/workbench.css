@@ -14,18 +14,10 @@
   --toolbar-height: 40px;
   background: transparent;
 }
+/* macOS: the sidebar and body keep one opaque surface whether the window is
+   focused or blurred, so focus never shifts the color. */
 .app-shell[data-platform="darwin"] .app-shell__body,
 .app-shell[data-platform="darwin"] .sidebar {
-  transition: background 160ms ease-out;
-}
-.app-shell[data-platform="darwin"][data-window-focused="true"] .app-shell__body {
-  background: transparent;
-}
-.app-shell[data-platform="darwin"][data-window-focused="true"] .sidebar {
-  background: color-mix(in srgb, var(--sidebar) 50%, transparent);
-}
-.app-shell[data-platform="darwin"][data-window-focused="false"] .app-shell__body,
-.app-shell[data-platform="darwin"][data-window-focused="false"] .sidebar {
   background: var(--sidebar);
 }
 .app-shell[data-platform="win32"] {

@@ -10,7 +10,7 @@ export type WorkspaceView = 'session' | 'projects' | 'activity' | 'scheduled' | 
 export type InspectorTab = 'summary' | 'changes' | 'browser' | 'files'
 export type SessionStatus = 'idle' | 'running' | 'waiting' | 'complete' | 'failed' | 'unknown'
 
-export const HARNESS_IDS = ['omp', 'prime', 'pi'] as const
+export const HARNESS_IDS = ['omp', 'pi'] as const
 export type HarnessId = (typeof HARNESS_IDS)[number]
 
 /** Targets for the header's "open with" launcher; the folder is always an authorized project path. */
@@ -37,7 +37,6 @@ export interface HarnessStatus {
 export interface HarnessCapabilities {
   nativeApprovals: boolean
   approvalModeOverride: boolean
-  nativeHeartbeats: boolean
   nativeMcp: boolean
   offlineRename: boolean
   serviceTierRpc: boolean
@@ -158,9 +157,9 @@ export interface BrowserAnnotation {
   createdAt: number
 }
 
-export type PrimeCompactionReason = 'manual' | 'threshold' | 'overflow' | 'requested'
-export type PrimeCompactionStatus = 'running' | 'done' | 'failed' | 'cancelled'
-export type PrimeCompactionOutcome = 'failed' | 'cancelled' | 'skipped'
+export type AgentCompactionReason = 'manual' | 'threshold' | 'overflow' | 'requested'
+export type AgentCompactionStatus = 'running' | 'done' | 'failed' | 'cancelled'
+export type AgentCompactionOutcome = 'failed' | 'cancelled' | 'skipped'
 
 export type MessagePart =
   | { type: 'text'; partId?: string; text: string }
@@ -172,9 +171,9 @@ export type MessagePart =
   | {
       type: 'compaction'
       partId?: string
-      status: PrimeCompactionStatus
-      reason?: PrimeCompactionReason
-      outcome?: PrimeCompactionOutcome
+      status: AgentCompactionStatus
+      reason?: AgentCompactionReason
+      outcome?: AgentCompactionOutcome
       tokensBefore?: number
       firstKeptEntryId?: string
       summary?: string
@@ -198,7 +197,7 @@ export interface TranscriptMessage {
   streaming?: boolean
 }
 
-export interface PrimeContextUsage {
+export interface AgentContextUsage {
   tokens: number | null
   contextWindow: number
   percent: number | null
@@ -215,21 +214,21 @@ export interface RuntimeInfo {
   isCompacting?: boolean
   model?: { provider?: string; id?: string; name?: string } | null
   thinkingLevel?: string
-  availableThinkingLevels?: PrimeThinkingLevel[]
+  availableThinkingLevels?: AgentThinkingLevel[]
   fastModeSupported?: boolean
   imageInputSupported?: boolean
   fastModeAvailable?: boolean
-  serviceTier?: PrimeServiceTier
-  contextUsage?: PrimeContextUsage
+  serviceTier?: AgentServiceTier
+  contextUsage?: AgentContextUsage
 }
 
-export const PRIME_THINKING_LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const
-export type PrimeThinkingLevel = (typeof PRIME_THINKING_LEVELS)[number]
-export type PrimeServiceTier = 'auto' | 'default' | 'flex' | 'scale' | 'priority' | null
+export const AGENT_THINKING_LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const
+export type AgentThinkingLevel = (typeof AGENT_THINKING_LEVELS)[number]
+export type AgentServiceTier = 'auto' | 'default' | 'flex' | 'scale' | 'priority' | null
 export type ProviderAuthMethod = 'oauth' | 'api_key' | 'external'
-export type ProviderAuthSource = 'stored' | 'runtime' | 'environment' | 'prime_cli' | 'fallback' | 'models_json_key' | 'models_json_command' | 'stale'
+export type ProviderAuthSource = 'stored' | 'runtime' | 'environment' | 'fallback' | 'models_json_key' | 'models_json_command' | 'stale'
 
-export interface PrimeModelDescriptor {
+export interface AgentModelDescriptor {
   key: string
   provider: string
   id: string
@@ -238,14 +237,14 @@ export interface PrimeModelDescriptor {
   input: Array<'text' | 'image'>
   contextWindow: number
   maxTokens: number
-  availableThinkingLevels: PrimeThinkingLevel[]
+  availableThinkingLevels: AgentThinkingLevel[]
   fastModeSupported: boolean
   available: boolean
   /** Ptx visibility policy for this harness; absent catalogs predate per-model controls. */
   enabled?: boolean
 }
 
-export interface PrimeProviderDescriptor {
+export interface AgentProviderDescriptor {
   id: string
   name: string
   authMethod: ProviderAuthMethod
@@ -257,23 +256,15 @@ export interface PrimeProviderDescriptor {
   enabled: boolean
 }
 
-export interface PrimeModelCatalog {
-  primeVersion: string
+export interface AgentModelCatalog {
+  harnessVersion: string
   refreshedAt: string
-  models: PrimeModelDescriptor[]
-  providers: PrimeProviderDescriptor[]
+  models: AgentModelDescriptor[]
+  providers: AgentProviderDescriptor[]
   warning?: string
 }
 
-export type ProviderAuthEvent =
-  | { flowId: string; providerId: string; type: 'auth'; url: string; instructions?: string }
-  | { flowId: string; providerId: string; type: 'progress'; message: string }
-  | { flowId: string; providerId: string; type: 'prompt'; promptId: string; message: string; placeholder?: string; allowEmpty?: boolean }
-  | { flowId: string; providerId: string; type: 'select'; promptId: string; message: string; options: Array<{ id: string; label: string }> }
-  | { flowId: string; providerId: string; type: 'complete' | 'cancelled' }
-  | { flowId: string; providerId: string; type: 'error'; error: string }
-
-export interface PrimeEventEnvelope {
+export interface AgentEventEnvelope {
   runtimeId: string
   event: Record<string, unknown>
 }
@@ -473,7 +464,7 @@ export interface SessionActionSnapshot {
   }
 }
 
-export const INTERFACE_FONT_SCALES = [105, 110, 115] as const
+export const INTERFACE_FONT_SCALES = [95, 100, 105, 110, 115] as const
 export type InterfaceFontScale = (typeof INTERFACE_FONT_SCALES)[number]
 export const LOCALE_PREFERENCES = ['system', 'en', 'zh-CN'] as const
 export type LocalePreference = (typeof LOCALE_PREFERENCES)[number]
@@ -481,7 +472,7 @@ export type LocalePreference = (typeof LOCALE_PREFERENCES)[number]
 export interface AppSettings {
   theme: ThemeMode
   locale: LocalePreference
-  /** Bounded interface text scale; 110 is the designed default. */
+  /** Bounded interface text scale; 100 is the designed default. */
   interfaceFontScale: InterfaceFontScale
   sidebarOpen: boolean
   inspectorOpen: boolean
@@ -514,17 +505,13 @@ export interface AppSettings {
   browserEnabled: boolean
   /** Expose the separately installed TryCUA driver to new sessions through its official CLI. */
   computerUseEnabled: boolean
-  /** Providers hidden from Prime Work's Prime model picker. */
-  disabledProviders: string[]
-  /** Models hidden from Prime Work's Prime model picker, stored as provider/model keys. */
-  disabledModels: string[]
-  /** Providers hidden from Prime Work's OMP model picker; OMP config is untouched. */
+  /** Providers hidden from Ptx's OMP model picker; OMP config is untouched. */
   ompDisabledProviders: string[]
-  /** Models hidden from Prime Work's OMP model picker; OMP config is untouched. */
+  /** Models hidden from Ptx's OMP model picker; OMP config is untouched. */
   ompDisabledModels: string[]
-  /** Providers hidden from Prime Work's pi model picker; pi config is untouched. */
+  /** Providers hidden from Ptx's pi model picker; pi config is untouched. */
   piDisabledProviders: string[]
-  /** Models hidden from Prime Work's pi model picker; pi config is untouched. */
+  /** Models hidden from Ptx's pi model picker; pi config is untouched. */
   piDisabledModels: string[]
   /** Last usable model selected in each harness; blank falls back to the first usable catalog model. */
   lastSelectedModels: Record<HarnessId, string>
@@ -598,8 +585,8 @@ export interface VoiceTaskStarted {
   runtimeId: string
   sessionId?: string
   sessionFile: string
-  model?: Pick<PrimeModelDescriptor, 'key' | 'provider' | 'id' | 'name'>
-  reasoning?: PrimeThinkingLevel
+  model?: Pick<AgentModelDescriptor, 'key' | 'provider' | 'id' | 'name'>
+  reasoning?: AgentThinkingLevel
 }
 
 export type VoiceToolRequest =
@@ -624,7 +611,7 @@ export type ScheduleTiming = { kind: 'once'; at: string } | { kind: 'rrule'; dts
 
 export interface ScheduleExecution {
   model: 'auto' | string
-  thinking: 'auto' | PrimeThinkingLevel
+  thinking: 'auto' | AgentThinkingLevel
   speed: 'normal' | 'fast'
 }
 
@@ -705,22 +692,6 @@ export interface ScheduleChangeEvent {
   reason: 'created' | 'updated' | 'deleted' | 'run'
 }
 
-export interface NativeHeartbeatRecord {
-  id: string
-  source: 'heartbeat' | 'rlm_heartbeat'
-  status: 'active' | 'paused'
-  prompt: string
-  schedule: string
-  sessionId: string
-  sessionFile: string
-  activeSessionId: string
-  deliveryMode?: 'steer' | 'follow_up'
-  nextRunAt?: string
-  lastRunAt?: string
-  label?: string
-  runtimeId?: string
-}
-
 /** One agent-controlled browser tab. The registry lives in the main process; the renderer hosts the webview guests and mirrors this state. */
 export interface AgentBrowserTabRecord {
   tabId: string
@@ -758,7 +729,7 @@ export interface AgentBrowserPointerEvent {
   durationMs: number
 }
 
-export interface PrimeWorkApi {
+export interface PtxApi {
   app: {
     getMeta(): Promise<AppMeta>
     refreshHarnesses(): Promise<{ meta: AppMeta; settings: AppSettings }>
@@ -798,7 +769,6 @@ export interface PrimeWorkApi {
   sessions: {
     list(projectPath?: string, includeArchived?: boolean, harness?: HarnessId, force?: boolean): Promise<SessionRecord[]>
     read(filePath: string): Promise<TranscriptMessage[]>
-    followUp(filePath: string, message: string, intent?: PromptDeliveryIntent): Promise<boolean>
     rename(filePath: string, title: string): Promise<boolean>
     archive(filePath: string, archived?: boolean): Promise<boolean>
     onChanged(callback: (event: SessionChangeEvent) => void): () => void
@@ -808,19 +778,13 @@ export interface PrimeWorkApi {
     command(runtimeId: string, command: Record<string, unknown>): Promise<Record<string, unknown>>
     stop(runtimeId: string): Promise<boolean>
     list(): Promise<RuntimeInfo[]>
-    onEvent(callback: (envelope: PrimeEventEnvelope) => void): () => void
+    onEvent(callback: (envelope: AgentEventEnvelope) => void): () => void
   }
   providers: {
-    catalog(force?: boolean, harness?: HarnessId): Promise<PrimeModelCatalog>
-    saveApiKey(providerId: string, apiKey: string): Promise<PrimeModelCatalog>
-    logout(providerId: string): Promise<PrimeModelCatalog>
-    setEnabled(providerId: string, enabled: boolean, harness?: HarnessId): Promise<PrimeModelCatalog>
-    setDisabled(providerIds: string[], harness?: HarnessId): Promise<PrimeModelCatalog>
-    setModelEnabled(modelKey: string, enabled: boolean, harness?: HarnessId): Promise<PrimeModelCatalog>
-    startOAuth(providerId: string): Promise<{ flowId: string }>
-    respondOAuth(flowId: string, promptId: string, value?: string): Promise<boolean>
-    cancelOAuth(flowId: string): Promise<boolean>
-    onAuthEvent(callback: (event: ProviderAuthEvent) => void): () => void
+    catalog(force?: boolean, harness?: HarnessId): Promise<AgentModelCatalog>
+    setEnabled(providerId: string, enabled: boolean, harness?: HarnessId): Promise<AgentModelCatalog>
+    setDisabled(providerIds: string[], harness?: HarnessId): Promise<AgentModelCatalog>
+    setModelEnabled(modelKey: string, enabled: boolean, harness?: HarnessId): Promise<AgentModelCatalog>
   }
   voice: {
     credentialStatus(): Promise<VoiceCredentialStatus>
@@ -876,10 +840,6 @@ export interface PrimeWorkApi {
     onPointer(callback: (event: AgentBrowserPointerEvent) => void): () => void
     onActivity(callback: (event: AgentBrowserActivityEvent) => void): () => void
   }
-  heartbeats: {
-    list(): Promise<NativeHeartbeatRecord[]>
-    manage(id: string, action: 'pause' | 'resume' | 'stop'): Promise<NativeHeartbeatRecord | null>
-  }
   schedules: {
     list(harness?: HarnessId): Promise<AutomationScheduleRecord[]>
     get(id: string): Promise<AutomationScheduleRecord>
@@ -897,6 +857,6 @@ export interface PrimeWorkApi {
 
 declare global {
   interface Window {
-    prime: PrimeWorkApi
+    ptx: PtxApi
   }
 }

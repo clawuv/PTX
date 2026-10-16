@@ -20,7 +20,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount())
   container.remove()
-  Reflect.deleteProperty(window, 'prime')
+  Reflect.deleteProperty(window, 'ptx')
   vi.restoreAllMocks()
 })
 
@@ -66,7 +66,7 @@ describe('ChangesPanel status states', () => {
 
   it('restores every changed file through the undo confirmation', async () => {
     const restore = vi.fn(async () => true)
-    Object.defineProperty(window, 'prime', { configurable: true, value: { git: { restore } } })
+    Object.defineProperty(window, 'ptx', { configurable: true, value: { git: { restore } } })
     const onRefreshGit = vi.fn(async () => undefined)
     await act(async () => {
       root.render(<ChangesCard cwd="/project" git={{ isRepo: true, files: [
@@ -99,7 +99,7 @@ describe('ChangesPanel status states', () => {
   it('confirms undoing the selected file before restoring it', async () => {
     const restore = vi.fn(async () => true)
     const diff = vi.fn(async () => ({ path: 'file.txt', staged: false, text: '', truncated: false }))
-    Object.defineProperty(window, 'prime', { configurable: true, value: { git: { diff, restore } } })
+    Object.defineProperty(window, 'ptx', { configurable: true, value: { git: { diff, restore } } })
     const onRefreshGit = vi.fn(async () => undefined)
 
     await act(async () => {

@@ -10,7 +10,7 @@ import { parseMcpAuthenticationCommand } from '@/lib/mcp-policy'
 import { parseSessionActionSnapshot, streamingBehaviorForIntent } from '@/lib/session-actions'
 import type { DEFAULT_SETTINGS } from '@/lib/data'
 import { type createSingleFlightAdmission, findProjectForSession, findRuntimeForWorkspace, newSessionProject, projectContainsPath, workspaceCwd } from '@/lib/workspace'
-import type { CapabilityMutationInput, ExtensionInstallInput, GitStatus, HarnessId, McpConnectionInput, McpStateInput, PrimeWorkApi, ProjectRecord, PromptDeliveryIntent, PromptImage, ScheduleInput, SchedulePatch, SessionRecord, TranscriptMessage, WorkspaceView } from '@/types/api'
+import type { CapabilityMutationInput, ExtensionInstallInput, GitStatus, HarnessId, McpConnectionInput, McpStateInput, PtxApi, ProjectRecord, PromptDeliveryIntent, PromptImage, ScheduleInput, SchedulePatch, SessionRecord, TranscriptMessage, WorkspaceView } from '@/types/api'
 import type { useAppSettings } from '@/hooks/useAppSettings'
 import type { usePanelLayout } from '@/hooks/usePanelLayout'
 import type { usePluginSkills } from '@/hooks/usePluginSkills'
@@ -19,7 +19,7 @@ import type { useWorkspaceRuntime } from '@/hooks/useWorkspaceRuntime'
 import { mergeSessionCatalog } from '@/hooks/useBootstrap'
 
 export interface WorkspaceActionsDeps {
-  bridge: PrimeWorkApi | null
+  bridge: PtxApi | null
   initialized: boolean
   projects: ProjectRecord[]
   sessions: SessionRecord[]
@@ -40,7 +40,6 @@ export interface WorkspaceActionsDeps {
   setToast: Dispatch<SetStateAction<string | null>>
   setSubmitting: Dispatch<SetStateAction<boolean>>
   refreshSchedules(): Promise<void>
-  refreshHeartbeats(): Promise<void>
   resetBrowserView(): void
   closeTerminalForSession(sessionPath: string): void
   clearSessionAttention(session: SessionRecord): void
@@ -50,7 +49,7 @@ export interface WorkspaceActionsDeps {
 export type McpCommand = { type: 'open' } | { type: 'authenticate'; server?: string }
 
 interface StartedSessionIndexInput {
-  bridge: PrimeWorkApi
+  bridge: PtxApi
   harness: ProjectRecord['harness']
   sessionFile: string | undefined
   setSessions: Dispatch<SetStateAction<SessionRecord[]>>
@@ -104,7 +103,6 @@ export async function titleStartedSession({ bridge, harness, runtimeId, sessionF
 
 export function parseMcpCommand(prompt: string, harness: HarnessId): McpCommand | undefined {
   const value = prompt.trim()
-  if (harness === 'prime' && value === '/mcp') return { type: 'open' }
   const authentication = parseMcpAuthenticationCommand(value, harness)
   return authentication
     ? authentication.server ? { type: 'authenticate', server: authentication.server } : { type: 'authenticate' }
@@ -328,12 +326,6 @@ export function createWorkspaceActions(getDeps: () => WorkspaceActionsDeps) {
       const sentAtIso = new Date(sentAt).toISOString()
       const userMessage: TranscriptMessage = { id: `user-${sentAt}`, role: 'user', timestamp: sentAt, parts: [{ type: 'text', text: prompt }, ...images] }
       let userMessageAppended = false
-      const followUpExternalSession = async (sessionFile: string): Promise<boolean> => {
-        if (!bridge) return false
-        // The daemon owns the message once accepted; queuing it locally as
-        // well would deliver it a second time via the idle flush.
-        return bridge.sessions.followUp(sessionFile, prompt, intent)
-      }
       try {
         if (!admitted.project || !admitted.cwd) { reportError(t('hooks.addProjectFirst')); return }
         // The harness comes from the workspace's own project, never global
@@ -385,23 +377,8 @@ export function createWorkspaceActions(getDeps: () => WorkspaceActionsDeps) {
           if (images.length > 0 && selected.sessionFile && selectedSession?.status === 'running') {
             throw new Error(t('hooks.imageQueueExternal'))
           }
-          if (images.length === 0 && selected.sessionFile && selectedSession?.status === 'running'
-            && await followUpExternalSession(selected.sessionFile)) {
-            if (intent === 'steer') appendUserMessage()
-            completeQueuedFlush()
-            return
-          }
-          try {
-            if (!provider.model) throw new Error(t('hooks.noModel', { name: HARNESS_AGENT_NAMES[activeHarness] }))
-            activeRuntime = await bridge.agent.start({ cwd: selected.cwd, sessionPath: selected.sessionFile, model: provider.model, thinking: provider.effort, fast: provider.fast, harness: activeHarness })
-          } catch (startError) {
-            if (images.length === 0 && selected.sessionFile && await followUpExternalSession(selected.sessionFile)) {
-              if (intent === 'steer') appendUserMessage()
-              completeQueuedFlush()
-              return
-            }
-            throw startError
-          }
+          if (!provider.model) throw new Error(t('hooks.noModel', { name: HARNESS_AGENT_NAMES[activeHarness] }))
+          activeRuntime = await bridge.agent.start({ cwd: selected.cwd, sessionPath: selected.sessionFile, model: provider.model, thinking: provider.effort, fast: provider.fast, harness: activeHarness })
           startedRuntime = true
           if (workspace.workspaceRef.current.generation !== generation) { await bridge.agent.stop(activeRuntime.runtimeId).catch(() => false); return }
           const indexedSession = await indexStartedSession({
@@ -600,11 +577,6 @@ export function createWorkspaceActions(getDeps: () => WorkspaceActionsDeps) {
     if (!bridge) throw new Error(t('hooks.schedulesDesktopOnly'))
     try { await operation(); await refreshSchedules() } catch (error) { reportError(error); throw error }
   }
-  const manageHeartbeat = async (id: string, action: 'pause' | 'resume' | 'stop') => {
-    const { bridge, refreshHeartbeats, reportError } = getDeps()
-    if (!bridge) throw new Error(t('hooks.heartbeatsDesktopOnly'))
-    try { await bridge.heartbeats.manage(id, action); await refreshHeartbeats() } catch (error) { reportError(error); throw error }
-  }
   const openScheduledSession = (sessionFile: string) => {
     const { bridge, sessions, settingsState, setSessions, reportError } = getDeps()
     const known = sessions.find((session) => session.filePath === sessionFile)
@@ -632,7 +604,7 @@ export function createWorkspaceActions(getDeps: () => WorkspaceActionsDeps) {
     grantProject, persistPanel, toggleSidebar, toggleInspector, toggleTerminal,
     selectProject, selectSession, newSession, navigate, renameSession, setSessionArchived,
     addProject, removeProject, sendPrompt, stopRuntime, installSkill, installExtension, setMcpSupport, connectMcp, setMcpEnabled, mutateCapability,
-    createSchedule, updateSchedule, mutateSchedule, manageHeartbeat, openScheduledSession,
+    createSchedule, updateSchedule, mutateSchedule, openScheduledSession,
     openBrowser, openChanges,
   }
 }

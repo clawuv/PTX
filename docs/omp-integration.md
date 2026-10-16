@@ -1,5 +1,7 @@
 # OMP (Oh My Pi) integration design
 
+> Current support: Pi and OMP only. Prime runtime, libraries, authentication, daemon and native heartbeats have been removed. Historical comparisons below describe the original integration design, not a supported third harness. See [Prime removal](prime-removal.md).
+
 This document is the working spec for adding OMP (`omp`, [omp.sh](https://omp.sh/), [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi)) as a second agent harness alongside Prime Agent. Both harnesses descend from the same Pi base (pi-mono), so the integration reuses the existing transport, event, and UI machinery wherever the protocols agree, and adapts only where they genuinely differ.
 
 ## Product behavior

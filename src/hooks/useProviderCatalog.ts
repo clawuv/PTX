@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { HarnessId, PrimeModelCatalog, PrimeModelDescriptor, PrimeThinkingLevel, PrimeWorkApi, ProviderAuthEvent, RuntimeInfo } from '@/types/api'
+import type { HarnessId, AgentModelCatalog, AgentModelDescriptor, AgentThinkingLevel, PtxApi, RuntimeInfo } from '@/types/api'
 
-type ActiveProviderAuthEvent = Exclude<ProviderAuthEvent, { type: 'cancelled' }>
 
 /** Stable fallback identities so consumers can memoize on prop equality. */
-const DEFAULT_REASONING_LEVELS: PrimeThinkingLevel[] = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
+const DEFAULT_REASONING_LEVELS: AgentThinkingLevel[] = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
 
-export function groupModelsByProvider(models: readonly PrimeModelDescriptor[] | undefined): Map<string, PrimeModelDescriptor[]> {
-  const grouped = new Map<string, PrimeModelDescriptor[]>()
+export function groupModelsByProvider(models: readonly AgentModelDescriptor[] | undefined): Map<string, AgentModelDescriptor[]> {
+  const grouped = new Map<string, AgentModelDescriptor[]>()
   for (const model of models ?? []) {
     if (model.enabled === false) continue
     const bucket = grouped.get(model.provider)
@@ -18,7 +17,7 @@ export function groupModelsByProvider(models: readonly PrimeModelDescriptor[] | 
 }
 
 interface UseProviderCatalogOptions {
-  bridge: PrimeWorkApi | null
+  bridge: PtxApi | null
   /** Prevent startup work before the persisted harness selection is loaded. */
   ready?: boolean
   /** Harness whose model catalog is shown; catalogs are cached per harness. */
@@ -31,18 +30,17 @@ interface UseProviderCatalogOptions {
   reportError(error: unknown): void
 }
 
-export function useProviderCatalog({ bridge, ready = true, harness = 'prime', runtime, lastSelectedModel = '', rememberModel, syncRuntime, reportError }: UseProviderCatalogOptions) {
+export function useProviderCatalog({ bridge, ready = true, harness = 'omp', runtime, lastSelectedModel = '', rememberModel, syncRuntime, reportError }: UseProviderCatalogOptions) {
   const [model, setModel] = useState('')
-  const [effort, setEffort] = useState<PrimeThinkingLevel>('medium')
+  const [effort, setEffort] = useState<AgentThinkingLevel>('medium')
   const [fast, setFast] = useState(false)
   // Per-harness cache: switching back to a harness shows its last catalog
   // immediately while the background refresh updates it.
-  const [catalogs, setCatalogs] = useState<Partial<Record<HarnessId, PrimeModelCatalog>>>({})
+  const [catalogs, setCatalogs] = useState<Partial<Record<HarnessId, AgentModelCatalog>>>({})
   const catalog = catalogs[harness] ?? null
-  const setCatalogFor = useCallback((target: HarnessId, next: PrimeModelCatalog) => {
+  const setCatalogFor = useCallback((target: HarnessId, next: AgentModelCatalog) => {
     setCatalogs((current) => ({ ...current, [target]: next }))
   }, [])
-  const [authEvent, setAuthEvent] = useState<ActiveProviderAuthEvent | null>(null)
   const modelRef = useRef(model)
   const effortRef = useRef(effort)
   const fastRef = useRef(fast)
@@ -52,7 +50,7 @@ export function useProviderCatalog({ bridge, ready = true, harness = 'prime', ru
   useLayoutEffect(() => { runtimeIdRef.current = runtime?.runtimeId })
 
   const updateModel = useCallback((value: string) => { modelRef.current = value; setModel(value) }, [])
-  const updateEffort = useCallback((value: PrimeThinkingLevel) => { effortRef.current = value; setEffort(value) }, [])
+  const updateEffort = useCallback((value: AgentThinkingLevel) => { effortRef.current = value; setEffort(value) }, [])
   const updateFast = useCallback((value: boolean) => { fastRef.current = value; setFast(value) }, [])
 
   const queueRuntimeMutation = useCallback((
@@ -95,16 +93,16 @@ export function useProviderCatalog({ bridge, ready = true, harness = 'prime', ru
   const rememberSelectionRef = useRef(rememberSelection)
   useLayoutEffect(() => { rememberSelectionRef.current = rememberSelection })
 
-  const firstUsableModel = useCallback((nextCatalog: PrimeModelCatalog | null | undefined) => (
+  const firstUsableModel = useCallback((nextCatalog: AgentModelCatalog | null | undefined) => (
     nextCatalog?.models.find((candidate) => candidate.enabled !== false && candidate.available)
   ), [])
 
-  const fallbackModel = useCallback((nextCatalog: PrimeModelCatalog | null | undefined) => (
+  const fallbackModel = useCallback((nextCatalog: AgentModelCatalog | null | undefined) => (
     nextCatalog?.models.find((candidate) => candidate.key === lastSelectedModel && candidate.enabled !== false && candidate.available)
       ?? firstUsableModel(nextCatalog)
   ), [firstUsableModel, lastSelectedModel])
 
-  const selectedModel = useMemo<PrimeModelDescriptor | undefined>(() => {
+  const selectedModel = useMemo<AgentModelDescriptor | undefined>(() => {
     return catalog?.models.find((candidate) => candidate.key === model && candidate.enabled !== false && candidate.available)
   }, [catalog, model])
   const reasoningLevels = selectedModel?.availableThinkingLevels ?? runtime?.availableThinkingLevels ?? DEFAULT_REASONING_LEVELS
@@ -145,29 +143,13 @@ export function useProviderCatalog({ bridge, ready = true, harness = 'prime', ru
   }, [catalog, fallbackModel, harness, rememberSelection, updateFast, updateModel])
 
   useEffect(() => {
-    if (!bridge) return
-    return bridge.providers.onAuthEvent((event) => {
-      if (event.type === 'complete') {
-        setAuthEvent(event)
-        void refresh(true).catch(reportError)
-      } else if (event.type === 'cancelled') {
-        setAuthEvent(null)
-      } else if (event.type === 'error') {
-        setAuthEvent(event)
-      } else if (event.type === 'auth' || event.type === 'progress' || event.type === 'prompt' || event.type === 'select') {
-        setAuthEvent(event)
-      }
-    })
-  }, [bridge, refresh, reportError])
-
-  useEffect(() => {
     if (!runtime?.model?.provider || !runtime.model.id || !catalog) return
     const effectiveModel = catalog.models.find((candidate) => candidate.provider === runtime.model?.provider && candidate.id === runtime.model?.id && candidate.enabled !== false && candidate.available)
     if (effectiveModel) {
       updateModel(effectiveModel.key)
       rememberSelectionRef.current(effectiveModel.key)
     }
-    if (runtime.thinkingLevel && effectiveModel?.availableThinkingLevels.includes(runtime.thinkingLevel as PrimeThinkingLevel)) updateEffort(runtime.thinkingLevel as PrimeThinkingLevel)
+    if (runtime.thinkingLevel && effectiveModel?.availableThinkingLevels.includes(runtime.thinkingLevel as AgentThinkingLevel)) updateEffort(runtime.thinkingLevel as AgentThinkingLevel)
   }, [catalog, runtime?.model?.id, runtime?.model?.provider, runtime?.thinkingLevel, updateEffort, updateModel])
 
   // Scoped to the runtime's reported tier so a catalog refresh cannot revert
@@ -201,7 +183,7 @@ export function useProviderCatalog({ bridge, ready = true, harness = 'prime', ru
     )
   }, [bridge, catalog?.models, queueRuntimeMutation, rememberSelection, runtime, updateEffort, updateFast, updateModel])
 
-  const changeEffort = useCallback((nextEffort: PrimeThinkingLevel) => {
+  const changeEffort = useCallback((nextEffort: AgentThinkingLevel) => {
     const previous = effortRef.current
     updateEffort(nextEffort)
     if (!bridge || !runtime) return
@@ -223,18 +205,8 @@ export function useProviderCatalog({ bridge, ready = true, harness = 'prime', ru
     )
   }, [bridge, queueRuntimeMutation, runtime, updateFast])
 
-  // Credentials remain Prime-only, while desktop-owned provider visibility is
+  // Credentials stay owned by the harness; desktop-owned provider visibility is
   // stored independently for each harness.
-  const saveApiKey = useCallback(async (providerId: string, apiKey: string) => {
-    if (!bridge) throw new Error('Providers can only be configured in the desktop app.')
-    setCatalogFor('prime', await bridge.providers.saveApiKey(providerId, apiKey))
-  }, [bridge, setCatalogFor])
-
-  const logout = useCallback(async (providerId: string) => {
-    if (!bridge) throw new Error('Providers can only be configured in the desktop app.')
-    setCatalogFor('prime', await bridge.providers.logout(providerId))
-  }, [bridge, setCatalogFor])
-
   const setEnabled = useCallback(async (providerId: string, enabled: boolean) => {
     if (!bridge) throw new Error('Providers can only be configured in the desktop app.')
     const next = await bridge.providers.setEnabled(providerId, enabled, harness)
@@ -278,24 +250,9 @@ export function useProviderCatalog({ bridge, ready = true, harness = 'prime', ru
     }
   }, [bridge, fallbackModel, harness, rememberSelection, setCatalogFor, updateFast, updateModel])
 
-  const startOAuth = useCallback(async (providerId: string) => {
-    if (!bridge) throw new Error('Providers can only be configured in the desktop app.')
-    await bridge.providers.startOAuth(providerId)
-  }, [bridge])
-
-  const respondOAuth = useCallback((promptId: string, value?: string) => {
-    if (!bridge || !authEvent) return
-    void bridge.providers.respondOAuth(authEvent.flowId, promptId, value).catch(reportError)
-  }, [authEvent, bridge, reportError])
-
-  const cancelOAuth = useCallback(() => {
-    if (bridge && authEvent) void bridge.providers.cancelOAuth(authEvent.flowId).catch(reportError)
-    setAuthEvent(null)
-  }, [authEvent, bridge, reportError])
-
   return {
-    model, effort, fast, catalog, authEvent, selectedModel, reasoningLevels, modelsByProvider,
+    model, effort, fast, catalog, selectedModel, reasoningLevels, modelsByProvider,
     refresh, changeModel, changeEffort, changeFast,
-    saveApiKey, logout, setEnabled, setAllEnabled, setAllDisabled, setModelEnabled, startOAuth, respondOAuth, cancelOAuth,
+    setEnabled, setAllEnabled, setAllDisabled, setModelEnabled,
   }
 }

@@ -1,10 +1,11 @@
+import '../helpers/node-script-fixtures'
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ModelCatalogProvider } from '../../electron/main/model-catalog'
 import { PI_NOT_INSTALLED_WARNING, PiModelCatalogService, MAX_CATALOG_PROVIDERS } from '../../electron/main/providers-pi'
-import type { PrimeModelCatalog } from '../../src/types/api'
+import type { AgentModelCatalog } from '../../src/types/api'
 import { waitUntil } from '../helpers/wait'
 
 const dirs: string[] = []
@@ -69,7 +70,7 @@ const processExists = (pid: number): boolean => {
   try { process.kill(pid, 0); return true } catch { return false }
 }
 
-function expectRelationalIntegrity(catalog: PrimeModelCatalog): void {
+function expectRelationalIntegrity(catalog: AgentModelCatalog): void {
   const providerIds = catalog.providers.map((provider) => provider.id)
   expect(new Set(providerIds).size).toBe(providerIds.length)
   const providerIdSet = new Set(providerIds)
@@ -92,14 +93,14 @@ describe('Pi model catalog service', () => {
     await expect(service.catalog()).resolves.toMatchObject({ models: [], warning: PI_NOT_INSTALLED_WARNING })
 
     executable = fakePiWithCatalog(sampleCatalog)
-    await expect(service.catalog()).resolves.toMatchObject({ primeVersion: '0.84.1', models: expect.any(Array) })
+    await expect(service.catalog()).resolves.toMatchObject({ harnessVersion: '0.84.1', models: expect.any(Array) })
   })
 
   it('parses the RPC probe response into Prime descriptor shapes, skipping noise lines', async () => {
     const service: ModelCatalogProvider = new PiModelCatalogService(fakePiWithCatalog(sampleCatalog))
     const catalog = await service.catalog(true)
 
-    expect(catalog.primeVersion).toBe('0.84.1')
+    expect(catalog.harnessVersion).toBe('0.84.1')
     expect(catalog.warning).toBeUndefined()
     expect(catalog.models.map((model) => model.key)).toEqual([
       'openai-codex/gpt-5.6-luna',
@@ -172,7 +173,7 @@ describe('Pi model catalog service', () => {
     expect(catalog.models).toEqual([])
     expect(catalog.providers).toEqual([])
     expect(catalog.warning).toBe(PI_NOT_INSTALLED_WARNING)
-    expect(catalog.primeVersion).toBe('unknown')
+    expect(catalog.harnessVersion).toBe('unknown')
     await expect(service.requireAvailableModel('google/gemini-2.5-pro')).rejects.toThrow(/not found/)
   })
 

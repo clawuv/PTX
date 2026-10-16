@@ -9,7 +9,7 @@ export const TERMINAL_DEFAULT = 310
 export const WORKSPACE_ROW_MIN = 220
 export const SIDEBAR_MIN = 220
 export const SIDEBAR_MAX = 400
-export const SIDEBAR_DEFAULT = 252
+export const SIDEBAR_DEFAULT = 240
 export const SMALLEST_LAYOUT_BREAKPOINT = 720
 /** Untouched inspector width tracks this share of the workspace row, so the panel scales with the window. */
 export const INSPECTOR_ROW_RATIO = 0.3

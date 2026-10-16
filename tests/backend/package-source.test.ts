@@ -162,7 +162,7 @@ describe('validatePackageSource', () => {
 })
 
 describe('PluginService package source validation', () => {
-  it.each(['prime', 'pi', 'omp'] as const)('does not launch the %s executable for rejected npm sources', async (harness) => {
+  it.each(['omp', 'pi', 'omp'] as const)('does not launch the %s executable for rejected npm sources', async (harness) => {
     const root = mkdtempSync(join(tmpdir(), 'prime-work-package-service-'))
     dirs.push(root)
     const agentDir = join(root, 'agent')

@@ -3,10 +3,10 @@ import { contextUsageFromEvent } from '@/app/agent-events'
 import { applySessionLifecycleEvent, sessionLifecycleChange } from '@/app/session-attention'
 import { parseSessionActionSnapshot } from '@/lib/session-actions'
 import type { WorkspaceSnapshot } from '@/app/workspace'
-import type { PrimeWorkApi, RuntimeInfo, SessionActionSnapshot, SessionRecord } from '@/types/api'
+import type { PtxApi, RuntimeInfo, SessionActionSnapshot, SessionRecord } from '@/types/api'
 
 interface UseAgentEventsOptions {
-  bridge: PrimeWorkApi | null
+  bridge: PtxApi | null
   runtimeIdRef: React.RefObject<string | null>
   runtimeSessionsRef: React.RefObject<Map<string, string>>
   runtimeOwnerRef: React.RefObject<{ runtimeId: string; generation: number } | null>

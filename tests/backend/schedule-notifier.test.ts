@@ -6,7 +6,7 @@ function task(overrides: Partial<AutomationScheduleRecord> = {}): AutomationSche
   return {
     schemaVersion: 1,
     id: 'task-1',
-    harness: 'prime',
+    harness: 'omp',
     revision: 1,
     title: 'Nightly triage',
     prompt: 'Review issues',

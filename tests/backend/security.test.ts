@@ -29,10 +29,10 @@ describe('security boundaries', () => {
     const dir = temp('prime-work-project-')
     const folder = join(dir, 'project'); mkdirSync(folder)
     const store = new JsonStateStore(join(dir, 'state.json'))
-    await store.update((state) => { state.projects.push({ id: 'project-1', harness: 'prime', name: 'Project', path: folder, folders: [folder], primaryFolder: folder, pinned: false, createdAt: new Date().toISOString(), lastOpenedAt: new Date().toISOString(), folderIdentities: identities(folder) }) })
+    await store.update((state) => { state.projects.push({ id: 'project-1', harness: 'omp', name: 'Project', path: folder, folders: [folder], primaryFolder: folder, pinned: false, createdAt: new Date().toISOString(), lastOpenedAt: new Date().toISOString(), folderIdentities: identities(folder) }) })
     const service = new ProjectService(store, () => null)
     service.bindProviders({
-      sessions: async () => [{ id: 'unsafe', harness: 'prime', filePath: join(dir, 'unsafe.jsonl'), projectPath: '/', title: 'unsafe', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), status: 'idle', depth: 0, pinned: false, unread: false } satisfies SessionRecord],
+      sessions: async () => [{ id: 'unsafe', harness: 'omp', filePath: join(dir, 'unsafe.jsonl'), projectPath: '/', title: 'unsafe', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), status: 'idle', depth: 0, pinned: false, unread: false } satisfies SessionRecord],
       branch: async () => undefined,
     })
     const listed = await service.list()
@@ -50,7 +50,7 @@ describe('security boundaries', () => {
     const service = new ProjectService(store, () => null)
     let branchCalls = 0
     service.bindProviders({
-      sessions: async () => [{ id: 'session', harness: 'prime', filePath: join(dir, 'session.jsonl'), projectPath: folder, title: 'session', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), status: 'idle', depth: 0, pinned: false, unread: false } satisfies SessionRecord],
+      sessions: async () => [{ id: 'session', harness: 'omp', filePath: join(dir, 'session.jsonl'), projectPath: folder, title: 'session', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), status: 'idle', depth: 0, pinned: false, unread: false } satisfies SessionRecord],
       branch: async () => { branchCalls += 1; return undefined },
     })
     const listed = await service.list()
@@ -75,9 +75,9 @@ describe('security boundaries', () => {
     const executable = join(dir, 'fake-agent.cjs')
     const pidFile = join(dir, 'pid')
     writeFileSync(executable, `#!/usr/bin/env node
-const readline=require('node:readline');const fs=require('node:fs');fs.writeFileSync(process.env.PRIME_WORK_TEST_PID_FILE,String(process.pid));process.on('SIGTERM',()=>{});setInterval(()=>{},1000);readline.createInterface({input:process.stdin}).on('line',(line)=>{const v=JSON.parse(line);if(v.type==='get_state')process.stdout.write(JSON.stringify({type:'response',id:v.id,command:v.type,success:true,data:{isStreaming:false}})+'\\n')});process.stdin.resume();`)
+const readline=require('node:readline');const fs=require('node:fs');fs.writeFileSync(process.env.PTX_TEST_PID_FILE,String(process.pid));process.on('SIGTERM',()=>{});setInterval(()=>{},1000);readline.createInterface({input:process.stdin}).on('line',(line)=>{const v=JSON.parse(line);if(v.type==='get_state')process.stdout.write(JSON.stringify({type:'response',id:v.id,command:v.type,success:true,data:{isStreaming:false}})+'\\n')});process.stdin.resume();`)
     chmodSync(executable, 0o755)
-    process.env.PRIME_WORK_TEST_PID_FILE = pidFile
+    process.env.PTX_TEST_PID_FILE = pidFile
     const manager = new AgentRpcManager(executable, async (cwd) => cwd, async (path) => path)
     const runtime = await manager.start({ cwd: dir })
     const pid = Number(readFileSync(pidFile, 'utf8'))
@@ -85,7 +85,7 @@ const readline=require('node:readline');const fs=require('node:fs');fs.writeFile
     expect(await manager.stop(runtime.runtimeId)).toBe(true)
     expect(Date.now() - started).toBeGreaterThanOrEqual(2_500)
     expect(() => process.kill(pid, 0)).toThrow()
-    delete process.env.PRIME_WORK_TEST_PID_FILE
+    delete process.env.PTX_TEST_PID_FILE
   }, 10_000)
 
   it('bounds each outbound agent envelope and aggregate bytes while preserving normal events', () => {

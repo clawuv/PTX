@@ -1,5 +1,4 @@
-import { supportsFastMode } from 'prime-agent-ai'
-import type { PrimeModelCatalog, PrimeModelDescriptor, PrimeProviderDescriptor } from '../../src/types/api'
+import type { AgentModelCatalog, AgentModelDescriptor, AgentProviderDescriptor } from '../../src/types/api'
 import { catalogLimitWarnings, limitCatalogRelations, type ModelCatalogProvider } from './model-catalog'
 import { withModelVisibility } from './model-visibility'
 import { resolveExecutable, runProcess, type ExecutableSource } from './process-utils'
@@ -34,16 +33,9 @@ export function boundedInteger(value: unknown): number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : 0
 }
 
-/**
- * Neither CLI carries per-model fast-mode metadata, so both delegate to the
- * same `supportsFastMode` predicate Prime uses and the model family can never
- * drift between harnesses. The API variant is not reported either, but the
- * openai-codex provider maps 1:1 onto the openai-codex-responses API the
- * predicate requires, and every other provider fails its provider check
- * regardless of the API value.
- */
+/** Match the supported model families in the bundled Pi fast-mode extension. */
 export function toFastModeSupported(provider: string, id: string): boolean {
-  return supportsFastMode({ provider, id, api: 'openai-codex-responses' } as Parameters<typeof supportsFastMode>[0])
+  return provider === 'openai-codex' && (id === 'gpt-5.4' || id === 'gpt-5.5' || id === 'gpt-5.6' || id.startsWith('gpt-5.6-'))
 }
 
 /** The fields every CLI model entry shares, or null when any of them is hostile or malformed. */
@@ -53,7 +45,7 @@ export interface ValidatedModelEntry {
   id: string
   reasoning: boolean
   /** Descriptor fields derived purely from the shared entry shape. */
-  descriptor: Omit<PrimeModelDescriptor, 'availableThinkingLevels'>
+  descriptor: Omit<AgentModelDescriptor, 'availableThinkingLevels'>
 }
 
 export function validateModelEntry(value: unknown): ValidatedModelEntry | null {
@@ -98,10 +90,10 @@ export interface CliModelCatalogOptions {
 export abstract class CliModelCatalogService implements ModelCatalogProvider {
   protected readonly timeoutMs: number
   protected readonly maxOutputBytes: number
-  private cachedCatalog: PrimeModelCatalog | null = null
+  private cachedCatalog: AgentModelCatalog | null = null
   private cachedAt = 0
   private cachedExecutable: string | null = null
-  private catalogRefresh: { executable: string; promise: Promise<PrimeModelCatalog> } | null = null
+  private catalogRefresh: { executable: string; promise: Promise<AgentModelCatalog> } | null = null
   private cachedVersion: { executable: string; value: string } | null = null
 
   constructor(private readonly executable: ExecutableSource, options: CliModelCatalogOptions = {}) {
@@ -118,17 +110,17 @@ export abstract class CliModelCatalogService implements ModelCatalogProvider {
   /** Fetches the untrusted raw model entries from the harness CLI. */
   protected abstract fetchModelEntries(executable: string): Promise<unknown[]>
   /** Maps one untrusted raw entry to a descriptor, or null when it is malformed. */
-  protected abstract toModelDescriptor(value: unknown): PrimeModelDescriptor | null
+  protected abstract toModelDescriptor(value: unknown): AgentModelDescriptor | null
   /** Extracts the version from the `--version` stdout, or null when unrecognized. */
   protected abstract parseVersion(stdout: string): string | null
   /** Environment for the `--version` probe; undefined inherits the runProcess default. */
   protected versionEnvironment(): NodeJS.ProcessEnv | undefined { return undefined }
 
-  async catalog(force = false, disabledProviders: ReadonlySet<string> = new Set(), disabledModels: ReadonlySet<string> = new Set()): Promise<PrimeModelCatalog> {
+  async catalog(force = false, disabledProviders: ReadonlySet<string> = new Set(), disabledModels: ReadonlySet<string> = new Set()): Promise<AgentModelCatalog> {
     const executable = resolveExecutable(this.executable)
     this.prepareExecutable(executable)
     if (!executable) {
-      return { primeVersion: 'unknown', refreshedAt: new Date().toISOString(), models: [], providers: [], warning: this.notInstalledWarning }
+      return { harnessVersion: 'unknown', refreshedAt: new Date().toISOString(), models: [], providers: [], warning: this.notInstalledWarning }
     }
     if (!force && this.cachedCatalog && Date.now() - this.cachedAt < CATALOG_TTL_MS) {
       return withModelVisibility(this.cachedCatalog, disabledProviders, disabledModels)
@@ -156,7 +148,7 @@ export abstract class CliModelCatalogService implements ModelCatalogProvider {
     }
   }
 
-  async requireAvailableModel(rawKey: unknown, disabledProviders: ReadonlySet<string> = new Set(), disabledModels: ReadonlySet<string> = new Set()): Promise<PrimeModelDescriptor> {
+  async requireAvailableModel(rawKey: unknown, disabledProviders: ReadonlySet<string> = new Set(), disabledModels: ReadonlySet<string> = new Set()): Promise<AgentModelDescriptor> {
     const key = requireString(rawKey, 'model', { min: 3, max: 512, trim: true })
     const catalog = await this.catalog(false, disabledProviders, disabledModels)
     const model = catalog.models.find((candidate) => candidate.key === key)
@@ -168,7 +160,7 @@ export abstract class CliModelCatalogService implements ModelCatalogProvider {
     return model
   }
 
-  async capabilities(provider: string | undefined, modelId: string | undefined): Promise<PrimeModelDescriptor | undefined> {
+  async capabilities(provider: string | undefined, modelId: string | undefined): Promise<AgentModelDescriptor | undefined> {
     if (!provider || !modelId) return undefined
     return (await this.catalog()).models.find((model) => model.provider === provider && model.id === modelId)
   }
@@ -181,13 +173,13 @@ export abstract class CliModelCatalogService implements ModelCatalogProvider {
     return (container as Record<string, unknown>).models as unknown[]
   }
 
-  private async refreshCatalog(executable: string): Promise<PrimeModelCatalog> {
+  private async refreshCatalog(executable: string): Promise<AgentModelCatalog> {
     const [rawModels, version] = await Promise.all([
       this.fetchModelEntries(executable),
       this.resolveVersion(executable),
     ])
 
-    const validModels: PrimeModelDescriptor[] = []
+    const validModels: AgentModelDescriptor[] = []
     const seenKeys = new Set<string>()
     let invalidEntries = 0
     for (const entry of rawModels) {
@@ -199,7 +191,7 @@ export abstract class CliModelCatalogService implements ModelCatalogProvider {
     }
 
     const providerIds = [...new Set(validModels.map((model) => model.provider))]
-    const relation = limitCatalogRelations(validModels, providerIds.map((id): PrimeProviderDescriptor => ({
+    const relation = limitCatalogRelations(validModels, providerIds.map((id): AgentProviderDescriptor => ({
       id,
       name: id.slice(0, 200),
       authMethod: 'external',
@@ -217,8 +209,8 @@ export abstract class CliModelCatalogService implements ModelCatalogProvider {
         : undefined,
     ].filter((warning): warning is string => Boolean(warning))
 
-    const catalog: PrimeModelCatalog = {
-      primeVersion: version,
+    const catalog: AgentModelCatalog = {
+      harnessVersion: version,
       refreshedAt: new Date().toISOString(),
       models: relation.models,
       providers: relation.providers,

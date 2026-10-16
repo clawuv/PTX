@@ -23,7 +23,7 @@ import {
 import {
   FALLBACK_TOOL_NAME,
   EXIT_CODE_PREFIX,
-  PRIME_ERROR_FALLBACK,
+  AGENT_ERROR_FALLBACK,
   RUNTIME_EXIT_PATTERN,
   UNKNOWN_EXIT_REASON,
 } from '@/lib/events/reduce'
@@ -36,7 +36,7 @@ type Translate = (key: MessageKey, values?: MessageValues) => string
 
 /** The event reducer bakes a few fallback sentences into view-model data; they are recognized here and translated at render. */
 function systemFallbackText(text: string, t: Translate): string {
-  if (text === PRIME_ERROR_FALLBACK) return t('transcript.errorFallback')
+  if (text === AGENT_ERROR_FALLBACK) return t('transcript.errorFallback')
   const exit = RUNTIME_EXIT_PATTERN.exec(text)
   if (!exit) return text
   const reason = exit[1]

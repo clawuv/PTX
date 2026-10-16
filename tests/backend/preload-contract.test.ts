@@ -39,7 +39,6 @@ const INVOKE_CASES: Array<[domain: string, method: string, channel: string, args
   ['projects', 'finishSetup', 'projects:finish-setup', ['project-id', 'npm install', 0, 'omp']],
   ['sessions', 'list', 'sessions:list', ['/repo', true, 'omp', true]],
   ['sessions', 'read', 'sessions:read', ['/session.jsonl']],
-  ['sessions', 'followUp', 'sessions:follow-up', ['/session.jsonl', 'next', 'queue']],
   ['sessions', 'rename', 'sessions:rename', ['/session.jsonl', 'Title']],
   ['sessions', 'archive', 'sessions:archive', ['/session.jsonl', true]],
   ['agent', 'start', 'agent:start', [{ cwd: '/repo' }]],
@@ -47,14 +46,9 @@ const INVOKE_CASES: Array<[domain: string, method: string, channel: string, args
   ['agent', 'stop', 'agent:stop', ['runtime']],
   ['agent', 'list', 'agent:list', []],
   ['providers', 'catalog', 'providers:catalog', [true, 'omp']],
-  ['providers', 'saveApiKey', 'providers:save-api-key', ['openai', 'secret']],
-  ['providers', 'logout', 'providers:logout', ['openai']],
   ['providers', 'setEnabled', 'providers:set-enabled', ['openai', false, 'omp']],
   ['providers', 'setDisabled', 'providers:set-disabled', [['openai'], 'omp']],
   ['providers', 'setModelEnabled', 'providers:set-model-enabled', ['openai/model', true, 'omp']],
-  ['providers', 'startOAuth', 'providers:start-oauth', ['openai']],
-  ['providers', 'respondOAuth', 'providers:respond-oauth', ['flow', 'prompt', 'value']],
-  ['providers', 'cancelOAuth', 'providers:cancel-oauth', ['flow']],
   ['voice', 'credentialStatus', 'voice:credential-status', []],
   ['voice', 'saveApiKey', 'voice:save-api-key', ['openai', 'secret']],
   ['voice', 'deleteApiKey', 'voice:delete-api-key', ['openai']],
@@ -90,8 +84,6 @@ const INVOKE_CASES: Array<[domain: string, method: string, channel: string, args
   ['browser', 'closeTab', 'browser:close-tab', ['tab']],
   ['browser', 'setPreviewContext', 'browser:set-preview-context', [7, '/session.jsonl']],
   ['browser', 'navigateTab', 'browser:navigate-tab', ['tab', 'navigate', 'https://example.com']],
-  ['heartbeats', 'list', 'heartbeats:list', []],
-  ['heartbeats', 'manage', 'heartbeats:manage', ['heartbeat', 'pause']],
   ['schedules', 'list', 'schedules:list', ['omp']],
   ['schedules', 'get', 'schedules:get', ['schedule']],
   ['schedules', 'preview', 'schedules:preview', [{ kind: 'once', at: '2026-08-26T00:00:00Z' }, 3]],
@@ -107,7 +99,6 @@ const SUBSCRIPTION_CASES: Array<[domain: string, method: string, channel: string
   ['updates', 'onChanged', 'updates:changed'],
   ['sessions', 'onChanged', 'sessions:changed'],
   ['agent', 'onEvent', 'agent:event'],
-  ['providers', 'onAuthEvent', 'providers:auth-event'],
   ['terminal', 'onData', 'terminal:data'],
   ['terminal', 'onExit', 'terminal:exit'],
   ['browser', 'onChanged', 'browser:changed'],
@@ -141,7 +132,7 @@ describe('preload bridge contract', () => {
 
   it('freezes the exposed API and every domain', () => {
     const api = electronMocks.api as BridgeApi
-    expect(electronMocks.contextBridge.exposeInMainWorld).toHaveBeenCalledWith('prime', api)
+    expect(electronMocks.contextBridge.exposeInMainWorld).toHaveBeenCalledWith('ptx', api)
     expect(Object.isFrozen(api)).toBe(true)
     for (const domain of Object.values(api)) expect(Object.isFrozen(domain)).toBe(true)
   })

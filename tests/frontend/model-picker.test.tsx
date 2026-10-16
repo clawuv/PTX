@@ -5,11 +5,11 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ModelPicker } from '../../src/components/ModelPicker'
 import { groupModelsByProvider } from '../../src/hooks/useProviderCatalog'
-import type { PrimeModelDescriptor, PrimeProviderDescriptor } from '../../src/types/api'
+import type { AgentModelDescriptor, AgentProviderDescriptor } from '../../src/types/api'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
-const model = (key: string, provider: string, name: string, available = true): PrimeModelDescriptor => ({
+const model = (key: string, provider: string, name: string, available = true): AgentModelDescriptor => ({
   key,
   provider,
   id: key.slice(key.indexOf('/') + 1),
@@ -29,7 +29,7 @@ const models = [
   model('anthropic/claude-opus-4-8', 'anthropic', 'Claude Opus 4.8'),
   model('anthropic/claude-sonnet-4-7', 'anthropic', 'Claude Sonnet 4.7', false),
 ]
-const providers: PrimeProviderDescriptor[] = [
+const providers: AgentProviderDescriptor[] = [
   { id: 'openai', name: 'OpenAI', authMethod: 'oauth', configured: true, modelCount: 2, availableModelCount: 2, enabled: true },
   { id: 'anthropic', name: 'Anthropic', authMethod: 'api_key', configured: false, modelCount: 2, availableModelCount: 1, enabled: true },
 ]
@@ -101,7 +101,7 @@ describe('ModelPicker', () => {
 
   it('shows search only for larger model catalogs', async () => {
     const extendedModels = Array.from({ length: 9 }, (_, index) => model(`openai/model-${index}`, 'openai', `Model ${index}`))
-    const singleProvider: PrimeProviderDescriptor[] = [{ id: 'openai', name: 'OpenAI', authMethod: 'oauth', configured: true, modelCount: 9, availableModelCount: 9, enabled: true }]
+    const singleProvider: AgentProviderDescriptor[] = [{ id: 'openai', name: 'OpenAI', authMethod: 'oauth', configured: true, modelCount: 9, availableModelCount: 9, enabled: true }]
     await act(async () => {
       root.render(<ModelPicker value="openai/model-0" modelsByProvider={groupModelsByProvider(extendedModels)} providers={singleProvider} onChange={vi.fn()} />)
     })

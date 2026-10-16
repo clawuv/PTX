@@ -39,7 +39,7 @@ function setup(maxSessionFiles?: number): { root: string; project: string; servi
   const root = join(dir, 'sessions'); mkdirSync(root)
   const project = join(dir, 'project'); mkdirSync(project)
   const store = new JsonStateStore(join(dir, 'state.json'))
-  const service = new SessionService(store, null, maxSessionFiles, piSessionServiceOptions(root))
+  const service = new SessionService(store, maxSessionFiles, piSessionServiceOptions(root))
   return { root, project, service }
 }
 

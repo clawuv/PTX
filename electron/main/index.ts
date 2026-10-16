@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, Menu, nativeTheme, Notification, protocol, safeStorage, session, shell, webContents } from 'electron'
+import { app, BrowserWindow, dialog, Menu, nativeTheme, Notification, protocol, safeStorage, session, webContents } from 'electron'
 import type { BrowserWindowConstructorOptions, Input, WebContents } from 'electron'
 import { readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
@@ -10,7 +10,7 @@ import { BrowserDownloadGuard } from './browser-downloads'
 import { AgentCollaborationBridge } from './collaboration/agent-bridge'
 import { configurePtxAgentMessageSigning, loadOrCreatePtxAgentMessageKey } from './collaboration/message-envelope'
 import { assertNoMcpAuthenticationCommand } from '../../src/lib/mcp-policy'
-import { type ApplicationMenuCommand, type ApplicationMenuName, BROWSER_PARTITION, type AppMeta, type AppUpdateState, type HarnessId, type LocalePreference, type PrimeEventEnvelope, type ProviderAuthEvent, type RuntimeInfo, type ThemeMode } from '../../src/types/api'
+import { type ApplicationMenuCommand, type ApplicationMenuName, BROWSER_PARTITION, type AppMeta, type AppUpdateState, type HarnessId, type LocalePreference, type AgentEventEnvelope, type RuntimeInfo, type ThemeMode } from '../../src/types/api'
 import { AgentRpcManager, OMP_RPC_ADAPTER, PI_RPC_ADAPTER } from './agent-rpc'
 import { installApplicationMenu } from './application-menu'
 import { MacBackgroundController, shouldStartInBackground } from './background'
@@ -28,9 +28,7 @@ import { beginPluginDiscoveryShutdown, PluginService } from './plugins'
 import { beginProcessShutdown, runProcess, stopChildProcesses } from './process-utils'
 import { OmpModelCatalogService } from './providers-omp'
 import { PiModelCatalogService } from './providers-pi'
-import { PrimeProviderService } from './providers'
 import { ProjectService } from './projects'
-import { HeartbeatService } from './schedules/heartbeats'
 import { AutomationService } from './schedules/service'
 import { ScheduleRunNotifier } from './schedules/notifications'
 import { AgentScheduleBridge } from './schedules/agent-bridge'
@@ -50,12 +48,10 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'prime-work', privileges: { stan
 
 let mainWindow: BrowserWindow | null = null
 let ipc: IpcRegistration | null = null
-let agents: AgentRpcManager | null = null
 let ompAgents: AgentRpcManager | null = null
 let piAgents: AgentRpcManager | null = null
 let terminals: TerminalService | null = null
 let downloads: BrowserDownloadGuard | null = null
-let providerService: PrimeProviderService | null = null
 let updateService: UpdateService | null = null
 let store: JsonStateStore | null = null
 let automation: AutomationService | null = null
@@ -72,18 +68,17 @@ let trustedRendererUrl = ''
 let packagedSmokeMarkerFile: string | null = null
 let windowCreation: Promise<BrowserWindow | null> | null = null
 let startInBackground = false
-const keepTestWindowsHidden = process.env.PRIME_WORK_E2E_HIDE_WINDOWS === '1'
+const keepTestWindowsHidden = process.env.PTX_E2E_HIDE_WINDOWS === '1'
 
 installCrashGuards({
   logPath: () => {
     try { return join(app.getPath('userData'), 'crash.log') } catch { return null }
   },
   cleanup: async () => {
-    agents?.beginShutdown()
     ompAgents?.beginShutdown()
     piAgents?.beginShutdown()
     beginProcessShutdown()
-    await Promise.allSettled([agents?.stopAll() ?? Promise.resolve(), ompAgents?.stopAll() ?? Promise.resolve(), piAgents?.stopAll() ?? Promise.resolve(), stopChildProcesses()])
+    await Promise.allSettled([ompAgents?.stopAll() ?? Promise.resolve(), piAgents?.stopAll() ?? Promise.resolve(), stopChildProcesses()])
   },
 })
 
@@ -267,7 +262,7 @@ export async function confirmAppClose(window: BrowserWindow | null, prompt: Shut
 }
 
 function pendingShutdownPrompt(): ShutdownPrompt | null {
-  const runtimes = [...(agents?.list() ?? []), ...(ompAgents?.list() ?? []), ...(piAgents?.list() ?? [])]
+  const runtimes = [...(ompAgents?.list() ?? []), ...(piAgents?.list() ?? [])]
   return shutdownPrompt(activeShutdownWork(runtimes, automation?.hasActiveSchedules() ?? false), store?.getSettings().locale ?? 'system')
 }
 
@@ -288,7 +283,7 @@ function requestShutdown(window: BrowserWindow | null, prompt: ShutdownPrompt): 
 }
 
 export function interfaceZoomFactor(): number {
-  return (store?.getSettings().interfaceFontScale ?? 110) / 100
+  return (store?.getSettings().interfaceFontScale ?? 100) / 100
 }
 
 /**
@@ -316,8 +311,11 @@ export function mainWindowChromeOptions(platform: NodeJS.Platform = process.plat
     visualEffectState: 'active',
   }
   if (platform === 'win32') return {
-    // The replica draws its own min/max/close cells in the renderer title bar,
-    // so no native overlay buttons are layered on top of them.
+    // WS_THICKFRAME paints a visible border even when shadows and accents are off.
+    frame: false,
+    thickFrame: false,
+    hasShadow: false,
+    accentColor: false,
     titleBarStyle: 'hidden',
     autoHideMenuBar: true,
   }
@@ -385,7 +383,7 @@ let resolvedTheme: ResolvedTheme = 'light'
 export function syncTrafficLightVisibility(window: BrowserWindow | null, theme: ResolvedTheme, platform: NodeJS.Platform = process.platform): void {
   if (!window || window.isDestroyed()) return
   try {
-    window.setBackgroundColor(platform === 'darwin' ? '#00000000' : theme === 'dark' ? '#0f0f0f' : '#ffffff')
+    window.setBackgroundColor(platform === 'darwin' ? '#00000000' : theme === 'dark' ? '#181818' : '#ffffff')
     if (platform !== 'darwin') return
     window.setWindowButtonVisibility(true)
   } catch {
@@ -418,8 +416,8 @@ const windowControls = {
 async function createWindow(): Promise<BrowserWindow | null> {
   if (shutdownStarted) return null
   const window = new BrowserWindow({
-    width: 1440,
-    height: 920,
+    width: 960,
+    height: 640,
     minWidth: 960,
     minHeight: 640,
     show: false,
@@ -542,8 +540,8 @@ export interface CapabilityExtensionPaths {
 /**
  * Runtime environment for the extension-injected harnesses (OMP and pi, which
  * share pi's ancestral extension API): the capability-broker variables from
- * the schedule bridge and lazily enabled browser bridge minus the Prime-only
- * --skill paths, plus the three PRIME_WORK_*_EXTENSION_PATH variables the harness adapters turn
+ * the schedule bridge and lazily enabled browser bridge minus the unused
+ * --skill paths, plus the three PTX_*_EXTENSION_PATH variables the harness adapters turn
  * into --extension argv. Both harnesses must receive the identical surface.
  */
 export function extensionRuntimeEnvironment(
@@ -553,15 +551,15 @@ export function extensionRuntimeEnvironment(
   askUserEnabled = true,
   browserEnabled = true,
 ): NodeJS.ProcessEnv {
-  const { PRIME_WORK_SCHEDULE_SKILL_PATH: _scheduleSkill, ...scheduleEnvironment } = scheduleBridgeEnvironment
+  const { PTX_SCHEDULE_SKILL_PATH: _scheduleSkill, ...scheduleEnvironment } = scheduleBridgeEnvironment
   const browserEnvironment = browserEnabled ? browserBridgeEnvironment() : {}
-  const { PRIME_WORK_BROWSER_SKILL_PATH: _browserSkill, ...runtimeBrowserEnvironment } = browserEnvironment
+  const { PTX_BROWSER_SKILL_PATH: _browserSkill, ...runtimeBrowserEnvironment } = browserEnvironment
   return {
     ...scheduleEnvironment,
     ...runtimeBrowserEnvironment,
-    PRIME_WORK_SCHEDULE_EXTENSION_PATH: extensionPaths.schedule,
-    PRIME_WORK_BROWSER_EXTENSION_PATH: browserEnabled ? extensionPaths.browser : undefined,
-    PRIME_WORK_ASK_USER_EXTENSION_PATH: askUserEnabled ? extensionPaths.askUser : undefined,
+    PTX_SCHEDULE_EXTENSION_PATH: extensionPaths.schedule,
+    PTX_BROWSER_EXTENSION_PATH: browserEnabled ? extensionPaths.browser : undefined,
+    PTX_ASK_USER_EXTENSION_PATH: askUserEnabled ? extensionPaths.askUser : undefined,
     PTX_MANAGES_ASK_USER: '1',
   }
 }
@@ -639,73 +637,48 @@ async function bootstrap(): Promise<void> {
   const initialHarnesses = await discovery.refresh()
   await reconcileActiveHarness(stateStore, initialHarnesses)
   if (shutdownStarted) return
-  const primeExecutable = () => discovery.executable('prime')
   const ompExecutable = () => discovery.executable('omp')
   const piExecutable = () => discovery.executable('pi')
-  const sessions = new SessionService(stateStore, primeExecutable)
   // OMP has no live-CLI overlay (`omp list --json` does not exist), so the OMP
   // catalog is constructed with a null executable and JSONL-only metadata.
-  const ompSessions = new SessionService(stateStore, null, undefined, ompSessionServiceOptions())
+  const ompSessions = new SessionService(stateStore, undefined, ompSessionServiceOptions())
   // Pi likewise has no live-CLI overlay; its catalog is JSONL-only.
-  const piSessions = new SessionService(stateStore, null, undefined, piSessionServiceOptions())
-  const projects = new ProjectService(stateStore, () => mainWindow)
+  const piSessions = new SessionService(stateStore, undefined, piSessionServiceOptions())
   const ompProjects = new ProjectService(stateStore, () => mainWindow, 'omp')
   const piProjects = new ProjectService(stateStore, () => mainWindow, 'pi')
   // Git and terminals are harness-agnostic: a cwd (or bound session) is valid
-  // when any harness's own grants authorize it. Prime is consulted first so
-  // Prime-only setups keep their exact behavior and error text.
+  // when either harness's own grants authorize it.
   const authorizeEitherCwd = async (cwd: string): Promise<string> => {
-    try { return await projects.authorizeCwd(cwd) } catch (error) {
-      for (const fallback of [ompProjects, piProjects]) {
-        try { return await fallback.authorizeCwd(cwd) } catch { /* try the next harness; the Prime error is rethrown */ }
+    try { return await ompProjects.authorizeCwd(cwd) } catch (error) {
+      for (const fallback of [piProjects]) {
+        try { return await fallback.authorizeCwd(cwd) } catch { /* try the next harness; the first authorization error is rethrown */ }
       }
       throw error
     }
   }
   const authorizeEitherReadOnlyCwd = async (cwd: string): Promise<string> => {
-    try { return await projects.authorizeReadOnlyCwd(cwd) } catch (error) {
-      for (const fallback of [ompProjects, piProjects]) {
-        try { return await fallback.authorizeReadOnlyCwd(cwd) } catch { /* try the next harness; the Prime error is rethrown */ }
+    try { return await ompProjects.authorizeReadOnlyCwd(cwd) } catch (error) {
+      for (const fallback of [piProjects]) {
+        try { return await fallback.authorizeReadOnlyCwd(cwd) } catch { /* try the next harness; the first authorization error is rethrown */ }
       }
       throw error
     }
   }
   const requireEitherSessionPath = async (path: string): Promise<string> => {
-    try { return await sessions.requireSessionPath(path) } catch (error) {
-      for (const fallback of [ompSessions, piSessions]) {
-        try { return await fallback.requireSessionPath(path) } catch { /* try the next harness; the Prime error is rethrown */ }
+    try { return await ompSessions.requireSessionPath(path) } catch (error) {
+      for (const fallback of [piSessions]) {
+        try { return await fallback.requireSessionPath(path) } catch { /* try the next harness; the first authorization error is rethrown */ }
       }
       throw error
     }
   }
   const git = new GitService(authorizeEitherCwd, authorizeEitherReadOnlyCwd)
-  // This matches the renderer's startup query so both consumers share SessionService's coalesced catalog scan.
-  const listCatalogSessions = (): ReturnType<SessionService['list']> => sessions.list(undefined, true)
-
-  const providers = new PrimeProviderService({
-    openExternal: async (url) => { await shell.openExternal(url, { activate: true }) },
-  })
-  providerService = providers
-  const disabledProviders = () => new Set(stateStore.getSettings().disabledProviders)
-  const disabledModels = () => new Set(stateStore.getSettings().disabledModels)
   const ompDisabledProviders = () => new Set(stateStore.getSettings().ompDisabledProviders)
   const ompDisabledModels = () => new Set(stateStore.getSettings().ompDisabledModels)
   const piDisabledProviders = () => new Set(stateStore.getSettings().piDisabledProviders)
   const piDisabledModels = () => new Set(stateStore.getSettings().piDisabledModels)
   const ompCatalog = new OmpModelCatalogService(ompExecutable)
   const piCatalog = new PiModelCatalogService(piExecutable)
-  agents = new AgentRpcManager(
-    primeExecutable,
-    (cwd) => projects.authorizeCwd(cwd),
-    (path) => sessions.requireSessionPath(path),
-    providers,
-    disabledProviders,
-  )
-  agents.setDisabledModelsProvider(disabledModels)
-  // The OMP manager exists whether or not the omp CLI is installed; starting a
-  // runtime without it fails with the adapter's per-harness not-found error.
-  // OMP provider visibility is desktop-owned and independent from both Prime's
-  // provider policy and OMP's own CLI configuration.
   const ompManager = new AgentRpcManager(
     ompExecutable,
     (cwd) => ompProjects.authorizeCwd(cwd),
@@ -732,12 +705,6 @@ async function bootstrap(): Promise<void> {
   )
   piManager.setDisabledModelsProvider(piDisabledModels)
   piAgents = piManager
-  sessions.bindRuntimeHooks({
-    get: (path) => agents?.getForSession(path),
-    all: () => agents?.list() ?? [],
-    stop: async (path) => { await agents?.stopForSession(path) },
-    rename: async (path, title) => agents?.renameForSession(path, title) ?? false,
-  })
   ompSessions.bindRuntimeHooks({
     get: (path) => ompAgents?.getForSession(path),
     all: () => ompAgents?.list() ?? [],
@@ -755,14 +722,6 @@ async function bootstrap(): Promise<void> {
     () => stateStore.getSettings().terminalShell,
     requireEitherSessionPath,
   )
-  projects.bindProviders({
-    sessions: listCatalogSessions,
-    branch: (cwd) => git.branch(cwd),
-    stopProjectProcesses: async (roots) => {
-      plugins.evictProjects(roots)
-      await Promise.all([agents!.stopForProjectRoots(roots), terminals!.killForProjectRoots(roots)])
-    },
-  })
   ompProjects.bindProviders({
     sessions: () => ompSessions.list(undefined, true),
     branch: (cwd) => git.branch(cwd),
@@ -805,9 +764,9 @@ async function bootstrap(): Promise<void> {
       decrypt: (value) => safeStorage.decryptString(value),
     },
     settings: () => stateStore.getSettings(),
-    projects: { prime: projects, omp: ompProjects, pi: piProjects },
-    agents: { prime: agents, omp: ompManager, pi: piManager },
-    catalogs: { prime: providers, omp: ompCatalog, pi: piCatalog },
+    projects: { omp: ompProjects, pi: piProjects },
+    agents: { omp: ompManager, pi: piManager },
+    catalogs: { omp: ompCatalog, pi: piCatalog },
     runProcess,
   })
   const pets = new PetService({
@@ -817,11 +776,11 @@ async function bootstrap(): Promise<void> {
   const browserProfile = session.fromPartition(BROWSER_PARTITION)
   browserProfile.on('will-download', (event, item, owner) => downloads?.handle(event, item, owner, settings.get().browserAskForDownloads))
   const scheduleSkillPath = app.isPackaged
-    ? join(process.resourcesPath, 'skills', 'prime-work-schedules')
-    : join(app.getAppPath(), 'assets', 'skills', 'prime-work-schedules')
+    ? join(process.resourcesPath, 'skills', 'ptx-schedules')
+    : join(app.getAppPath(), 'assets', 'skills', 'ptx-schedules')
   const browserSkillPath = app.isPackaged
-    ? join(process.resourcesPath, 'skills', 'prime-work-browser')
-    : join(app.getAppPath(), 'assets', 'skills', 'prime-work-browser')
+    ? join(process.resourcesPath, 'skills', 'ptx-browser')
+    : join(app.getAppPath(), 'assets', 'skills', 'ptx-browser')
   const computerUseSkillPath = app.isPackaged
     ? join(process.resourcesPath, 'skills', 'ptx-computer-use', 'SKILL.md')
     : join(app.getAppPath(), 'assets', 'skills', 'ptx-computer-use', 'SKILL.md')
@@ -832,7 +791,6 @@ async function bootstrap(): Promise<void> {
   }
   const extensionPathFor = (harness: HarnessId, capability: ExtensionCapability): string =>
     resolveExtensionPath(extensionInjection(harness, capability).filename, extensionPathContext)
-  const primeBrowserExtensionPath = extensionPathFor('prime', 'browser')
   const ompBrowserExtensionPath = extensionPathFor('omp', 'browser')
   const ompScheduleExtensionPath = extensionPathFor('omp', 'schedule')
   const ompAskUserExtensionPath = extensionPathFor('omp', 'askUser')
@@ -848,21 +806,6 @@ async function bootstrap(): Promise<void> {
       availability: { available: status.available, detail: status.detail, actionUrl: status.available ? undefined : status.installUrl },
     }
   }
-  const plugins = new PluginService(primeExecutable, (path) => projects.authorizeProjectRoot(path), {
-    builtInSkills: async () => [{
-      id: 'prime-work-schedules', name: 'Scheduled tasks',
-      description: 'Create and manage durable project and thread schedules from an agent.',
-      kind: 'skill', location: 'system', path: scheduleSkillPath, enabled: true,
-    }, {
-      id: 'ptx-ask-user', name: 'Ask user',
-      description: 'Ask focused multiple-choice questions in the Ptx app across Prime, OMP, and Pi.',
-      kind: 'extension', location: 'system', path: ompAskUserExtensionPath, enabled: stateStore.getSettings().askUserEnabled,
-    }, {
-      id: 'prime-work-browser', name: 'Browser',
-      description: 'Drive the in-app browser for this thread: tabs, navigation, clicks, typing, and screenshots.',
-      kind: 'skill', location: 'system', path: browserSkillPath, enabled: stateStore.getSettings().browserEnabled,
-    }, await computerUseSkill(), ...providers.mcpCapabilities()],
-  })
   const ompPlugins = new PluginService(ompExecutable, (path) => ompProjects.authorizeProjectRoot(path), {
     harness: 'omp',
     builtInSkills: async () => [{
@@ -898,19 +841,9 @@ async function bootstrap(): Promise<void> {
     }, await computerUseSkill()],
   })
   const harnesses = createHarnessRuntimeMap({
-    prime: { projects, sessions, agents, catalog: providers, plugins },
     omp: { projects: ompProjects, sessions: ompSessions, agents: ompManager, catalog: ompCatalog, plugins: ompPlugins },
     pi: { projects: piProjects, sessions: piSessions, agents: piManager, catalog: piCatalog, plugins: piPlugins },
   })
-  const heartbeats = new HeartbeatService(agents, primeExecutable)
-  const primeScheduledRuns = new ScheduledRunExecutor(
-    projects,
-    sessions,
-    agents,
-    providers,
-    () => new Set(stateStore.getSettings().disabledProviders),
-    () => new Set(stateStore.getSettings().disabledModels),
-  )
   const ompScheduledRuns = new ScheduledRunExecutor(
     ompProjects,
     ompSessions,
@@ -927,7 +860,7 @@ async function bootstrap(): Promise<void> {
     () => new Set(stateStore.getSettings().piDisabledProviders),
     () => new Set(stateStore.getSettings().piDisabledModels),
   )
-  const scheduledRuns: Record<HarnessId, ScheduledRunExecutor> = { prime: primeScheduledRuns, omp: ompScheduledRuns, pi: piScheduledRuns }
+  const scheduledRuns: Record<HarnessId, ScheduledRunExecutor> = { omp: ompScheduledRuns, pi: piScheduledRuns }
   // Runs are asynchronous and outlive the create call, so locale is resolved
   // at display time and window access re-checks liveness and renderer trust.
   const scheduleRunNotifier = new ScheduleRunNotifier({
@@ -962,23 +895,6 @@ async function bootstrap(): Promise<void> {
   })
   automation = schedules
   await schedules.start()
-  const scheduleBridge = new AgentScheduleBridge({
-    service: schedules,
-    harness: 'prime',
-    skillPath: scheduleSkillPath,
-    resolveScope: async ({ cwd, sessionPath }) => {
-      const catalog = await projects.list()
-      const canonicalCwd = resolve(cwd)
-      const project = catalog.find((candidate) => !candidate.inferred && candidate.folders.some((folder) => {
-        const root = resolve(folder)
-        return canonicalCwd === root || canonicalCwd.startsWith(`${root}${process.platform === 'win32' ? '\\' : '/'}`)
-      }))
-      if (!project) throw new Error('The agent is not running in an explicitly granted Prime Work project')
-      if (!sessionPath) return { projectId: project.id }
-      const scheduledSession = (await sessions.list(undefined, true)).find((candidate) => resolve(candidate.filePath) === resolve(sessionPath))
-      return { projectId: project.id, sessionId: scheduledSession?.id }
-    },
-  })
   const ompScheduleBridge = new AgentScheduleBridge({
     service: schedules,
     harness: 'omp',
@@ -1020,29 +936,28 @@ async function bootstrap(): Promise<void> {
     },
   })
   agentBrowser = browserService
-  const browserBridge = new AgentBrowserBridge({ service: browserService, terminals, extensionPath: primeBrowserExtensionPath, skillPath: browserSkillPath })
+  const browserBridge = new AgentBrowserBridge({ service: browserService, terminals, extensionPath: ompBrowserExtensionPath, skillPath: browserSkillPath })
   const collaborationBridge = new AgentCollaborationBridge({
     extensionPath: collaborationExtensionPath,
-    sessions: { prime: sessions, omp: ompSessions, pi: piSessions },
-    agents: { prime: agents, omp: ompManager, pi: piManager },
-    catalogs: { prime: providers, omp: ompCatalog, pi: piCatalog },
-    disabledProviders: { prime: disabledProviders, omp: ompDisabledProviders, pi: piDisabledProviders },
-    disabledModels: { prime: disabledModels, omp: ompDisabledModels, pi: piDisabledModels },
+    sessions: { omp: ompSessions, pi: piSessions },
+    agents: { omp: ompManager, pi: piManager },
+    catalogs: { omp: ompCatalog, pi: piCatalog },
+    disabledProviders: { omp: ompDisabledProviders, pi: piDisabledProviders },
+    disabledModels: { omp: ompDisabledModels, pi: piDisabledModels },
   })
   await Promise.all([
-    scheduleBridge.start(),
     ompScheduleBridge.start(),
     piScheduleBridge.start(),
     browserBridge.start(),
     collaborationBridge.start(),
   ])
-  agentScheduleBridges = [scheduleBridge, ompScheduleBridge, piScheduleBridge]
+  agentScheduleBridges = [ompScheduleBridge, piScheduleBridge]
   agentBrowserBridge = browserBridge
   agentCollaborationBridge = collaborationBridge
   const revokeRuntimeCapabilities = (environment: NodeJS.ProcessEnv, runtimeScheduleBridge: AgentScheduleBridge): void => {
     const claims: Array<[string, { revoke(token: string | undefined): boolean }, string | undefined]> = [
-      ['schedule', runtimeScheduleBridge, environment.PRIME_WORK_SCHEDULE_TOKEN],
-      ['browser', browserBridge, environment.PRIME_WORK_BROWSER_TOKEN],
+      ['schedule', runtimeScheduleBridge, environment.PTX_SCHEDULE_TOKEN],
+      ['browser', browserBridge, environment.PTX_BROWSER_TOKEN],
       ['collaboration', collaborationBridge, environment.PTX_COLLABORATION_TOKEN],
     ]
     for (const [name, bridge, token] of claims) {
@@ -1051,20 +966,6 @@ async function bootstrap(): Promise<void> {
       }
     }
   }
-  agents.setRuntimeEnvironmentProvider((scope) => ({
-    ...scheduleBridge.environmentFor(scope),
-    ...(stateStore.getSettings().browserEnabled ? browserBridge.environmentFor(scope) : {}),
-    ...collaborationBridge.environmentFor({ ...scope, harness: 'prime' }),
-    PRIME_WORK_ASK_USER_EXTENSION_PATH: stateStore.getSettings().askUserEnabled && scope.interactive ? ompAskUserExtensionPath : undefined,
-    PTX_MANAGES_ASK_USER: '1',
-    PTX_CUA_DRIVER_PATH: stateStore.getSettings().computerUseEnabled ? cuaDriver.executable() ?? undefined : undefined,
-    PTX_COMPUTER_USE_SKILL_PATH: stateStore.getSettings().computerUseEnabled && cuaDriver.executable() ? computerUseSkillPath : undefined,
-  }))
-  agents.setRuntimeStartListener((environment, info) => {
-    browserBridge.bindSession(environment.PRIME_WORK_BROWSER_TOKEN, info.sessionFile)
-    collaborationBridge.bindSession(environment.PTX_COLLABORATION_TOKEN, info.sessionFile, info.runtimeId)
-  })
-  agents.setRuntimeEndListener((environment) => revokeRuntimeCapabilities(environment, scheduleBridge))
   // OMP runtimes get the same capability-scoped brokers through OMP-flavored
   // extensions. OMP has no --skill flag, so their tool descriptions carry the
   // app-specific usage guidance while OMP's own skills stay discovery-based.
@@ -1080,7 +981,7 @@ async function bootstrap(): Promise<void> {
     PTX_COMPUTER_USE_SKILL_PATH: stateStore.getSettings().computerUseEnabled && cuaDriver.executable() ? computerUseSkillPath : undefined,
   }))
   ompManager.setRuntimeStartListener((environment, info) => {
-    browserBridge.bindSession(environment.PRIME_WORK_BROWSER_TOKEN, info.sessionFile)
+    browserBridge.bindSession(environment.PTX_BROWSER_TOKEN, info.sessionFile)
     collaborationBridge.bindSession(environment.PTX_COLLABORATION_TOKEN, info.sessionFile, info.runtimeId)
   })
   ompManager.setRuntimeEndListener((environment) => revokeRuntimeCapabilities(environment, ompScheduleBridge))
@@ -1094,7 +995,7 @@ async function bootstrap(): Promise<void> {
     PTX_COMPUTER_USE_SKILL_PATH: stateStore.getSettings().computerUseEnabled && cuaDriver.executable() ? computerUseSkillPath : undefined,
   }))
   piManager.setRuntimeStartListener((environment, info) => {
-    browserBridge.bindSession(environment.PRIME_WORK_BROWSER_TOKEN, info.sessionFile)
+    browserBridge.bindSession(environment.PTX_BROWSER_TOKEN, info.sessionFile)
     collaborationBridge.bindSession(environment.PTX_COLLABORATION_TOKEN, info.sessionFile, info.runtimeId)
   })
   piManager.setRuntimeEndListener((environment) => revokeRuntimeCapabilities(environment, piScheduleBridge))
@@ -1105,7 +1006,6 @@ async function bootstrap(): Promise<void> {
     homeDir: homedir(),
     harnesses: initialHarnesses,
     harnessCapabilities: {
-      prime: HARNESSES.prime.capabilities,
       omp: HARNESSES.omp.capabilities,
       pi: HARNESSES.pi.capabilities,
     },
@@ -1120,13 +1020,13 @@ async function bootstrap(): Promise<void> {
   }
   trustedRendererUrl = resolveRendererUrl()
   ipc = registerIpc({
-    meta, refreshHarnesses, projects, sessions, agents, terminals, git, plugins, providers, settings, updates, cuaDriver, heartbeats, schedules, browser: browserService, voice, pets, harnesses,
+    meta, refreshHarnesses, terminals, git, settings, updates, cuaDriver, schedules, browser: browserService, voice, pets, harnesses,
     popupApplicationMenu, applyMenuCommand, setTitleBarTheme, windowControls,
     applyInterfaceZoom,
   }, trustedRendererUrl)
   // Both managers share the one renderer forwarding path: envelopes carry the
   // runtimeId and RuntimeInfo carries the harness, so the renderer can route.
-  const forwardAgentEvent = (envelope: PrimeEventEnvelope): void => {
+  const forwardAgentEvent = (envelope: AgentEventEnvelope): void => {
     const renderer = mainWindow?.webContents
     if (!shutdownStarted && renderer && !renderer.isDestroyed()
       && isTrustedRendererUrl(renderer.getURL(), trustedRendererUrl)
@@ -1134,17 +1034,8 @@ async function bootstrap(): Promise<void> {
       renderer.send('agent:event', envelope)
     }
   }
-  agents.setEventSink(forwardAgentEvent)
   ompManager.setEventSink(forwardAgentEvent)
   piManager.setEventSink(forwardAgentEvent)
-  providers.setEventSink((event: ProviderAuthEvent) => {
-    const renderer = mainWindow?.webContents
-    if (!shutdownStarted && renderer && !renderer.isDestroyed()
-      && isTrustedRendererUrl(renderer.getURL(), trustedRendererUrl)
-      && isTrustedRendererUrl(renderer.mainFrame.url, trustedRendererUrl)) {
-      renderer.send('providers:auth-event', event)
-    }
-  })
   updates.setEventSink((state: AppUpdateState) => {
     const renderer = mainWindow?.webContents
     if (!shutdownStarted && renderer && !renderer.isDestroyed()
@@ -1279,13 +1170,11 @@ app.on('before-quit', (event) => {
   registration?.dispose()
   backgroundMode?.dispose()
   updateService?.dispose()
-  agents?.beginShutdown()
   ompAgents?.beginShutdown()
   piAgents?.beginShutdown()
   beginProcessShutdown()
   beginPluginDiscoveryShutdown()
   downloads?.cancelAll()
-  providerService?.cancelAll()
   agentBrowser?.beginShutdown()
   void settleShutdown([
     ...agentScheduleBridges.map((bridge) => bridge.stop()),
@@ -1293,7 +1182,6 @@ app.on('before-quit', (event) => {
     agentCollaborationBridge?.stop() ?? Promise.resolve(),
     automation?.stop() ?? Promise.resolve(),
     terminals?.killAll() ?? Promise.resolve(),
-    agents?.stopAll() ?? Promise.resolve(),
     ompAgents?.stopAll() ?? Promise.resolve(),
     piAgents?.stopAll() ?? Promise.resolve(),
     stopChildProcesses(),

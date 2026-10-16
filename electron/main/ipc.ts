@@ -9,8 +9,6 @@ import { createNodeOpenWithDependencies, createOpenWithService, isOpenWithTarget
 import type { PetService } from './pets'
 import type { PluginService } from './plugins'
 import type { ProjectService } from './projects'
-import type { PrimeProviderService } from './providers'
-import type { HeartbeatService } from './schedules/heartbeats'
 import type { AutomationService } from './schedules/service'
 import type { SessionService } from './sessions'
 import type { SettingsService } from './settings-schedules'
@@ -34,42 +32,24 @@ interface Services {
     toggleMaximize(sender: WebContents): void
     close(sender: WebContents): void
   }
-  projects: ProjectService
-  sessions: SessionService
-  agents: AgentRpcManager
   terminals: TerminalService
   git: GitService
-  plugins: PluginService
-  providers: PrimeProviderService
   settings: SettingsService
   updates: UpdateService
   cuaDriver: CuaDriverService
-  heartbeats: HeartbeatService
   schedules: AutomationService
   browser: AgentBrowserService
   voice: VoiceService
   pets: PetService
   /** Complete harness-scoped service registry; every harness is always present. */
-  harnesses?: HarnessRuntimeMap
-  /** Transitional input shape for tests and embedders; normalized immediately at the boundary. */
-  omp?: LegacyHarnessServices
-  pi?: LegacyHarnessServices
+  harnesses: HarnessRuntimeMap
   /** Applies the persisted interface scale to every live app renderer. */
   applyInterfaceZoom?(scale: number): void
 }
 
-interface LegacyHarnessServices {
-  projects: ProjectService
-  sessions: SessionService
-  agents: AgentRpcManager
-  catalog: ModelCatalogProvider
-  plugins: PluginService
-}
-
-/** Strict enum gate for the untrusted optional harness argument; absence means 'prime'. */
 function requireHarness(value: unknown): HarnessId {
-  if (value === undefined) return 'prime'
-  if (value === 'prime' || value === 'omp' || value === 'pi') return value
+  if (value === undefined) return 'omp'
+  if (value === 'omp' || value === 'pi') return value
   throw new TypeError('Invalid harness')
 }
 
@@ -99,11 +79,6 @@ function requireResolvedTheme(value: unknown): Exclude<ThemeMode, 'system'> {
 }
 
 type IpcEvent = IpcMainInvokeEvent | IpcMainEvent
-
-function requireLegacyHarnessServices(value: LegacyHarnessServices | undefined, harness: HarnessId): LegacyHarnessServices {
-  if (!value) throw new TypeError(`Missing ${harness} harness services`)
-  return value
-}
 
 export function isTrustedRendererUrl(url: string, expectedRendererUrl: string): boolean {
   try {
@@ -175,18 +150,13 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
     eventChannels.push(channel)
   }
 
-  const harnesses: HarnessRuntimeMap = services.harnesses ?? {
-    prime: { id: 'prime', projects: services.projects, sessions: services.sessions, agents: services.agents, catalog: services.providers, plugins: services.plugins },
-    omp: { id: 'omp', ...requireLegacyHarnessServices(services.omp, 'omp') },
-    pi: { id: 'pi', ...requireLegacyHarnessServices(services.pi, 'pi') },
-  }
-
+  const harnesses = services.harnesses
   const projectsFor = (harness: HarnessId): ProjectService => harnesses[harness].projects
   const sessionsFor = (harness: HarnessId): SessionService => harnesses[harness].sessions
   const agentsFor = (harness: HarnessId): AgentRpcManager => harnesses[harness].agents
   const pluginsFor = (harness: HarnessId): PluginService => harnesses[harness].plugins
   // Runtime ids route by ownership; ids no manager owns fall through to the
-  // Prime manager so requireRuntime keeps its exact not-found semantics.
+  // OMP manager so requireRuntime keeps its exact not-found semantics.
   const agentsForRuntime = (runtimeId: unknown): AgentRpcManager => {
     if (typeof runtimeId === 'string') {
       for (const harness of ['omp', 'pi'] as const) {
@@ -194,38 +164,20 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
         if (manager.has(runtimeId)) return manager
       }
     }
-    return services.agents
+    return harnesses.omp.agents
   }
   /**
    * Routes a session file to the harness whose validated session root contains
    * it, using each service's own canonicalizing path authorization (never
-   * substring checks). Paths no root accepts rethrow the Prime error, so
-   * rejection shape and text are unchanged.
+   * substring checks). Paths outside both roots are rejected.
    */
   const sessionsForPath = async (filePath: unknown): Promise<{ harness: HarnessId; service: SessionService }> => {
-    try {
-      await services.sessions.requireSessionPath(filePath)
-      return { harness: 'prime', service: services.sessions }
-    } catch (primeError) {
-      for (const harness of ['omp', 'pi'] as const) {
-        try {
-          await harnesses[harness].sessions.requireSessionPath(filePath)
-        } catch {
-          continue
-        }
-        return { harness, service: harnesses[harness].sessions }
-      }
-      throw primeError
+    for (const harness of ['omp', 'pi'] as const) {
+      try { await harnesses[harness].sessions.requireSessionPath(filePath) }
+      catch { continue }
+      return { harness, service: harnesses[harness].sessions }
     }
-  }
-  /** OMP and pi credentials stay CLI-owned; desktop-only visibility is routed separately below. */
-  const cliOwnedProviderAuth: Partial<Record<HarnessId, string>> = {
-    omp: 'OMP provider authentication is managed by the omp CLI',
-    pi: 'Pi provider authentication is managed by the pi CLI',
-  }
-  const requirePrimeProviderAuth = (harness: unknown): void => {
-    const rejection = cliOwnedProviderAuth[requireHarness(harness)]
-    if (rejection) throw new Error(rejection)
+    throw new Error('Session path is not authorized')
   }
 
   handle('app:get-meta', () => {
@@ -258,9 +210,6 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
   /** The read-only reveal grant: project folders, session files, and plugin paths across every harness. */
   const authorizeForReveal = async (requested: string): Promise<string | null> => {
     const authorizations: Array<() => Promise<string> | string> = [
-      () => services.projects.authorizePath(requested),
-      () => services.sessions.requireSessionPath(requested),
-      () => services.plugins.authorizeReveal(requested),
       () => harnesses.omp.projects.authorizePath(requested),
       () => harnesses.omp.sessions.requireSessionPath(requested),
       () => harnesses.omp.plugins.authorizeReveal(requested),
@@ -352,13 +301,6 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
 
   handle('sessions:list', (_event, projectPath, includeArchived, harness, force) => sessionsFor(requireHarness(harness)).list(projectPath, includeArchived, force))
   handle('sessions:read', async (_event, filePath) => (await sessionsForPath(filePath)).service.read(filePath))
-  handle('sessions:follow-up', async (_event, filePath, message, intent) => {
-    const routed = await sessionsForPath(filePath)
-    // Daemon-socket follow-up is Prime-only; an OMP or pi session answers
-    // exactly like an inactive Prime session instead of a new error shape.
-    if (routed.harness !== 'prime') return false
-    return routed.service.followUp(filePath, message, intent)
-  })
   handle('sessions:rename', async (_event, filePath, title) => (await sessionsForPath(filePath)).service.rename(filePath, title))
   handle('sessions:archive', async (_event, filePath, archived) => {
     const routed = await sessionsForPath(filePath)
@@ -382,28 +324,16 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
   handle('agent:stop', (_event, runtimeId) => agentsForRuntime(runtimeId).stop(runtimeId))
   handle('agent:list', () => Object.values(harnesses).flatMap((runtime) => runtime.agents.list()))
 
-  const providerCatalog = (force = false) => services.providers.catalog(force, new Set(services.settings.get().disabledProviders), new Set(services.settings.get().disabledModels))
   const ompProviderCatalog = (force = false) => harnesses.omp.catalog.catalog(force, new Set(services.settings.get().ompDisabledProviders), new Set(services.settings.get().ompDisabledModels))
   const piProviderCatalog = (force = false) => harnesses.pi.catalog.catalog(force, new Set(services.settings.get().piDisabledProviders), new Set(services.settings.get().piDisabledModels))
   const providerCatalogs: Record<HarnessId, (force?: boolean) => ReturnType<ModelCatalogProvider['catalog']>> = {
-    prime: providerCatalog,
     omp: ompProviderCatalog,
     pi: piProviderCatalog,
   }
   /** Desktop-owned provider/model visibility settings keys per harness. */
-  const disabledProvidersKeys = { prime: 'disabledProviders', omp: 'ompDisabledProviders', pi: 'piDisabledProviders' } as const
-  const disabledModelsKeys = { prime: 'disabledModels', omp: 'ompDisabledModels', pi: 'piDisabledModels' } as const
+  const disabledProvidersKeys = { omp: 'ompDisabledProviders', pi: 'piDisabledProviders' } as const
+  const disabledModelsKeys = { omp: 'ompDisabledModels', pi: 'piDisabledModels' } as const
   handle('providers:catalog', (_event, force, harness) => providerCatalogs[requireHarness(harness)](force === true))
-  handle('providers:save-api-key', async (_event, providerId, apiKey, harness) => {
-    requirePrimeProviderAuth(harness)
-    await services.providers.saveApiKey(providerId, apiKey)
-    return providerCatalog(true)
-  })
-  handle('providers:logout', async (_event, providerId, harness) => {
-    requirePrimeProviderAuth(harness)
-    await services.providers.logout(providerId)
-    return providerCatalog(true)
-  })
   handle('providers:set-enabled', async (_event, providerId, enabled, harness) => {
     const target = requireHarness(harness)
     const id = requireString(providerId, 'providerId', { min: 1, max: 128, trim: true })
@@ -469,13 +399,6 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
     })
     return providerCatalogs[target]()
   })
-  handle('providers:start-oauth', (_event, providerId, harness) => {
-    requirePrimeProviderAuth(harness)
-    return services.providers.startOAuth(providerId)
-  })
-  handle('providers:respond-oauth', (_event, flowId, promptId, value) => services.providers.respondOAuth(flowId, promptId, value))
-  handle('providers:cancel-oauth', (_event, flowId) => services.providers.cancelOAuth(flowId))
-
   handle('voice:credential-status', () => services.voice.credentialStatus())
   handle('voice:save-api-key', (_event, provider, apiKey) => services.voice.saveApiKey(provider, apiKey))
   handle('voice:delete-api-key', (_event, provider) => services.voice.deleteApiKey(provider))
@@ -519,9 +442,7 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
     const settings = await services.settings.update(patch)
     if (settings.interfaceFontScale !== previous.interfaceFontScale) services.applyInterfaceZoom?.(settings.interfaceFontScale)
     if (settings.askUserEnabled !== previous.askUserEnabled || settings.browserEnabled !== previous.browserEnabled || settings.computerUseEnabled !== previous.computerUseEnabled) {
-      const managers = services.harnesses
-        ? Object.values(harnesses).map((runtime) => runtime.agents)
-        : [services.agents, services.omp?.agents, services.pi?.agents]
+      const managers = Object.values(harnesses).map((runtime) => runtime.agents)
       await Promise.all(managers.map((manager) => (
         manager && typeof manager.requestRuntimeEnvironmentRefresh === 'function'
           ? manager.requestRuntimeEnvironmentRefresh()
@@ -538,9 +459,6 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
   handle('browser:close-tab', (_event, tabId) => services.browser.closeTab(tabId))
   handle('browser:set-preview-context', (_event, webContentsId, sessionFile) => services.browser.setPreviewContext(webContentsId, sessionFile))
   handle('browser:navigate-tab', (_event, tabId, action, url) => services.browser.navigateTab(tabId, action, url))
-
-  handle('heartbeats:list', () => services.heartbeats.list())
-  handle('heartbeats:manage', (_event, id, action) => services.heartbeats.manage(id, action))
 
   handle('schedules:list', (_event, harness) => services.schedules.list(requireHarness(harness)))
   handle('schedules:get', (_event, id) => services.schedules.get(id))
@@ -561,7 +479,6 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
       if (isTrustedRendererUrl(contents.getURL(), expectedRendererUrl) && isTrustedRendererUrl(contents.mainFrame.url, expectedRendererUrl)) contents.send('sessions:changed', change)
     }
   }
-  const unsubscribeSessionChanges = services.sessions.onDidChange(forwardSessionChange)
   const unsubscribeOmpSessionChanges = harnesses.omp.sessions.onDidChange(forwardSessionChange)
   const unsubscribePiSessionChanges = harnesses.pi.sessions.onDidChange(forwardSessionChange)
   const scheduleSubscription = services.schedules.onDidChange((change) => {
@@ -619,7 +536,6 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
       closed = true
       if (activeIpcRegistration === registration) activeIpcRegistration = null
       authorized.clear()
-      unsubscribeSessionChanges()
       unsubscribeOmpSessionChanges()
       unsubscribePiSessionChanges()
       if (typeof unsubscribeScheduleChanges === 'function') unsubscribeScheduleChanges()

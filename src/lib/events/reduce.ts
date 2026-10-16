@@ -3,7 +3,7 @@ import { applyCompactionEvent, isCompactionEvent } from './compaction'
 import { nextTranscriptId, withPartId } from './ids'
 import { agentMessagePart, record, resultText, string } from './parse'
 
-export interface PrimeEventReplayStats {
+export interface AgentEventReplayStats {
   messageScans: number
   eventScans: number
   partScans: number
@@ -38,7 +38,7 @@ function effectiveToolId(id: string | undefined, name: string): string {
 export const EMPTY_TURN_FALLBACK = 'Completed without a text response.'
 export const STEER_READ_SINGLE = 'Steer read here'
 export const STEER_READ_SUFFIX = ' steers read here'
-export const PRIME_ERROR_FALLBACK = 'Prime encountered an error.'
+export const AGENT_ERROR_FALLBACK = 'The agent encountered an error.'
 export const RUNTIME_EXIT_PATTERN = /^The agent stopped unexpectedly \((.+)\)\. Send the message again to restart it\.$/
 export const EXIT_CODE_PREFIX = 'exit code '
 export const UNKNOWN_EXIT_REASON = 'an unknown error'
@@ -56,10 +56,10 @@ export function createSteerPickupEvent(prompts: QueuedPrompt[]): Record<string, 
   return { type: 'ptx_steer_pickup', prompts, [LOCAL_STEER_PICKUP]: true }
 }
 
-export function replayPrimeEvents(
+export function replayAgentEvents(
   messages: TranscriptMessage[],
   events: Record<string, unknown>[],
-  stats?: PrimeEventReplayStats,
+  stats?: AgentEventReplayStats,
 ): TranscriptMessage[] {
   if (!events.length) return messages
   let base = messages
@@ -338,7 +338,7 @@ export function replayPrimeEvents(
       continue
     }
     if (type === 'extension_error' || type === 'error' || type === 'transport_error') {
-      const text = string(raw.error) ?? string(raw.message) ?? PRIME_ERROR_FALLBACK
+      const text = string(raw.error) ?? string(raw.message) ?? AGENT_ERROR_FALLBACK
       finalizeStreaming(Date.now(), false)
       if (next.at(-1)?.role === 'system') continue
       copyTranscript()
@@ -350,7 +350,7 @@ export function replayPrimeEvents(
       if (raw.expected === true || next.at(-1)?.role === 'system') continue
       const reason = raw.code !== null && raw.code !== undefined ? `${EXIT_CODE_PREFIX}${String(raw.code)}` : string(raw.signal) ?? UNKNOWN_EXIT_REASON
       copyTranscript()
-      // Harness-neutral: this reducer serves both Prime Agent and OMP events.
+      // Harness-neutral: this reducer serves both Pi and OMP events.
       next.push({ id: nextTranscriptId('error'), role: 'system', timestamp: Date.now(), parts: [withPartId({ type: 'text', text: `The agent stopped unexpectedly (${reason}). Send the message again to restart it.` })] })
     }
   }
@@ -359,18 +359,18 @@ export function replayPrimeEvents(
   return next
 }
 
-export interface PrimeEventBuffer {
+export interface AgentEventBuffer {
   readonly size: number
   push(event: Record<string, unknown>): void
   replay(messages: TranscriptMessage[]): TranscriptMessage[]
 }
 
-export function createPrimeEventBuffer(): PrimeEventBuffer {
+export function createAgentEventBuffer(): AgentEventBuffer {
   const events: Record<string, unknown>[] = []
   return {
     get size() { return events.length },
     push(event) { events.push(event) },
-    replay(messages) { return replayPrimeEvents(messages, events) },
+    replay(messages) { return replayAgentEvents(messages, events) },
   }
 }
 
@@ -378,6 +378,6 @@ export function createPrimeEventBuffer(): PrimeEventBuffer {
  * Sequential application is a batch of one: there is exactly one reducer, so
  * single-event and batched replay cannot diverge for any event type.
  */
-export function applyPrimeEvent(messages: TranscriptMessage[], raw: Record<string, unknown>): TranscriptMessage[] {
-  return replayPrimeEvents(messages, [raw])
+export function applyAgentEvent(messages: TranscriptMessage[], raw: Record<string, unknown>): TranscriptMessage[] {
+  return replayAgentEvents(messages, [raw])
 }

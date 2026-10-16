@@ -46,7 +46,7 @@ export function timestampFromBucketedSessionName(name: string): number | undefin
 /**
  * Catalog IO that recurses exactly one bucket-directory level under a session
  * root. Discovered entries carry bucket-relative names so the shared catalog
- * joins, stats, canonicalizes, caches, and bounds them exactly like flat Prime
+ * joins, stats, canonicalizes, caches, and bounds them exactly like flat
  * entries.
  */
 export function createBucketedCatalogIo(): SessionCatalogIo {

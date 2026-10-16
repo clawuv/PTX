@@ -8,7 +8,7 @@ import { streamingBehaviorForIntent } from '../../src/lib/session-actions'
 import type {
   AppSettings,
   HarnessId,
-  PrimeModelDescriptor,
+  AgentModelDescriptor,
   ProjectRecord,
   VoiceCredentialProvider,
   VoiceCredentialStorageStatus,
@@ -110,7 +110,7 @@ function silentWav(): Uint8Array {
 }
 
 function harnessId(value: unknown): HarnessId {
-  if (value !== 'prime' && value !== 'omp' && value !== 'pi') throw new TypeError('Invalid voice harness')
+  if (value !== 'omp' && value !== 'pi') throw new TypeError('Invalid voice harness')
   return value
 }
 
@@ -272,7 +272,7 @@ class VoiceSecretStore {
 function orchestrationInstructions(harness: HarnessId): string {
   const harnessName = HARNESSES[harness].agentName
   return [
-    'You are the voice orchestrator inside Ptx, a desktop client for the Prime Agent, OMP, and Pi harnesses.',
+    'You are the voice orchestrator inside Ptx, a desktop client for the OMP and Pi harnesses.',
     `This voice session is locked to the currently selected ${harnessName} harness. Never switch harnesses.`,
     'Be concise and conversational. Answer general questions directly.',
     'Use get_local_context for the local date, time, time zone, approximate location, locale, or selected harness. Use search_web for current information. Use list_projects to resolve a project within the selected harness. Use list_models to resolve a requested model and its supported reasoning levels.',
@@ -284,7 +284,7 @@ function orchestrationInstructions(harness: HarnessId): string {
     'If the user does not request a model or reasoning level, omit those fields so the selected harness uses its defaults.',
     'Treat session creation, project selection, and harness selection as orchestration instructions for you, not as part of the delegated prompt.',
     'Rewrite the start_task prompt as a clean, self-contained task containing only the actual goal, useful constraints, and requested output. Do not include phrases such as start a session, create a thread, ask the agent, you are an agent, or working inside the project. Do not add generic process advice the user did not request.',
-    'Example: "Start a new session in the Prime project workspace. Ask what the next logical feature to add should be" becomes the task prompt "Determine the next logical feature to add to this project and explain why."',
+    'Example: "Start a new session in the project workspace. Ask what the next logical feature to add should be" becomes the task prompt "Determine the next logical feature to add to this project and explain why."',
     'When the user asks to start work, you must call start_task. Never say a task started unless start_task returned started true.',
     'After starting a task, say which project and harness received it.',
   ].join(' ')
@@ -474,7 +474,6 @@ export class VoiceService {
   private disabledProviders(harness: HarnessId): ReadonlySet<string> {
     const settings = this.options.settings()
     const disabled: Record<HarnessId, string[]> = {
-      prime: settings.disabledProviders,
       omp: settings.ompDisabledProviders,
       pi: settings.piDisabledProviders,
     }
@@ -484,14 +483,13 @@ export class VoiceService {
   private disabledModels(harness: HarnessId): ReadonlySet<string> {
     const settings = this.options.settings()
     const disabled: Record<HarnessId, string[]> = {
-      prime: settings.disabledModels,
       omp: settings.ompDisabledModels,
       pi: settings.piDisabledModels,
     }
     return new Set(disabled[harness])
   }
 
-  private async availableModels(harness: HarnessId): Promise<PrimeModelDescriptor[]> {
+  private async availableModels(harness: HarnessId): Promise<AgentModelDescriptor[]> {
     return availableModels(this.options.catalogs[harness], this.disabledProviders(harness), this.disabledModels(harness))
   }
 

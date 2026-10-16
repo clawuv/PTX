@@ -1,5 +1,7 @@
 # Pi (pi.dev) integration design
 
+> Current support: Pi and OMP only. Prime runtime, libraries, authentication, daemon and native heartbeats have been removed. Historical comparisons below describe the original integration design, not a supported third harness. See [Prime removal](prime-removal.md).
+
 This document is the working spec for adding base Pi (`pi`, [pi.dev](https://pi.dev/), the pi-mono coding agent both Prime Agent and OMP descend from) as a third agent harness alongside Prime Agent and OMP. It follows the architecture established by `docs/omp-integration.md`: the shared transport, event, and UI machinery is reused wherever the protocols agree, and a per-harness adapter covers what differs. Read that document first; this one records only pi-specific facts and decisions.
 
 ## Product behavior

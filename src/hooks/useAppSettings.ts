@@ -5,10 +5,10 @@ import {
   PANEL_SETTING_KEYS,
   type PanelSettingKey,
 } from '@/lib/settings-state'
-import type { AppSettings, InspectorTab, PrimeWorkApi } from '@/types/api'
+import type { AppSettings, InspectorTab, PtxApi } from '@/types/api'
 
 interface UseAppSettingsOptions {
-  bridge: PrimeWorkApi | null
+  bridge: PtxApi | null
   reportError(error: unknown): void
 }
 

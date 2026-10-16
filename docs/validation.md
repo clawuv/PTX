@@ -102,7 +102,7 @@ Packaging is native: run each platform command on its matching operating system 
 
 ## Dependency audit policy
 
-The [dependency-audit workflow](../.github/workflows/audit.yml) runs weekly and on manual dispatch. It uses the repository toolchain and executes `npm run audit:production` against the production dependency graph. This scheduled job supplies advisory coverage for vendored package forms that Dependabot cannot parse.
+The [dependency-audit workflow](../.github/workflows/audit.yml) runs weekly and on manual dispatch. It uses the repository toolchain and executes `npm run audit:production` against the production dependency graph. This scheduled job detects newly disclosed production dependency advisories after a merge.
 
 Ordinary PR CI validates the exception file and its expiry rules, but it does not replace the live registry-backed audit. Use the scheduled or manually dispatched audit workflow when making a current dependency-advisory claim.
 

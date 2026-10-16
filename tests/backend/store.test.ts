@@ -107,7 +107,7 @@ describe('JsonStateStore', () => {
 
     settings.interfaceFontScale = 100 as typeof settings.interfaceFontScale
     writeFileSync(path, JSON.stringify({ version: 3, projects: [], settings, archivedSessions: [], dismissedProjectPaths: [], schedules: [] }))
-    expect(new JsonStateStore(path).snapshot().settings.interfaceFontScale).toBe(110)
+    expect(new JsonStateStore(path).snapshot().settings.interfaceFontScale).toBe(100)
   })
 
   it('stops update admission and drains a write when shutdown starts immediately', async () => {
@@ -355,7 +355,7 @@ describe('JsonStateStore', () => {
     expect(store.getArchivedSessions()).toEqual(['/sessions/kept.jsonl'])
   })
 
-  it('migrates version 2 state: projects gain the prime harness and settings gain harness defaults', () => {
+  it('preserves retired version 2 state without granting its projects to a different harness', () => {
     const dir = makeDirectory()
     const path = join(dir, 'state.json')
     const { activeHarness: _activeHarness, ompApprovalMode: _ompApprovalMode, ...legacySettings } = defaultSettings()
@@ -369,8 +369,8 @@ describe('JsonStateStore', () => {
     }))
     const state = new JsonStateStore(path).snapshot()
     expect(state.version).toBe(4)
-    expect(state.projects.map((project) => project.harness)).toEqual(['prime'])
-    expect(state.settings.activeHarness).toBe('prime')
+    expect(state.projects).toEqual([])
+    expect(state.settings.activeHarness).toBe('omp')
     expect(state.settings.ompApprovalMode).toBe('inherit')
     expect(state.settings.askUserEnabled).toBe(false)
   })
@@ -402,7 +402,7 @@ describe('JsonStateStore', () => {
       dismissedProjectPaths: [],
       schedules: [],
     }))
-    expect(new JsonStateStore(path).snapshot().settings.activeHarness).toBe('prime')
+    expect(new JsonStateStore(path).snapshot().settings.activeHarness).toBe('omp')
 
     writeFileSync(path, JSON.stringify({
       version: 3,
@@ -813,7 +813,7 @@ describe('JsonStateStore', () => {
       schedules: [],
     }))
     const state = new JsonStateStore(path).snapshot()
-    expect(state.settings.runtimePaths).toEqual({ prime: '/opt/prime-agent', omp: '', pi: '' })
+    expect(state.settings.runtimePaths).toEqual({ omp: '', pi: '' })
     expect(state.settings.enabledHarnesses).toEqual(['pi'])
     expect(state.settings.activeHarness).toBe('omp')
   })
@@ -861,7 +861,7 @@ describe('JsonStateStore', () => {
     const transcript = join(sessionRoot, 'session.jsonl')
     writeFileSync(transcript, '{"type":"session"}\n')
     const store = new JsonStateStore(join(dir, 'state.json'))
-    const sessions = new SessionService(store, null)
+    const sessions = new SessionService(store)
     Object.defineProperty(sessions, 'sessionRoot', { value: sessionRoot })
     await sessions.archive(transcript, true)
     expect(store.snapshot().archivedSessions).toContain(realpathSync(transcript))

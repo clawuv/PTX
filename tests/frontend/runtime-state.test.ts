@@ -10,7 +10,7 @@ import type { ProjectRecord, RuntimeInfo, SessionRecord } from '../../src/types/
 
 const project = (id: string, folders: string[], pinned = false): ProjectRecord => ({
   id,
-  harness: 'prime',
+  harness: 'omp',
   name: id,
   path: folders[0],
   folders,
@@ -23,7 +23,7 @@ const project = (id: string, folders: string[], pinned = false): ProjectRecord =
 
 const session = (id: string, projectPath: string, filePath: string): SessionRecord => ({
   id,
-  harness: 'prime',
+  harness: 'omp',
   projectPath,
   filePath,
   title: id,
@@ -35,7 +35,7 @@ const session = (id: string, projectPath: string, filePath: string): SessionReco
 
 const runtime = (runtimeId: string, cwd: string, sessionFile: string, isStreaming = false): RuntimeInfo => ({
   runtimeId,
-  harness: 'prime',
+  harness: 'omp',
   cwd,
   sessionFile,
   isStreaming,

@@ -120,7 +120,7 @@ function fixture(count: number, maxSessionFiles = count) {
     return metadataFor(filePath, state.version)
   })
   const io: SessionCatalogIo = { readDirectory: entries, canonicalize, inspect, inspectLink }
-  const catalog = new SessionMetadataCatalog(() => root, null, maxSessionFiles, readMetadata, io)
+  const catalog = new SessionMetadataCatalog(() => root, maxSessionFiles, readMetadata, io)
   return { catalog, files, entries, canonicalize, inspect, inspectLink, readMetadata }
 }
 
@@ -247,7 +247,7 @@ describe('SessionMetadataCatalog known-file reconciliation', () => {
     await forced.catalog.all()
     Object.assign(forced.files.get(sessionName(0))!, { mtimeMs: 2, size: 110, version: 1 })
     await expect(forced.catalog.reconcileKnownChanges([sessionName(0)])).resolves.toMatchObject({ kind: 'reconciled' })
-    forced.catalog.invalidateLiveCatalog()
+    forced.catalog.invalidate()
     await forced.catalog.all()
     expect(forced.entries).toHaveBeenCalledTimes(2)
   })
@@ -310,7 +310,6 @@ describe('SessionMetadataCatalog known-file reconciliation', () => {
     }
     const catalog = new SessionMetadataCatalog(
       () => '/watch',
-      null,
       1,
       async (filePath) => metadataFor(filePath, 0),
       io,
@@ -370,7 +369,6 @@ describe('SessionMetadataCatalog known-file reconciliation', () => {
     }
     const catalog = new SessionMetadataCatalog(
       () => watchedRoot,
-      null,
       1,
       async (filePath) => metadataFor(filePath, readFileSync(filePath, 'utf8').length),
       io,
@@ -420,7 +418,7 @@ describe('SessionMetadataCatalog known-file reconciliation', () => {
       }
       return { ...metadataFor(filePath, 2), id: 'rescanned-fresh' }
     })
-    const catalog = new SessionMetadataCatalog(() => watchedRoot, null, 1, readMetadata, io)
+    const catalog = new SessionMetadataCatalog(() => watchedRoot, 1, readMetadata, io)
     await expect(catalog.all()).resolves.toMatchObject([{ id: 'baseline' }])
 
     appendFileSync(originalFile, '-changed')
@@ -471,7 +469,7 @@ describe('SessionMetadataCatalog known-file reconciliation', () => {
       }
       return { ...metadataFor(path, capturedLength), id: `content-v${capturedLength}` }
     })
-    const catalog = new SessionMetadataCatalog(() => watchedRoot, null, 1, readMetadata, io)
+    const catalog = new SessionMetadataCatalog(() => watchedRoot, 1, readMetadata, io)
     await expect(catalog.all()).resolves.toMatchObject([{ id: 'content-v8' }])
 
     appendFileSync(filePath, '-changed')

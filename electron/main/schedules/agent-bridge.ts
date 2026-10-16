@@ -27,9 +27,9 @@ export class AgentScheduleBridge extends CapabilityBridge {
 
   protected environmentEntries(url: string, token: string): NodeJS.ProcessEnv {
     return {
-      PRIME_WORK_SCHEDULE_URL: url,
-      PRIME_WORK_SCHEDULE_TOKEN: token,
-      PRIME_WORK_SCHEDULE_SKILL_PATH: this.options.skillPath,
+      PTX_SCHEDULE_URL: url,
+      PTX_SCHEDULE_TOKEN: token,
+      PTX_SCHEDULE_SKILL_PATH: this.options.skillPath,
     }
   }
 

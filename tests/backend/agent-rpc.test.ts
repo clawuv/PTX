@@ -1,3 +1,4 @@
+import '../helpers/node-script-fixtures'
 import type { ChildProcessWithoutNullStreams } from 'node:child_process'
 import { EventEmitter } from 'node:events'
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -5,13 +6,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { PassThrough } from 'node:stream'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { AgentRpcManager, OMP_RPC_ADAPTER, PI_RPC_ADAPTER, PRIME_RPC_ADAPTER } from '../../electron/main/agent-rpc'
+import { AgentRpcManager, OMP_RPC_ADAPTER, PI_RPC_ADAPTER } from '../../electron/main/agent-rpc'
 import { validateRpcCommand } from '../../electron/main/agent-rpc/command-schema'
 import { MAX_RPC_WRITE_FRAME_BYTES, rpcRequestFrameBytes } from '../../electron/main/agent-rpc/limits'
 import { RpcRuntime } from '../../electron/main/agent-rpc/runtime'
 import { FramedRpcTransport } from '../../electron/main/agent-rpc/transport'
 import type { RpcObject } from '../../electron/main/agent-rpc/types'
-import { PrimeProviderService } from '../../electron/main/providers'
+import type { ProviderCatalog } from '../../electron/main/agent-rpc'
 import type { RuntimeInfo } from '../../src/types/api'
 import { waitUntil } from '../helpers/wait'
 
@@ -87,7 +88,6 @@ describe('agent RPC command frame bounds', () => {
   })
 
   it.each([
-    ['prime', PRIME_RPC_ADAPTER, '/mcp login notion'],
     ['omp', OMP_RPC_ADAPTER, '/mcp reauth docs'],
     ['pi', PI_RPC_ADAPTER, '/mcp-auth files'],
   ] as const)('rejects forged %s auth commands for every main-process delivery mode', async (harness, adapter, message) => {
@@ -105,7 +105,6 @@ describe('agent RPC command frame bounds', () => {
         { type: 'prompt', message, images: [{ type: 'image', data: png, mimeType: 'image/png' }] },
         { type: 'steer', message },
         { type: 'follow_up', message },
-        { type: 'set_heartbeat', schedule: '0 * * * *', prompt: message },
       ]) {
         await expect(manager.command('runtime-auth-policy', command)).rejects.toThrow('Network MCP authentication is managed outside Ptx')
       }
@@ -118,7 +117,6 @@ describe('agent RPC command frame bounds', () => {
 
 describe('agent RPC prompt admission capabilities', () => {
   it.each([
-    ['prime', PRIME_RPC_ADAPTER, true],
     ['omp', OMP_RPC_ADAPTER, false],
     ['pi', PI_RPC_ADAPTER, false],
   ] as const)('keeps or strips streamingBehavior for %s at the wire seam', async (harness, adapter, accepts) => {
@@ -175,9 +173,9 @@ describe('agent RPC responses', () => {
     const manager = new AgentRpcManager(() => executable, async (cwd) => cwd, async (path) => path)
     managers.push(manager)
 
-    await expect(manager.start({ cwd: fake.cwd })).rejects.toThrow('Prime Agent executable was not found')
+    await expect(manager.start({ cwd: fake.cwd })).rejects.toThrow('Pi executable was not found')
     executable = fake.executable
-    await expect(manager.start({ cwd: fake.cwd })).resolves.toMatchObject({ harness: 'prime', cwd: fake.cwd })
+    await expect(manager.start({ cwd: fake.cwd })).resolves.toMatchObject({ harness: 'pi', cwd: fake.cwd })
   })
 
   it('hydrates and refreshes authoritative context-window usage', async () => {
@@ -450,7 +448,7 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
   it('releases a minted environment when admission fails before a runtime exists', async () => {
     const fake = fakeAgent("{ id: command.id, type: 'response', command: 'prompt', success: true }")
     const manager = managerFor(fake.executable)
-    const environment = { PRIME_WORK_BROWSER_TOKEN: 'never-spawned-token' }
+    const environment = { PTX_BROWSER_TOKEN: 'never-spawned-token' }
     const ended = vi.fn()
     manager.setRuntimeEnvironmentProvider(() => {
       manager.beginShutdown()
@@ -466,7 +464,7 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
   it('notifies runtime termination once after explicit stop while active claims remain owned', async () => {
     const fake = fakeAgent("{ id: command.id, type: 'response', command: 'prompt', success: true }")
     const manager = managerFor(fake.executable)
-    const environment = { PRIME_WORK_SCHEDULE_TOKEN: 'active-token' }
+    const environment = { PTX_SCHEDULE_TOKEN: 'active-token' }
     const ended = vi.fn()
     manager.setRuntimeEnvironmentProvider(() => environment)
     manager.setRuntimeEndListener(ended)
@@ -501,7 +499,7 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
 `)
     chmodSync(executable, 0o755)
     const manager = managerFor(executable)
-    const environment = { PRIME_WORK_BROWSER_TOKEN: 'natural-exit-token' }
+    const environment = { PTX_BROWSER_TOKEN: 'natural-exit-token' }
     const ended = vi.fn()
     manager.setRuntimeEnvironmentProvider(() => environment)
     manager.setRuntimeEndListener(ended)
@@ -518,7 +516,7 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
     const cwd = mkdtempSync(join(tmpdir(), 'prime-work-rpc-stuck-'))
     dirs.push(cwd)
     const manager = managerFor('/bin/cat')
-    const environment = { PRIME_WORK_SCHEDULE_TOKEN: 'unreapable-start-token' }
+    const environment = { PTX_SCHEDULE_TOKEN: 'unreapable-start-token' }
     const ended = vi.fn()
     manager.setRuntimeEnvironmentProvider(() => environment)
     manager.setRuntimeEndListener(ended)
@@ -606,10 +604,16 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
     expect(manager.list()).toHaveLength(5)
   })
 
-  it('decorates runtime reasoning and fast-mode capabilities from the Prime catalog', async () => {
+  it('decorates runtime reasoning and fast-mode capabilities from the harness catalog', async () => {
     const state = "{ id: command.id, type: 'response', command: 'get_state', success: true, data: { sessionId: 'session-1', thinkingLevel: 'high', isStreaming: false, model: { provider: 'openai-codex', id: 'gpt-5.4', name: 'GPT-5.4' } } }"
     const fake = fakeAgent("{ id: command.id, type: 'response', command: 'prompt', success: true }", state)
-    const providers = new PrimeProviderService({ authPath: join(fake.cwd, 'auth.json'), modelsPath: join(fake.cwd, 'models.json') })
+    const providers: ProviderCatalog = {
+      capabilities: async () => ({
+        key: 'openai-codex/gpt-5.4', provider: 'openai-codex', id: 'gpt-5.4', name: 'GPT-5.4', reasoning: true,
+        input: ['text', 'image'], contextWindow: 128_000, maxTokens: 8_192, availableThinkingLevels: ['off', 'high', 'xhigh'], fastModeSupported: true, available: true,
+      }),
+      requireAvailableModel: async () => { throw new Error('not used') },
+    }
     const manager = new AgentRpcManager(fake.executable, async (cwd) => cwd, async (path) => path, providers)
     managers.push(manager)
 
@@ -624,13 +628,13 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
   it('rejects images authoritatively when the active runtime model is text-only', async () => {
     const state = "{ id: command.id, type: 'response', command: 'get_state', success: true, data: { sessionId: 'session-1', isStreaming: false, model: { provider: 'fixture', id: 'text-model', name: 'Text model' } } }"
     const fake = fakeAgent("{ id: command.id, type: 'response', command: 'prompt', success: true }", state)
-    const providers = {
+    const providers: ProviderCatalog = {
       capabilities: async () => ({
         key: 'fixture/text-model', provider: 'fixture', id: 'text-model', name: 'Text model', reasoning: false,
         input: ['text'], contextWindow: 1_000, maxTokens: 100, availableThinkingLevels: ['off'], fastModeSupported: false, available: true,
       }),
       requireAvailableModel: async () => { throw new Error('not used') },
-    } as unknown as PrimeProviderService
+    }
     const manager = new AgentRpcManager(fake.executable, async (cwd) => cwd, async (path) => path, providers)
     managers.push(manager)
     const runtime = await manager.start({ cwd: fake.cwd })

@@ -24,7 +24,7 @@ function task(harness: HarnessId, prompt: string): AutomationScheduleRecord {
 
 describe('ScheduledRunExecutor MCP auth policy', () => {
   it.each([
-    ['prime', '/mcp login notion'],
+    ['omp', '/mcp reauth notion'],
     ['omp', '/mcp reauth docs'],
     ['pi', '/mcp-auth files'],
   ] as const)('rejects a persisted %s auth task before project lookup or runtime start', async (harness, prompt) => {

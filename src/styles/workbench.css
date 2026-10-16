@@ -179,8 +179,8 @@
 .resize-handle:hover > span,
 .resize-handle:focus-visible > span,
 .resize-handle[data-resizing="true"] > span {
-  background: var(--prime);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--prime) 18%, transparent);
+  background: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .resize-handle:focus-visible {
   outline: 2px solid var(--focus);
@@ -192,7 +192,7 @@
 .terminal-drawer > .resize-handle:hover > span,
 .terminal-drawer > .resize-handle:focus-visible > span,
 .terminal-drawer > .resize-handle[data-resizing="true"] > span {
-  background: var(--prime);
+  background: var(--accent);
 }
 body.is-resizing-vertical,
 body.is-resizing-vertical * {

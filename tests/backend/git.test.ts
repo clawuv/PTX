@@ -147,11 +147,11 @@ describe('GitService', () => {
     const helper = join(cwd, 'hostile-helper.sh')
     const filter = join(cwd, 'hostile-filter.sh')
     writeFileSync(helper, `#!/bin/sh
-printf '%s:%s\n' "$1" "$PRIME_WORK_TEST_TOKEN" >> ${JSON.stringify(marker)}
+printf '%s:%s\n' "$1" "$PTX_TEST_TOKEN" >> ${JSON.stringify(marker)}
 exit 1
 `)
     writeFileSync(filter, `#!/bin/sh
-printf 'filter:%s\n' "$PRIME_WORK_TEST_TOKEN" >> ${JSON.stringify(marker)}
+printf 'filter:%s\n' "$PTX_TEST_TOKEN" >> ${JSON.stringify(marker)}
 cat
 `)
     chmodSync(helper, 0o755); chmodSync(filter, 0o755)
@@ -163,25 +163,25 @@ cat
     writeFileSync(join(cwd, '.gitattributes'), '*.txt filter=hostile\n')
     mkdirSync(join(cwd, '.git', 'hooks'), { recursive: true })
     writeFileSync(join(cwd, '.git', 'hooks', 'pre-commit'), `#!/bin/sh
-printf 'hook:%s\n' "$PRIME_WORK_TEST_TOKEN" >> ${JSON.stringify(marker)}
+printf 'hook:%s\n' "$PTX_TEST_TOKEN" >> ${JSON.stringify(marker)}
 exit 1
 `)
     chmodSync(join(cwd, '.git', 'hooks', 'pre-commit'), 0o755)
     writeFileSync(join(cwd, 'file.txt'), 'base\nchanged\n')
 
     const oldValues = {
-      token: process.env.PRIME_WORK_TEST_TOKEN,
+      token: process.env.PTX_TEST_TOKEN,
       count: process.env.GIT_CONFIG_COUNT,
       key: process.env.GIT_CONFIG_KEY_0,
       value: process.env.GIT_CONFIG_VALUE_0,
     }
-    process.env.PRIME_WORK_TEST_TOKEN = 'top-secret-token'
+    process.env.PTX_TEST_TOKEN = 'top-secret-token'
     process.env.GIT_CONFIG_COUNT = '1'
     process.env.GIT_CONFIG_KEY_0 = 'core.fsmonitor'
     process.env.GIT_CONFIG_VALUE_0 = helper
     try {
       const env = restrictedGitEnvironment()
-      expect(env.PRIME_WORK_TEST_TOKEN).toBeUndefined()
+      expect(env.PTX_TEST_TOKEN).toBeUndefined()
       expect(env.GIT_CONFIG_COUNT).toBeUndefined()
       expect(env.GIT_CONFIG_KEY_0).toBeUndefined()
       expect(env.GIT_CONFIG_VALUE_0).toBeUndefined()
@@ -201,7 +201,7 @@ exit 1
       expect(existsSync(marker)).toBe(false)
     } finally {
       const restore = (key: string, value: string | undefined) => { if (value === undefined) delete process.env[key]; else process.env[key] = value }
-      restore('PRIME_WORK_TEST_TOKEN', oldValues.token)
+      restore('PTX_TEST_TOKEN', oldValues.token)
       restore('GIT_CONFIG_COUNT', oldValues.count)
       restore('GIT_CONFIG_KEY_0', oldValues.key)
       restore('GIT_CONFIG_VALUE_0', oldValues.value)

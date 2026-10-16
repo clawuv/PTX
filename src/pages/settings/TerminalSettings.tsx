@@ -13,20 +13,24 @@ export function TerminalSettings({ settings, onUpdate, platform = 'darwin' }: Se
       <header><h1>{t('settings.terminal')}</h1><p>{t('settings.terminal.description')}</p></header>
       <section className="settings-group">
         <h2>{t('settings.terminal.shell')}</h2>
-        <DraftSettingField
-          id="terminal-shell"
-          label={t('settings.terminal.shellExecutable.label')}
-          description={t('settings.terminal.shellExecutable.description')}
-          committedValue={settings.terminalShell}
-          validate={terminalShellValidation}
-          onCommit={(terminalShell) => onUpdate({ terminalShell })}
-          className="mono"
-        />
-        <SettingsToggle checked={settings.terminalOpen} onChange={(terminalOpen) => { void onUpdate({ terminalOpen }) }} label={t('settings.terminal.openWithSessions.label')} description={t('settings.terminal.openWithSessions.description')} />
+        <div className="settings-group__card">
+          <DraftSettingField
+            id="terminal-shell"
+            label={t('settings.terminal.shellExecutable.label')}
+            description={t('settings.terminal.shellExecutable.description')}
+            committedValue={settings.terminalShell}
+            validate={terminalShellValidation}
+            onCommit={(terminalShell) => onUpdate({ terminalShell })}
+            className="mono"
+          />
+          <SettingsToggle checked={settings.terminalOpen} onChange={(terminalOpen) => { void onUpdate({ terminalOpen }) }} label={t('settings.terminal.openWithSessions.label')} description={t('settings.terminal.openWithSessions.description')} />
+        </div>
       </section>
       <section className="settings-group">
         <h2>{t('settings.terminal.shortcut')}</h2>
-        <div className="shortcut-row"><span><Keyboard size={14} />{t('settings.terminal.toggle')}</span><kbd>{shortcutLabel(platform, ['Primary', 'J'])}</kbd></div>
+        <div className="settings-group__card">
+          <div className="shortcut-row"><span><Keyboard size={14} />{t('settings.terminal.toggle')}</span><kbd>{shortcutLabel(platform, ['Primary', 'J'])}</kbd></div>
+        </div>
       </section>
     </>
   )

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { applySessionLifecycleEvent, sessionLifecycleChange } from '../../src/app/session-attention'
-import { applyPrimeEvent, replayPrimeEvents } from '../../src/lib/events'
+import { applyAgentEvent, replayAgentEvents } from '../../src/lib/events'
 import type { SessionRecord, TranscriptMessage } from '../../src/types/api'
 
 const session = (): SessionRecord => ({
   id: 'session',
-  harness: 'prime',
+  harness: 'omp',
   filePath: '/sessions/session.jsonl',
   projectPath: '/project',
   title: 'Session',
@@ -44,18 +44,18 @@ describe('provider auto-retry session lifecycle', () => {
 
 describe('provider auto-retry transcript continuity', () => {
   it('reopens the finalized tail assistant and removes the empty-turn fallback', () => {
-    const afterEnd = applyPrimeEvent(streamingAssistant(), { type: 'agent_end' })
+    const afterEnd = applyAgentEvent(streamingAssistant(), { type: 'agent_end' })
     expect(afterEnd[0]).toMatchObject({ streaming: false, parts: [{ type: 'text', text: 'Completed without a text response.' }] })
 
-    const retrying = applyPrimeEvent(afterEnd, { type: 'auto_retry_start', attempt: 1, delayMs: 1000 })
+    const retrying = applyAgentEvent(afterEnd, { type: 'auto_retry_start', attempt: 1, delayMs: 1000 })
     expect(retrying[0].streaming).toBe(true)
     expect(retrying[0].completedAt).toBeUndefined()
     expect(retrying[0].parts).toEqual([])
   })
 
   it('keeps real content from the failed attempt when reopening', () => {
-    const afterEnd = applyPrimeEvent(streamingAssistant('partial answer'), { type: 'agent_end' })
-    const retrying = applyPrimeEvent(afterEnd, { type: 'auto_retry_start', attempt: 1 })
+    const afterEnd = applyAgentEvent(streamingAssistant('partial answer'), { type: 'agent_end' })
+    const retrying = applyAgentEvent(afterEnd, { type: 'auto_retry_start', attempt: 1 })
     expect(retrying[0].streaming).toBe(true)
     expect(retrying[0].parts).toEqual([{ type: 'text', text: 'partial answer' }])
   })
@@ -68,8 +68,8 @@ describe('provider auto-retry transcript continuity', () => {
       delta('recovered'),
       { type: 'agent_end' },
     ]
-    const sequential = events.reduce((current, event) => applyPrimeEvent(current, event), streamingAssistant())
-    const batched = replayPrimeEvents(streamingAssistant(), events)
+    const sequential = events.reduce((current, event) => applyAgentEvent(current, event), streamingAssistant())
+    const batched = replayAgentEvents(streamingAssistant(), events)
     for (const result of [sequential, batched]) {
       expect(result).toHaveLength(1)
       expect(result[0]).toMatchObject({ streaming: false, parts: [{ type: 'text', text: 'recovered' }] })
@@ -81,7 +81,7 @@ describe('provider auto-retry transcript continuity', () => {
       { type: 'agent_end' },
       { type: 'auto_retry_end', success: false, attempt: 3, finalError: 'overloaded' },
     ]
-    const result = replayPrimeEvents(streamingAssistant('partial answer'), events)
+    const result = replayAgentEvents(streamingAssistant('partial answer'), events)
     expect(result[0]).toMatchObject({ streaming: false })
   })
 })

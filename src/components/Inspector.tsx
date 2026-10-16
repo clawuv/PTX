@@ -2,7 +2,7 @@ import { X } from 'lucide-react'
 import type { BrowserAnnotationsApi } from '@/hooks/useBrowserAnnotations'
 import type { StampedPointerEvent } from '@/hooks/useAgentBrowserTabs'
 import { useI18n, type MessageKey } from '@/lib/i18n'
-import type { AgentBrowserTabRecord, AutomationScheduleRecord, GitStatus, InspectorTab, NativeHeartbeatRecord, ProjectRecord, RuntimeInfo, TranscriptMessage } from '@/types/api'
+import type { AgentBrowserTabRecord, AutomationScheduleRecord, GitStatus, InspectorTab, ProjectRecord, RuntimeInfo, TranscriptMessage } from '@/types/api'
 import type { AgentSlotRect } from './AgentBrowserLayer'
 import { BrowserPanel } from './inspector/BrowserPanel'
 import { ChangesPanel } from './inspector/ChangesPanel'
@@ -15,9 +15,9 @@ interface InspectorProps {
   activeTab: InspectorTab
   onTabChange(tab: InspectorTab): void
   onClose(): void
-  /** Active harness agent name ("Prime Agent" / "OMP"). */
+  /** Active harness agent name ("Pi" / "OMP"). */
   agentName?: string
-  /** Short harness name for working copy ("Prime" / "OMP"). */
+  /** Short harness name for working copy ("Pi" / "OMP"). */
   shortName?: string
   project?: ProjectRecord
   cwd?: string
@@ -25,7 +25,6 @@ interface InspectorProps {
   messages: TranscriptMessage[]
   git: GitStatus
   automations: AutomationScheduleRecord[]
-  heartbeats: NativeHeartbeatRecord[]
   onOpenAutomation(id: string): void
   browserHome: string
   browserNavigationRequest?: { id: number; url: string }
@@ -51,7 +50,7 @@ interface InspectorProps {
 
 const tabs: Array<{ id: InspectorTab; label: MessageKey }> = [{ id: 'summary', label: 'inspector.tab.summary' }, { id: 'changes', label: 'inspector.tab.changes' }, { id: 'browser', label: 'inspector.tab.browser' }, { id: 'files', label: 'inspector.tab.files' }]
 
-export function Inspector({ activeTab, onTabChange, onClose, agentName, shortName, project, cwd, runtime, messages, git, automations, heartbeats, onOpenAutomation, browserHome, browserNavigationRequest, onBrowserNavigationRequestHandled, browserAnnotations, agentBrowserTabs, activeAgentTabId, agentPreviewSelected, onSelectAgentTab, onCloseAgentTab, onShowBrowserPreview, onAgentSlotRect, agentSessionKey, onPreviewContext, previewPointerEvent, onNavigateAgentTab, onRefreshGit, onOpenExternal, onRevealPath, onGrantProject, overlay = false, platform = 'darwin' }: InspectorProps) {
+export function Inspector({ activeTab, onTabChange, onClose, agentName, shortName, project, cwd, runtime, messages, git, automations, onOpenAutomation, browserHome, browserNavigationRequest, onBrowserNavigationRequestHandled, browserAnnotations, agentBrowserTabs, activeAgentTabId, agentPreviewSelected, onSelectAgentTab, onCloseAgentTab, onShowBrowserPreview, onAgentSlotRect, agentSessionKey, onPreviewContext, previewPointerEvent, onNavigateAgentTab, onRefreshGit, onOpenExternal, onRevealPath, onGrantProject, overlay = false, platform = 'darwin' }: InspectorProps) {
   const { t } = useI18n()
   const inspectorRef = useFocusTrap<HTMLElement>(overlay, onClose)
   const moveTab = (current: number, key: string) => {
@@ -72,7 +71,7 @@ export function Inspector({ activeTab, onTabChange, onClose, agentName, shortNam
       <IconButton label={t('inspector.close')} onClick={onClose}><X size={15}/></IconButton>
     </div>
     <div id={`inspector-panel-${activeTab}`} className="inspector__body" role="tabpanel" aria-labelledby={`inspector-tab-${activeTab}`} tabIndex={0}>
-      {activeTab === 'summary' ? <SummaryPanel agentName={agentName} shortName={shortName} project={project} runtime={runtime} messages={messages} git={git} automations={automations} heartbeats={heartbeats} onOpenAutomation={onOpenAutomation}/> : null}
+      {activeTab === 'summary' ? <SummaryPanel agentName={agentName} shortName={shortName} project={project} runtime={runtime} messages={messages} git={git} automations={automations} onOpenAutomation={onOpenAutomation}/> : null}
       {activeTab === 'changes' ? <ChangesPanel key={cwd ?? 'no-workspace'} cwd={cwd} git={git} readOnly={project?.readOnly === true} onGrantProject={onGrantProject} onRefreshGit={onRefreshGit}/> : null}
       {activeTab === 'browser' ? <BrowserPanel platform={platform} home={browserHome} navigationRequest={browserNavigationRequest} onNavigationRequestHandled={onBrowserNavigationRequestHandled} onOpenExternal={onOpenExternal} annotations={browserAnnotations} agentTabs={agentBrowserTabs} activeAgentTabId={activeAgentTabId} previewSelected={agentPreviewSelected} onSelectAgentTab={onSelectAgentTab} onCloseAgentTab={onCloseAgentTab} onShowPreview={onShowBrowserPreview} onAgentSlotRect={onAgentSlotRect} agentSessionKey={agentSessionKey} onPreviewContext={onPreviewContext} previewPointerEvent={previewPointerEvent} onNavigateAgentTab={onNavigateAgentTab}/> : null}
       {activeTab === 'files' ? <FilesPanel project={project} git={git} onReveal={onRevealPath}/> : null}

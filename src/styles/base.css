@@ -15,8 +15,8 @@
   --border: #e6e6e3;
   --border-strong: #d8d8d4;
   --focus: #6aa9ff;
-  --prime: #5f4bd3;
-  --prime-soft: #efecff;
+  --accent: #5f4bd3;
+  --accent-soft: #efecff;
   --success: #21754d;
   --success-soft: #eaf5ee;
   --warning: #7a520b;
@@ -31,7 +31,6 @@
   /* Accent was referenced across components but never defined, which silently voided
      every declaration using it (checks, fast-mode active, provider focus ring). It
      follows the brand accent in both themes. */
-  --accent: var(--prime);
   /* Ink on saturated tinted fills (danger buttons, badges, update chip): constant across themes. */
   --on-tint: #ffffff;
   /* Composer send button: theme-swapped so the component carries no dark overrides. */
@@ -50,19 +49,20 @@
   --chrome-divider: var(--border);
   --titlebar-arrow: var(--text-tertiary);
   --titlebar-arrow-back: var(--text-tertiary);
-  --menu-label: var(--text);
+  /* Menu labels read as chrome, not body copy: a touch softer than --text. */
+  --menu-label: #3f3f3c;
   --titlebar-control: var(--text-secondary);
   /* Shared voice/pet orb artwork: one decorative gradient, constant across themes. */
   --orb-gradient: radial-gradient(circle at 35% 27%, #ddd9ff 0 5%, transparent 28%), radial-gradient(circle at 64% 70%, #e16eb7, transparent 45%), linear-gradient(145deg, #5662eb, #812bc3 58%, #3b50c9);
   --orb-edge: color-mix(in srgb, #fff 38%, transparent);
   --orb-glow: #5a46ea;
   /* Harness brand marks: fixed identity colors, not themed. */
-  --mark-prime-bg: #0b0f14;
-  --mark-prime-ink: #ffffff;
+  --mark-ptx-bg: #0b0f14;
+  --mark-ptx-ink: #ffffff;
   --mark-vendor-bg: #0d0d0d;
   --mark-vendor-ink: #fafafa;
   /* Shared max width of the conversation column: transcript messages, activity rows, composer, and the changes pin all align to this frame. */
-  --conversation-width: 660px;
+  --conversation-width: 670px;
   --terminal-bg: #ffffff;
   --terminal-text: #20201e;
   --terminal-toolbar-bg: #f3f3f1;
@@ -98,22 +98,27 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   /* Codex-style dark palette: near-black chrome, one-step-raised inputs. */
-  --canvas: #0f0f0f;
-  --sidebar: rgb(34, 34, 34);
+  --canvas: #181818;
+  --sidebar: #121212;
   --surface-subtle: #1f1f1f;
   --surface-hover: #232323;
   --surface-selected: #262626;
-  --surface-raised: #2c2c2c;
+  --surface-raised: #343434;
   --code-block-bg: #1a1a18;
-  --text: #ececec;
+  --text: #d6d6d6;
+  --menu-label: #8c8c8c;
+  --placeholder: #777777;
+  --send-bg-disabled: #8c8c8c;
+  --send-icon-disabled: #454545;
+  --send-edge-disabled: transparent;
   --text-secondary: #a4a4a4;
   --text-tertiary: #8c8c8c;
   --content-heading: #deded9;
   --border: #2a2a2a;
   --border-strong: #3a3a3a;
   --focus: #339cff;
-  --prime: #339cff;
-  --prime-soft: #12293e;
+  --accent: #339cff;
+  --accent-soft: #12293e;
   --success: #75c897;
   --success-soft: #20392b;
   --warning: #deb967;
@@ -192,7 +197,7 @@ kbd { color: var(--text-tertiary); font: 10.5px/1.2 "SFMono-Regular", "SF Mono",
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .drag-region { -webkit-app-region: drag; }
 .no-drag, .drag-region button, .drag-region input { -webkit-app-region: no-drag; }
-.prime-color { color: var(--prime); }
+.accent-color { color: var(--accent); }
 
 .scroll-area { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
 .scroll-area::-webkit-scrollbar { width: 7px; height: 7px; }

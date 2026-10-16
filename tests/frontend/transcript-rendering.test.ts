@@ -3,13 +3,13 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { Transcript } from '../../src/components/Transcript'
 import { LiveElapsed } from '../../src/components/transcript/timeline'
-import { replayPrimeEvents } from '../../src/lib/events/reduce'
+import { replayAgentEvents } from '../../src/lib/events/reduce'
 import type { TranscriptMessage } from '../../src/types/api'
 
 vi.mock('../../src/components/ui', async () => {
   const actual = await vi.importActual<typeof import('../../src/components/ui')>('../../src/components/ui')
   const { createElement: element } = await import('react')
-  return { ...actual, PrimeMark: ({ size = 24 }: { size?: number }) => element('span', { className: 'prime-mark', style: { width: size, height: size } }) }
+  return { ...actual, PtxMark: ({ size = 24 }: { size?: number }) => element('span', { className: 'ptx-mark', style: { width: size, height: size } }) }
 })
 
 const noop = () => undefined
@@ -78,7 +78,7 @@ describe('transcript rendering', () => {
   )
 
   it('keeps a hidden tool Working through partial updates, then restores visible reasoning', () => {
-    const updating = replayPrimeEvents([], [
+    const updating = replayAgentEvents([], [
       { type: 'agent_start' },
       { type: 'message_update', assistantMessageEvent: { type: 'thinking_delta', delta: 'Plan ready.' } },
       { type: 'tool_execution_start', toolCallId: 'tool-1', toolName: 'read_file' },
@@ -86,14 +86,14 @@ describe('transcript rendering', () => {
     ])
     expect(render(updating, false, false)).toContain('role="status"><span>Working</span>')
 
-    const finished = replayPrimeEvents(updating, [
+    const finished = replayAgentEvents(updating, [
       { type: 'tool_execution_end', toolCallId: 'tool-1', toolName: 'read_file', result: 'done' },
     ])
     expect(render(finished, false, false)).toContain('role="status"><span>Thinking</span>')
   })
 
   it('keeps late results at their call site and follows newer reasoning or narrative', () => {
-    const reasoning = replayPrimeEvents([], [
+    const reasoning = replayAgentEvents([], [
       { type: 'agent_start' },
       { type: 'message_update', assistantMessageEvent: { type: 'thinking_delta', delta: 'First thought.' } },
       { type: 'tool_execution_start', toolCallId: 'tool-1', toolName: 'read_file' },
@@ -103,7 +103,7 @@ describe('transcript rendering', () => {
     expect(reasoning[0].parts.map((part) => part.type)).toEqual(['thinking', 'toolCall', 'toolResult', 'thinking'])
     expect(render(reasoning)).toContain('role="status"><span>Thinking</span>')
 
-    const narrative = replayPrimeEvents(reasoning, [
+    const narrative = replayAgentEvents(reasoning, [
       { type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'Final answer.' } },
     ])
     expect(render(narrative, false, false)).toContain('role="status"><span>Working</span>')
@@ -151,11 +151,10 @@ describe('transcript rendering', () => {
     expect(html).toContain('Worked for 1s')
     expect(html).not.toContain('Prior completed reasoning.')
     expect(html).toContain('transcript-active-placeholder')
-    expect(html).toContain('Prime is working')
+    expect(html).toContain('OMP is working')
   })
 
   it.each([
-    ['prime', 'Prime'],
     ['omp', 'OMP'],
     ['pi', 'Pi'],
   ] as const)('keeps an accepted %s steer in history without duplicating the working indicator', (harness, shortName) => {
@@ -370,7 +369,7 @@ describe('transcript rendering', () => {
   it('renders system failures as compact expandable activity instead of red boxes', () => {
     const html = render([{ id: 'failure', role: 'system', parts: [{ type: 'text', text: 'Request failed with details.' }] }])
     expect(html).toContain('message--activity')
-    expect(html).toContain('Prime message')
+    expect(html).toContain('OMP message')
     expect(html).toContain('failed')
     expect(html).toContain('aria-expanded="false"')
     expect(html).not.toContain('Request failed with details.')
@@ -388,7 +387,7 @@ describe('transcript rendering', () => {
     expect(html).toContain('overflow recovery')
     expect(html).toContain('99,175 tokens before')
     expect(html).toContain('aria-expanded="false"')
-    expect(html).not.toContain('Prime message')
+    expect(html).not.toContain('OMP message')
   })
 
   it('renders standalone informational output as a collapsed tool row', () => {

@@ -1,13 +1,13 @@
 import { useCallback, useMemo } from 'react'
 import { detectedHarnesses as readDetectedHarnesses } from '@/lib/harness'
-import type { HarnessId, PrimeWorkApi } from '@/types/api'
+import type { HarnessId, PtxApi } from '@/types/api'
 import { type UseBootstrapOptions, useBootstrap } from './useBootstrap'
 
 type BootstrapOptions = Omit<UseBootstrapOptions, 'bridge' | 'ready' | 'harness'>
-type HarnessRefreshResult = Awaited<ReturnType<PrimeWorkApi['app']['refreshHarnesses']>>
+type HarnessRefreshResult = Awaited<ReturnType<PtxApi['app']['refreshHarnesses']>>
 
 interface HarnessWorkspaceOptions extends BootstrapOptions {
-  bridge: PrimeWorkApi | null
+  bridge: PtxApi | null
   ready: boolean
   harness: HarnessId
   reconcileExternalSettings(refresh: () => Promise<HarnessRefreshResult | null>): Promise<HarnessRefreshResult | null>

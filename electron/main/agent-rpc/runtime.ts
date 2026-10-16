@@ -1,14 +1,14 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
-import type { PrimeContextUsage, PrimeEventEnvelope, PrimeModelDescriptor, PrimeServiceTier, RuntimeInfo } from '../../../src/types/api'
+import type { AgentContextUsage, AgentEventEnvelope, AgentModelDescriptor, AgentServiceTier, RuntimeInfo } from '../../../src/types/api'
 import { emptySessionActionSnapshot, parseSessionActionSnapshot } from '../../../src/lib/session-actions'
 import { RPC_READ_FRAME_LIMIT_BYTES } from '../jsonl-limits'
 import { killProcessTree, prepareExecutableSpawn, safeChildEnvironment, waitForProcessExit } from '../process-utils'
 import { canonicalSessionPath } from '../session-paths'
 import { errorMessage, isRecord } from '../validation'
 import { AgentEventForwarder } from './events'
-import { PRIME_RPC_ADAPTER, parseContextUsage, type HarnessRpcAdapter } from './harness-adapter'
+import { PI_RPC_ADAPTER, parseContextUsage, type HarnessRpcAdapter } from './harness-adapter'
 import { LiveContextUsageTracker, withLiveContextUsage } from './context-usage'
 import { FramedRpcTransport, type QueuedRpcWrite } from './transport'
 import type { RpcObject } from './types'
@@ -82,11 +82,11 @@ export class RpcRuntime {
   private readonly eventForwarder: AgentEventForwarder
   private stopped = false
   private info: RuntimeInfo
-  private requestedServiceTier: PrimeServiceTier = 'default'
+  private requestedServiceTier: AgentServiceTier = 'default'
   private contextUsageRefresh: Promise<void> | null = null
   private contextUsageRefreshRequest: ContextUsageRefreshRequest | null = null
   private readonly liveContextUsage = new LiveContextUsageTracker()
-  private authoritativeContextUsage: PrimeContextUsage | undefined
+  private authoritativeContextUsage: AgentContextUsage | undefined
   private contextUsageActivityBaseline = 0
   private contextUsageGeneration = 0
   private contextUsageEmitTimer: NodeJS.Timeout | null = null
@@ -97,7 +97,7 @@ export class RpcRuntime {
   // outside info so get_state refreshes (which report isStreaming false
   // during the backoff) cannot clear it.
   private retryPending = false
-  // Compaction watchdog: some Prime Agent event paths buffer compaction_start
+  // Compaction watchdog: some Agent event paths buffer compaction_start
   // until the surrounding RPC command settles, so the desktop would learn
   // about a compaction only after it finished. get_state responses are never
   // buffered, so polling the compacting flag while the runtime is active lets
@@ -121,11 +121,11 @@ export class RpcRuntime {
     executable: string,
     args: string[],
     cwd: string,
-    onEvent: (envelope: PrimeEventEnvelope) => void,
+    onEvent: (envelope: AgentEventEnvelope) => void,
     private readonly onExit: (runtime: RpcRuntime) => void,
     extraEnvironment: NodeJS.ProcessEnv = {},
     watchdogTimings: Partial<CompactionWatchdogTimings> = {},
-    private readonly adapter: HarnessRpcAdapter = PRIME_RPC_ADAPTER,
+    private readonly adapter: HarnessRpcAdapter = PI_RPC_ADAPTER,
     private readonly chunkAssemblyTiming: RpcChunkAssemblyTiming = DEFAULT_RPC_CHUNK_ASSEMBLY_TIMING,
   ) {
     this.watchdogTimings = { ...DEFAULT_COMPACTION_WATCHDOG_TIMINGS, ...watchdogTimings }
@@ -181,7 +181,7 @@ export class RpcRuntime {
     return this.snapshot()
   }
 
-  applyCapabilities(model: PrimeModelDescriptor | undefined): void {
+  applyCapabilities(model: AgentModelDescriptor | undefined): void {
     this.info.availableThinkingLevels = model?.availableThinkingLevels ?? ['off']
     this.info.fastModeSupported = model?.fastModeSupported ?? false
     this.info.imageInputSupported = model ? model.input.includes('image') : undefined
@@ -671,10 +671,10 @@ export class RpcRuntime {
         || request.generation !== this.contextUsageGeneration
         || request.sessionId !== this.info.sessionId) return
       this.applyAuthoritativeContextUsage(usage, request.activityTokens)
-    } catch { /* older Prime Agent versions may not expose session stats */ }
+    } catch { /* older Agent versions may not expose session stats */ }
   }
 
-  private applyAuthoritativeContextUsage(usage: PrimeContextUsage, activityTokens?: number): void {
+  private applyAuthoritativeContextUsage(usage: AgentContextUsage, activityTokens?: number): void {
     if (activityTokens !== undefined) {
       const previous = this.authoritativeContextUsage
       const activityDelta = Math.max(0, activityTokens - this.contextUsageActivityBaseline)

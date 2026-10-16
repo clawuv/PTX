@@ -46,15 +46,15 @@ afterEach(() => {
 
 async function loadBrowserExtension() {
   vi.resetModules()
-  vi.stubEnv('PRIME_WORK_BROWSER_URL', 'http://127.0.0.1:1/')
-  vi.stubEnv('PRIME_WORK_BROWSER_TOKEN', 'token')
+  vi.stubEnv('PTX_BROWSER_URL', 'http://127.0.0.1:1/')
+  vi.stubEnv('PTX_BROWSER_TOKEN', 'token')
   return (await import('../../assets/extensions/omp-work-browser')).default
 }
 
 async function loadScheduleExtension() {
   vi.resetModules()
-  vi.stubEnv('PRIME_WORK_SCHEDULE_URL', 'http://127.0.0.1:1/')
-  vi.stubEnv('PRIME_WORK_SCHEDULE_TOKEN', 'token')
+  vi.stubEnv('PTX_SCHEDULE_URL', 'http://127.0.0.1:1/')
+  vi.stubEnv('PTX_SCHEDULE_TOKEN', 'token')
   return (await import('../../assets/extensions/omp-work-schedules')).default
 }
 
@@ -93,8 +93,8 @@ describe('extensions on a base pi host (no injected pi.typebox)', () => {
 
   it('browser extension still registers nothing without the broker environment', async () => {
     vi.resetModules()
-    vi.stubEnv('PRIME_WORK_BROWSER_URL', undefined as unknown as string)
-    vi.stubEnv('PRIME_WORK_BROWSER_TOKEN', undefined as unknown as string)
+    vi.stubEnv('PTX_BROWSER_URL', undefined as unknown as string)
+    vi.stubEnv('PTX_BROWSER_TOKEN', undefined as unknown as string)
     const factory = (await import('../../assets/extensions/omp-work-browser')).default
     const { tools, pi } = piHost()
     await factory(pi as unknown as BrowserExtensionApi)
@@ -142,7 +142,7 @@ describe('extensions on a base pi host (no injected pi.typebox)', () => {
     const { tools, pi } = piHost()
     await factory(pi as unknown as CollaborationExtensionApi)
     expect(tools.map((tool) => tool.name)).toEqual(['session_list', 'session_models', 'session_create', 'session_read', 'session_send', 'session_wait'])
-    expect(schemaOf(tools[1]).required).toBeUndefined()
+    expect(schemaOf(tools[1]).required ?? []).toEqual([])
     expect(schemaOf(tools[2]).required).toEqual(['prompt'])
     expect(schemaOf(tools[2]).properties).toHaveProperty('model')
     expect(schemaOf(tools[2]).properties).toHaveProperty('reasoning')

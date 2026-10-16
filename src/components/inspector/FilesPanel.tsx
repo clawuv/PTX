@@ -237,14 +237,14 @@ export function FilesPanel({
     setError('')
     setSkipped(0)
     setVisibleLimit(1_000)
-    if (!project || !window.prime) return
+    if (!project || !window.ptx) return
     setLoading(true)
     try {
       const roots = project.folders.length ? project.folders : [project.primaryFolder]
       const groups = await Promise.all(
         roots.map(async (root) => ({
           root,
-          listing: await window.prime.projects.listFiles(root, project.harness),
+          listing: await window.ptx.projects.listFiles(root, project.harness),
         })),
       )
       if (loadToken.current !== token) return

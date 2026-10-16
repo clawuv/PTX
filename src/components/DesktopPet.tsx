@@ -2,7 +2,7 @@ import { AudioWaveform, Mic, MicOff, X } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useI18n } from '@/lib/i18n'
-import type { PetDefinition, PrimeWorkApi } from '@/types/api'
+import type { PetDefinition, PtxApi } from '@/types/api'
 import { PetAvatar, type PetActivity } from './PetAvatar'
 
 interface Position { x: number; y: number }
@@ -29,7 +29,7 @@ function constrained(position: Position, surfaceHeight: number, surfaceWidth: nu
 }
 
 export interface DesktopPetProps {
-  pets: PrimeWorkApi['pets']
+  pets: PtxApi['pets']
   petId: string
   agentBusy: boolean
   voiceActive: boolean

@@ -1,11 +1,11 @@
-import type { PrimeModelCatalog } from '../../src/types/api'
+import type { AgentModelCatalog } from '../../src/types/api'
 
 /** Applies Ptx's synchronized provider/model visibility policy to a raw harness catalog. */
 export function withModelVisibility(
-  catalog: PrimeModelCatalog,
+  catalog: AgentModelCatalog,
   disabledProviders: ReadonlySet<string>,
   disabledModels: ReadonlySet<string>,
-): PrimeModelCatalog {
+): AgentModelCatalog {
   const modelKeysByProvider = new Map<string, string[]>()
   for (const model of catalog.models) {
     const keys = modelKeysByProvider.get(model.provider)

@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PetsSettings } from '../../src/pages/settings/PetsSettings'
 import { DEFAULT_SETTINGS } from '../../src/lib/data'
-import type { PetDefinition, PrimeWorkApi } from '../../src/types/api'
+import type { PetDefinition, PtxApi } from '../../src/types/api'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -29,7 +29,7 @@ describe('PetsSettings', () => {
         rocky,
       ]),
       sprite: vi.fn(async () => 'data:image/webp;base64,UklGRgQAAABXRUJQ'),
-    } satisfies PrimeWorkApi['pets']
+    } satisfies PtxApi['pets']
     await act(async () => {
       root.render(<PetsSettings settings={DEFAULT_SETTINGS} onUpdate={update} pets={pets} />)
       await Promise.resolve()

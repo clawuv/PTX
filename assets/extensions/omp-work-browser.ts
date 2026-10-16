@@ -1,16 +1,14 @@
 /**
- * OMP Work in-app browser control.
+ * Ptx in-app browser control.
  *
  * Loaded by OMP via --extension when the desktop app spawns an OMP runtime.
  * Talks only to the app's loopback capability broker; the URL and bearer
- * token arrive through the environment (the same PRIME_WORK_BROWSER_* env
- * contract the Prime Agent extension uses) and are scoped to this runtime's
+ * token arrive through the PTX_BROWSER_* environment variables and are scoped to this runtime's
  * thread, so tools in one thread can never reach another thread's tabs.
  * Everything read back from a page is untrusted content.
  *
- * Unlike Prime Agent, OMP has no --skill injection, so the usage guidance
- * that ships as a skill on the Prime side is folded into the tool
- * descriptions here. The file is deliberately self-contained: OMP imports it
+ * Usage guidance is folded into the tool descriptions. This file is
+ * self-contained because OMP imports it
  * directly under Bun from the app's resources, so it must not depend on repo
  * modules or npm packages. The Omp* interfaces below type only the
  * documented OMP extension API surface this file actually uses.
@@ -114,8 +112,8 @@ async function resolveHostTypebox(): Promise<OmpTypebox> {
   }
 }
 
-const BRIDGE_URL = process.env.PRIME_WORK_BROWSER_URL
-const BRIDGE_TOKEN = process.env.PRIME_WORK_BROWSER_TOKEN
+const BRIDGE_URL = process.env.PTX_BROWSER_URL
+const BRIDGE_TOKEN = process.env.PTX_BROWSER_TOKEN
 
 interface BridgeResult { ok: boolean; result?: unknown; error?: string }
 

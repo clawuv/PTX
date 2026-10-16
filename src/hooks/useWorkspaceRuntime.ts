@@ -14,10 +14,10 @@ import {
 import { runTranscriptRead } from '@/app/transcript-load'
 import { reconcileTranscripts } from '@/app/transcript-reconcile'
 import type { WorkspaceSnapshot } from '@/app/workspace'
-import { createPrimeEventBuffer, createSteerAcceptedEvent, createSteerPickupEvent, replayPrimeEvents } from '@/lib/events'
-import type { PrimeEventBuffer } from '@/lib/events'
+import { createAgentEventBuffer, createSteerAcceptedEvent, createSteerPickupEvent, replayAgentEvents } from '@/lib/events'
+import type { AgentEventBuffer } from '@/lib/events'
 import { findRuntimeForWorkspace, workspaceCwd } from '@/lib/workspace'
-import type { HarnessId, MessagePart, PrimeWorkApi, ProjectRecord, PromptDeliveryIntent, QueuedPrompt, RuntimeInfo, SessionActionSnapshot, SessionRecord, TranscriptMessage } from '@/types/api'
+import type { HarnessId, MessagePart, PtxApi, ProjectRecord, PromptDeliveryIntent, QueuedPrompt, RuntimeInfo, SessionActionSnapshot, SessionRecord, TranscriptMessage } from '@/types/api'
 
 let queuedPromptSequence = 0
 
@@ -42,14 +42,14 @@ function queuedPromptOwner(
 interface TranscriptLoad {
   generation: number
   sessionFile: string
-  eventBuffer: PrimeEventBuffer
+  eventBuffer: AgentEventBuffer
   runtimeId?: string
   reconciliation: boolean
   admissionRevision: number
 }
 
 interface UseWorkspaceRuntimeOptions {
-  bridge: PrimeWorkApi | null
+  bridge: PtxApi | null
   /** Active harness; runtime discovery only attaches runtimes it owns. */
   harness?: HarnessId
   initialProject?: ProjectRecord
@@ -61,7 +61,7 @@ interface UseWorkspaceRuntimeOptions {
 
 export function useWorkspaceRuntime({
   bridge,
-  harness = 'prime',
+  harness = 'omp',
   initialProject,
   initialSession,
   sessions,
@@ -116,7 +116,7 @@ export function useWorkspaceRuntime({
     pendingAgentEventsRef.current = []
     const admitted = eventsForWorkspace(pending, generation)
     if (admitted.length) {
-      setMessages((current) => replayPrimeEvents(current, admitted))
+      setMessages((current) => replayAgentEvents(current, admitted))
     }
   }, [])
 
@@ -135,7 +135,7 @@ export function useWorkspaceRuntime({
       const generation = workspaceRef.current.generation
       const chunk = pendingAgentEventsRef.current.splice(0, AGENT_EVENT_FLUSH_CHUNK)
       const admitted = eventsForWorkspace(chunk, generation)
-      if (admitted.length) setMessages((current) => replayPrimeEvents(current, admitted))
+      if (admitted.length) setMessages((current) => replayAgentEvents(current, admitted))
       if (pendingAgentEventsRef.current.length) chunkedFlushTimerRef.current = window.setTimeout(flushChunk, 0)
     }
     flushChunk()
@@ -188,7 +188,7 @@ export function useWorkspaceRuntime({
       sessionFile: session?.filePath,
     }
     transcriptLoadRef.current = bridge && session?.filePath
-      ? { generation, sessionFile: session.filePath, eventBuffer: createPrimeEventBuffer(), reconciliation: false, admissionRevision: 0 }
+      ? { generation, sessionFile: session.filePath, eventBuffer: createAgentEventBuffer(), reconciliation: false, admissionRevision: 0 }
       : null
     const queueOwner = queuedPromptOwner(project, session, nextRuntime, generation)
     const queuedPrompts = queueOwner ? queuedPromptsByOwnerRef.current.get(queueOwner) ?? [] : []
@@ -233,7 +233,7 @@ export function useWorkspaceRuntime({
       eventBuffer: previousLoad?.generation === selected.generation
         && previousLoad.sessionFile === selected.sessionFile
         ? previousLoad.eventBuffer
-        : createPrimeEventBuffer(),
+        : createAgentEventBuffer(),
       runtimeId,
       reconciliation,
       admissionRevision: promptAdmissionRevisionRef.current,

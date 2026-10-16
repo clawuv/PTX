@@ -23,9 +23,8 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type {
   AutomationScheduleRecord,
   HarnessId,
-  NativeHeartbeatRecord,
-  PrimeModelDescriptor,
-  PrimeThinkingLevel,
+  AgentModelDescriptor,
+  AgentThinkingLevel,
   ProjectRecord,
   ScheduleExecution,
   ScheduleInput,
@@ -36,7 +35,7 @@ import type {
   ScheduleTiming,
   SessionRecord,
 } from '@/types/api'
-import { PRIME_THINKING_LEVELS } from '@/types/api'
+import { AGENT_THINKING_LEVELS } from '@/types/api'
 import { formatRelative } from '@/lib/data'
 import { HARNESS_SHORT_NAMES } from '@/lib/harness'
 import { errorMessage } from '@/lib/errors'
@@ -64,17 +63,16 @@ type ScheduleForm = {
   weekdays: string[]
   advancedRrule: string
   model: string
-  thinking: 'auto' | PrimeThinkingLevel
+  thinking: 'auto' | AgentThinkingLevel
   fast: boolean
 }
 
 interface ScheduledPageProps {
   harness: HarnessId
   schedules: AutomationScheduleRecord[]
-  nativeHeartbeats: NativeHeartbeatRecord[]
   projects: ProjectRecord[]
   sessions: SessionRecord[]
-  models: PrimeModelDescriptor[]
+  models: AgentModelDescriptor[]
   lastSelectedModel: string
   error?: string
   initialProjectId?: string
@@ -88,7 +86,6 @@ interface ScheduledPageProps {
   onRunNow(id: string): Promise<void>
   onPreview(timing: ScheduleTiming): Promise<SchedulePreview>
   onOpenSession(sessionFile: string): void
-  onManageHeartbeat(id: string, action: 'pause' | 'resume' | 'stop'): Promise<void>
   openCreateSignal?: number
   showHeaderAction?: boolean
 }
@@ -104,8 +101,8 @@ const WEEKDAYS = [
   { value: 'SU', label: 'scheduled.weekdayShort.su', long: 'scheduled.weekday.sunday' },
 ] as const
 const DAY_CODES = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'] as const
-const THINKING_LEVELS: readonly PrimeThinkingLevel[] = PRIME_THINKING_LEVELS
-const THINKING_LABELS: Record<PrimeThinkingLevel, MessageKey> = {
+const THINKING_LEVELS: readonly AgentThinkingLevel[] = AGENT_THINKING_LEVELS
+const THINKING_LABELS: Record<AgentThinkingLevel, MessageKey> = {
   off: 'scheduled.thinking.off',
   minimal: 'scheduled.thinking.minimal',
   low: 'scheduled.thinking.low',
@@ -114,7 +111,7 @@ const THINKING_LABELS: Record<PrimeThinkingLevel, MessageKey> = {
   xhigh: 'scheduled.thinking.xhigh',
   max: 'scheduled.thinking.max',
 }
-const REASONING_LABELS: Record<'auto' | PrimeThinkingLevel, MessageKey> = {
+const REASONING_LABELS: Record<'auto' | AgentThinkingLevel, MessageKey> = {
   auto: 'scheduled.reasoningValue.auto',
   off: 'scheduled.reasoningValue.off',
   minimal: 'scheduled.reasoningValue.minimal',
@@ -169,13 +166,13 @@ function projectForSession(session: SessionRecord, projects: ProjectRecord[]) {
   return projects.find((project) => project.path === session.projectPath)
 }
 
-function defaultScheduleModel(models: PrimeModelDescriptor[], lastSelectedModel: string): string {
+function defaultScheduleModel(models: AgentModelDescriptor[], lastSelectedModel: string): string {
   return models.find((model) => model.key === lastSelectedModel && model.enabled !== false && model.available)?.key
     ?? models.find((model) => model.enabled !== false && model.available)?.key
     ?? ''
 }
 
-function defaultForm(projects: ProjectRecord[], sessions: SessionRecord[], models: PrimeModelDescriptor[], lastSelectedModel: string, initialProjectId?: string, initialSessionId?: string): ScheduleForm {
+function defaultForm(projects: ProjectRecord[], sessions: SessionRecord[], models: AgentModelDescriptor[], lastSelectedModel: string, initialProjectId?: string, initialSessionId?: string): ScheduleForm {
   const authorizedProjects = projects.filter(isAuthorized)
   const initialSession = sessions.find((session) => session.id === initialSessionId && !session.archived)
   const sessionProject = initialSession ? projectForSession(initialSession, authorizedProjects) : undefined
@@ -210,7 +207,7 @@ function rruleParts(rrule: string) {
   }))
 }
 
-function formFromSchedule(item: AutomationScheduleRecord, models: PrimeModelDescriptor[], lastSelectedModel: string): ScheduleForm {
+function formFromSchedule(item: AutomationScheduleRecord, models: AgentModelDescriptor[], lastSelectedModel: string): ScheduleForm {
   const start = item.timing.kind === 'once'
     ? localParts(new Date(item.timing.at))
     : { date: item.timing.dtstartLocal.slice(0, 10), time: item.timing.dtstartLocal.slice(11, 16) }
@@ -339,8 +336,8 @@ function runIcon(status: ScheduleRunRecord['status']) {
 
 
 export function ScheduledPage({
-  harness, schedules, nativeHeartbeats, projects, sessions, models, lastSelectedModel, error, initialProjectId, initialSessionId, selectedScheduleId,
-  onCreate, onUpdate, onPause, onResume, onDelete, onRunNow, onPreview, onOpenSession, onManageHeartbeat, openCreateSignal = 0, showHeaderAction = true,
+  harness, schedules, projects, sessions, models, lastSelectedModel, error, initialProjectId, initialSessionId, selectedScheduleId,
+  onCreate, onUpdate, onPause, onResume, onDelete, onRunNow, onPreview, onOpenSession, openCreateSignal = 0, showHeaderAction = true,
 }: ScheduledPageProps) {
   const { t } = useI18n()
   const [filter, setFilter] = useState<ScheduleFilter>('active')
@@ -622,14 +619,6 @@ export function ScheduledPage({
           <ChevronRight className="schedule-row__chevron" size={16} />
         </button>
       })}</div> : <EmptyState icon={<CalendarClock size={24} />} title={filter === 'all' ? t('scheduled.empty.all') : filter === 'attention' ? t('scheduled.empty.attention') : filter === 'active' ? t('scheduled.empty.active') : t('scheduled.empty.paused')} action={schedules.length ? undefined : <button type="button" className="button button--primary" onClick={openCreate}><Plus size={13} /> {t('scheduled.createSchedule')}</button>}> {schedules.length ? t('scheduled.empty.filterHint') : t('scheduled.empty.createHint', { harness: HARNESS_SHORT_NAMES[harness] })}</EmptyState>}
-      {nativeHeartbeats.length ? <section className="native-heartbeats" aria-labelledby="native-heartbeats-title">
-        <div className="native-heartbeats__header"><div><span className="schedule-page__kicker">{t('scheduled.heartbeats.kicker')}</span><h2 id="native-heartbeats-title">{t('scheduled.heartbeats.title')}</h2></div><small>{t('scheduled.heartbeats.note')}</small></div>
-        <div className="native-heartbeats__list">{nativeHeartbeats.map((heartbeat) => <article key={heartbeat.id} className="native-heartbeat">
-          <span className={`schedule-row__status schedule-row__status--${heartbeat.status}`}><CalendarClock size={15} /></span>
-          <div className="native-heartbeat__main"><span><strong>{heartbeat.label || (heartbeat.source === 'heartbeat' ? t('scheduled.heartbeat.thread') : t('scheduled.heartbeat.agent'))}</strong><i className={`schedule-state schedule-state--${heartbeat.status}`}>{t(heartbeat.status === 'active' ? 'scheduled.heartbeat.status.active' : 'scheduled.heartbeat.status.paused')}</i></span><p>{heartbeat.prompt}</p><small>{heartbeat.schedule}{heartbeat.nextRunAt ? t('scheduled.heartbeat.next', { time: formatRelative(heartbeat.nextRunAt) }) : ''}</small></div>
-          <div className="native-heartbeat__actions">{heartbeat.status === 'active' ? <button type="button" className="button" disabled={Boolean(action)} onClick={() => void perform(`heartbeat:${heartbeat.id}`, () => onManageHeartbeat(heartbeat.id, 'pause'), t('scheduled.heartbeat.paused'))}>{t('scheduled.pause')}</button> : <button type="button" className="button" disabled={Boolean(action)} onClick={() => void perform(`heartbeat:${heartbeat.id}`, () => onManageHeartbeat(heartbeat.id, 'resume'), t('scheduled.heartbeat.resumed'))}>{t('scheduled.resume')}</button>}<button type="button" className="button" disabled={Boolean(action)} onClick={() => void perform(`heartbeat:${heartbeat.id}`, () => onManageHeartbeat(heartbeat.id, 'stop'), t('scheduled.heartbeat.stopped'))}>{t('scheduled.stop')}</button></div>
-        </article>)}</div>
-      </section> : null}
       {editorModal}
     </div></div>
   )

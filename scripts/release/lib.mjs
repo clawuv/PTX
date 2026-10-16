@@ -260,14 +260,7 @@ export function assertArchitectureCoverage(appArchitectures, nativeArchitectures
 
 export function assertAsarLayout(entries) {
   const normalized = new Set(entries.map((entry) => entry.replaceAll('\\', '/').replace(/^\//, '')))
-  const required = [
-    'out/main/index.js',
-    'out/preload/index.js',
-    'out/renderer/index.html',
-    'node_modules/node-pty/lib/index.js',
-    'node_modules/zeromq/lib/index.js',
-    'node_modules/zeromq/build/manifest.json',
-  ]
+  const required = ['out/main/index.js', 'out/preload/index.js', 'out/renderer/index.html', 'node_modules/node-pty/lib/index.js']
   const missing = required.filter((entry) => !normalized.has(entry))
   if (missing.length) throw new Error(`ASAR is missing required runtime entries: ${missing.join(', ')}`)
   const forbiddenPrefixes = ['node_modules/@xterm/', 'node_modules/lucide-react/', 'node_modules/react/', 'node_modules/react-dom/', 'node_modules/react-markdown/', 'node_modules/remark-gfm/']
@@ -299,28 +292,12 @@ export function assertPackagedExtensions(resourcesDirectory) {
 
 const NODE_PTY_UNPACKED_FILES = ['node_modules/node-pty/build/Release/pty.node', 'node_modules/node-pty/build/Release/spawn-helper']
 
-const ZEROMQ_ARCHITECTURE_DIRECTORIES = new Map([
-  ['arm64', 'arm64'],
-  ['x86_64', 'x64'],
-])
-
-// Runtime-library directory names (for example, "libc-115-Release") encode
-// the zeromq prebuild's toolchain and change across upgrades. An architecture
-// may intentionally ship multiple ABI fallbacks, so match the bounded set
-// without pinning the directory names.
 export function expectedUnpackedNativeLayout(appArchitectures) {
   if (!appArchitectures.size) throw new Error('Packaged application architecture list is empty')
-  const files = [...NODE_PTY_UNPACKED_FILES]
-  const zeroMqAddons = []
-  for (const architecture of [...appArchitectures].sort()) {
-    const directory = ZEROMQ_ARCHITECTURE_DIRECTORIES.get(architecture)
-    if (!directory) throw new Error(`Unsupported packaged application architecture: ${architecture}`)
-    zeroMqAddons.push({
-      label: `node_modules/zeromq/build/darwin/${directory}/node/*-Release/addon.node`,
-      pattern: new RegExp(`^node_modules/zeromq/build/darwin/${directory}/node/[^/]+-Release/addon\\.node$`),
-    })
+  for (const architecture of appArchitectures) {
+    if (!['arm64', 'x86_64'].includes(architecture)) throw new Error(`Unsupported packaged application architecture: ${architecture}`)
   }
-  return { files, zeroMqAddons }
+  return { files: [...NODE_PTY_UNPACKED_FILES] }
 }
 
 function listUnpackedEntries(directory, prefix = '', found = { files: [], directories: [] }) {
@@ -345,16 +322,11 @@ function expectedDirectories(files) {
 }
 
 export function assertUnpackedNativeLayout(unpackedDirectory, appArchitectures, readArchitectures) {
-  const { files, zeroMqAddons } = expectedUnpackedNativeLayout(appArchitectures)
+  const { files } = expectedUnpackedNativeLayout(appArchitectures)
   const actual = listUnpackedEntries(unpackedDirectory)
   const missing = files.filter((path) => !actual.files.includes(path))
   if (missing.length) throw new Error(`Missing unpacked native runtime file(s): ${missing.join(', ')}`)
   const expected = [...files]
-  for (const { label, pattern } of zeroMqAddons) {
-    const matches = actual.files.filter((path) => pattern.test(path))
-    if (!matches.length) throw new Error(`Expected at least one unpacked ZeroMQ addon matching ${label}, found 0`)
-    expected.push(...matches)
-  }
   const expectedSet = new Set(expected)
   const allowedDirectories = expectedDirectories(expected)
   const extra = [...actual.files.filter((path) => !expectedSet.has(path)), ...actual.directories.filter((path) => !allowedDirectories.has(path))]

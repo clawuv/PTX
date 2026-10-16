@@ -25,20 +25,6 @@ export interface HarnessDescriptor {
 }
 
 export const HARNESSES: Record<HarnessId, HarnessDescriptor> = {
-  prime: {
-    id: 'prime',
-    productName: 'Prime Work',
-    agentName: 'Prime Agent',
-    executableName: (platform) => platform === 'win32' ? 'prime-agent.exe' : 'prime-agent',
-    binaryEnvVar: 'PRIME_AGENT_BINARY',
-    bundledResourceDirs: [['agent'], ['agent', 'bin']],
-    candidateDirs: (platform, home, env) => platform === 'win32' ? [] : [
-      join(env.XDG_DATA_HOME ?? join(home, '.local', 'share'), 'prime-agent-node', 'current', 'bin'),
-    ],
-    agentDir: (home) => join(home, '.prime', 'agent'),
-    sessionRoot: (home) => join(home, '.prime', 'agent', 'sessions'),
-    capabilities: { nativeApprovals: true, approvalModeOverride: false, nativeHeartbeats: true, nativeMcp: true, offlineRename: true, serviceTierRpc: true },
-  },
   omp: {
     id: 'omp',
     productName: 'OMP Work',
@@ -52,7 +38,7 @@ export const HARNESSES: Record<HarnessId, HarnessDescriptor> = {
     },
     agentDir: (home) => join(home, '.omp', 'agent'),
     sessionRoot: (home) => join(home, '.omp', 'agent', 'sessions'),
-    capabilities: { nativeApprovals: false, approvalModeOverride: true, nativeHeartbeats: false, nativeMcp: true, offlineRename: false, serviceTierRpc: true },
+    capabilities: { nativeApprovals: false, approvalModeOverride: true, nativeMcp: true, offlineRename: false, serviceTierRpc: true },
   },
   pi: {
     id: 'pi',
@@ -66,6 +52,6 @@ export const HARNESSES: Record<HarnessId, HarnessDescriptor> = {
     ],
     agentDir: (home) => join(home, '.pi', 'agent'),
     sessionRoot: (home) => join(home, '.pi', 'agent', 'sessions'),
-    capabilities: { nativeApprovals: false, approvalModeOverride: false, nativeHeartbeats: false, nativeMcp: false, offlineRename: false, serviceTierRpc: false },
+    capabilities: { nativeApprovals: false, approvalModeOverride: false, nativeMcp: false, offlineRename: false, serviceTierRpc: false },
   },
 }

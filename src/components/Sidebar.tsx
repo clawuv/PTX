@@ -6,7 +6,6 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
-  CircleHelp,
   Copy,
   Download,
   Folder,
@@ -30,8 +29,8 @@ import { useI18n, type MessageKey, type MessageValues } from '@/lib/i18n'
 import { shortcutLabel } from '@/lib/platform-shortcuts'
 import { sessionAttentionSignature, signatureCleared } from '@/app/session-attention'
 import type { SettingsSection } from '@/pages/settings/contracts'
-import { SETTINGS_SECTIONS } from '@/pages/settings/sections'
-import { IconButton, Modal, OmpMark, PiMark, PrimeMark } from './ui'
+import { SETTINGS_SECTION_GROUPS } from '@/pages/settings/sections'
+import { IconButton, Modal, OmpMark, PiMark } from './ui'
 
 export interface SidebarProps {
   projects: ProjectRecord[]
@@ -51,7 +50,6 @@ export interface SidebarProps {
   onNewSession(project?: ProjectRecord): void
   onAddProject(): void
   onRemoveProject(project: ProjectRecord): void
-  onOpenDocs?(): void
   onOpenPalette(): void
   onRenameSession(session: SessionRecord, title: string): Promise<void>
   onArchiveSession(session: SessionRecord): Promise<void>
@@ -124,7 +122,7 @@ function SessionStatusMark({ status, attention }: { status: SessionRecord['statu
   return <span className={`session-status-mark session-status-mark--${status}`} title={title}><span /></span>
 }
 
-const HARNESS_MARKS: Record<HarnessId, (props: { size?: number }) => ReactElement> = { omp: OmpMark, prime: PrimeMark, pi: PiMark }
+const HARNESS_MARKS: Record<HarnessId, (props: { size?: number }) => ReactElement> = { omp: OmpMark, pi: PiMark }
 
 function HarnessMark({ harness, size }: { harness: HarnessId; size: number }) {
   const Mark = HARNESS_MARKS[harness]
@@ -191,7 +189,7 @@ async function copySessionUuid(id: string): Promise<void> {
   if (!copied) throw new Error('Copy is unavailable')
 }
 
-function SidebarView({ projects, sessions, activeProjectId, activeSessionId, activeView, activeHarness = 'omp', harnesses, clearedAttention = {}, updateState = { phase: 'unsupported' }, onUpdateAction, onSelectHarness, onSelectSession, onNavigate, onNewSession, onAddProject, onRemoveProject, onOpenDocs, onOpenPalette, onRenameSession, onArchiveSession, settingsMode = false, activeSettingsSection = 'general', onSelectSettingsSection, platform = 'darwin', schedulesAttention = 0 }: SidebarProps) {
+function SidebarView({ projects, sessions, activeProjectId, activeSessionId, activeView, activeHarness = 'omp', harnesses, clearedAttention = {}, updateState = { phase: 'unsupported' }, onUpdateAction, onSelectHarness, onSelectSession, onNavigate, onNewSession, onAddProject, onRemoveProject, onOpenPalette, onRenameSession, onArchiveSession, settingsMode = false, activeSettingsSection = 'general', onSelectSettingsSection, platform = 'darwin', schedulesAttention = 0 }: SidebarProps) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [harnessMenuOpen, setHarnessMenuOpen] = useState(false)
@@ -217,7 +215,6 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
   const updateConfirm = updateConfirmCopy(updateState, t)
   const updateBusy = updateState.phase === 'checking' || updateState.phase === 'downloading'
   const updateIndeterminate = updateState.phase === 'downloading' && updateState.percent === undefined
-  const updateVisible = updateState.phase === 'available' || updateState.phase === 'downloading' || updateState.phase === 'downloaded' || updateState.phase === 'error'
   useEffect(() => {
     if (!harnessMenuOpen) return
     const dismiss = (event: PointerEvent) => { if (!(event.target instanceof Element) || !event.target.closest('.brand-switcher')) setHarnessMenuOpen(false) }
@@ -306,10 +303,15 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
           <button type="button" className="sidebar__settings-back" onClick={() => onNavigate('session')}>
             <ArrowLeft size={15} /><span>{t('settings.back')}</span>
           </button>
-          {SETTINGS_SECTIONS.map(({ id, label, icon: Icon }) => (
-            <button key={id} type="button" className={activeSettingsSection === id ? 'is-active' : ''} onClick={() => onSelectSettingsSection?.(id)}>
-              <Icon size={15} /><span>{t(label)}</span>
-            </button>
+          {SETTINGS_SECTION_GROUPS.map((group) => (
+            <div key={String(group.label)} className="sidebar__settings-group" role="group" aria-label={t(group.label)}>
+              <div className="sidebar__settings-group-label">{t(group.label)}</div>
+              {group.sections.map(({ id, label, icon: Icon }) => (
+                <button key={id} type="button" className={activeSettingsSection === id ? 'is-active' : ''} onClick={() => onSelectSettingsSection?.(id)}>
+                  <Icon size={14} /><span>{t(label)}</span>
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
       ) : (
@@ -387,24 +389,20 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
 
       {settingsMode ? null : (
         <div className="sidebar__footer">
-        {updateVisible ? (
-          <>
             <span className="sr-only" role="status" aria-live="polite">{updateAnnouncement(updateState, t)}</span>
             <button
               type="button"
               className={`sidebar-update sidebar-update--${updateState.phase} ${updateIndeterminate ? 'sidebar-update--indeterminate' : ''}`}
               title={updateCopy.title}
               aria-label={updateCopy.title}
-              disabled={updateBusy}
-              onClick={() => { if (updateState.phase === 'error') void onUpdateAction?.(); else setConfirmUpdate(true) }}
+              disabled={updateBusy || updateState.phase === 'unsupported' || !onUpdateAction}
+              onClick={() => { if (updateState.phase === 'available' || updateState.phase === 'downloaded') setConfirmUpdate(true); else void onUpdateAction?.() }}
+              style={{ '--update-progress': `${updateState.percent ?? 0}%` } as CSSProperties}
             >
-              <span className="sidebar-update__icon" style={{ '--update-progress': `${updateState.percent ?? 0}%` } as CSSProperties}><Download size={12} /></span>
+              <span className="sidebar-update__icon"><Download size={12} /></span>
               <span className="sr-only">{updateCopy.label}</span>
             </button>
-          </>
-        ) : null}
         <button type="button" title={t('nav.settings')} className={`sidebar__settings-entry${settingsMode ? ' is-active' : ''}`} onClick={() => onNavigate(settingsMode ? 'session' : 'settings')}><Settings size={15} /><span>{activeProjectName}</span><kbd>{settingsShortcut}</kbd></button>
-        {onOpenDocs ? <IconButton className="sidebar__help" size="small" label={t('menu.help')} onClick={() => onOpenDocs()}><CircleHelp size={15} /></IconButton> : null}
         </div>
       )}
       {renameTarget ? <Modal title={t('sidebar.renameTitle')} onClose={() => setRenameTarget(null)} footer={<><button type="button" className="button" onClick={() => setRenameTarget(null)}>{t('sidebar.cancel')}</button><button type="button" className="button button--primary" disabled={!renameValue.trim()} onClick={() => { const target = renameTarget; const title = renameValue.trim(); setRenameTarget(null); void onRenameSession(target, title) }}>{t('sidebar.rename')}</button></>}><label className="field"><span>{t('sidebar.sessionName')}</span><input autoFocus value={renameValue} maxLength={200} onChange={(event) => setRenameValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && renameValue.trim()) { event.preventDefault(); const target = renameTarget; const title = renameValue.trim(); setRenameTarget(null); void onRenameSession(target, title) } }}/></label></Modal> : null}
@@ -432,7 +430,6 @@ export function areSidebarPropsEqual(previous: SidebarProps, next: SidebarProps)
     && previous.onNewSession === next.onNewSession
     && previous.onAddProject === next.onAddProject
     && previous.onRemoveProject === next.onRemoveProject
-    && previous.onOpenDocs === next.onOpenDocs
     && previous.onOpenPalette === next.onOpenPalette
   && previous.onRenameSession === next.onRenameSession
   && previous.onArchiveSession === next.onArchiveSession

@@ -4,9 +4,8 @@ import type {
   AgentBrowserPointerEvent,
   AgentBrowserState,
   AppUpdateState,
-  PrimeEventEnvelope,
-  PrimeWorkApi,
-  ProviderAuthEvent,
+  AgentEventEnvelope,
+  PtxApi,
   ScheduleChangeEvent,
   SessionChangeEvent,
   TerminalDataEvent,
@@ -47,7 +46,7 @@ function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
   })
 }
 
-const api: PrimeWorkApi = {
+const api: PtxApi = {
   app: {
     getMeta: () => invoke('app:get-meta'),
     refreshHarnesses: () => invoke('app:refresh-harnesses'),
@@ -86,7 +85,6 @@ const api: PrimeWorkApi = {
   sessions: {
     list: (projectPath, includeArchived, harness, force) => invoke('sessions:list', projectPath, includeArchived, harness, force),
     read: (filePath) => invoke('sessions:read', filePath),
-    followUp: (filePath, message, intent) => invoke('sessions:follow-up', filePath, message, intent),
     rename: (filePath, title) => invoke('sessions:rename', filePath, title),
     archive: (filePath, archived) => invoke('sessions:archive', filePath, archived),
     onChanged: (callback) => subscribe<SessionChangeEvent>('sessions:changed', callback),
@@ -96,19 +94,13 @@ const api: PrimeWorkApi = {
     command: (runtimeId, command) => invoke('agent:command', runtimeId, command),
     stop: (runtimeId) => invoke('agent:stop', runtimeId),
     list: () => invoke('agent:list'),
-    onEvent: (callback) => subscribe<PrimeEventEnvelope>('agent:event', callback),
+    onEvent: (callback) => subscribe<AgentEventEnvelope>('agent:event', callback),
   },
   providers: {
     catalog: (force, harness) => invoke('providers:catalog', force, harness),
-    saveApiKey: (providerId, apiKey) => invoke('providers:save-api-key', providerId, apiKey),
-    logout: (providerId) => invoke('providers:logout', providerId),
     setEnabled: (providerId, enabled, harness) => invoke('providers:set-enabled', providerId, enabled, harness),
     setDisabled: (providerIds, harness) => invoke('providers:set-disabled', providerIds, harness),
     setModelEnabled: (modelKey, enabled, harness) => invoke('providers:set-model-enabled', modelKey, enabled, harness),
-    startOAuth: (providerId) => invoke('providers:start-oauth', providerId),
-    respondOAuth: (flowId, promptId, value) => invoke('providers:respond-oauth', flowId, promptId, value),
-    cancelOAuth: (flowId) => invoke('providers:cancel-oauth', flowId),
-    onAuthEvent: (callback) => subscribe<ProviderAuthEvent>('providers:auth-event', callback),
   },
   voice: {
     credentialStatus: () => invoke('voice:credential-status'),
@@ -176,10 +168,6 @@ const api: PrimeWorkApi = {
     onPointer: (callback) => subscribe<AgentBrowserPointerEvent>('browser:pointer', callback),
     onActivity: (callback) => subscribe<AgentBrowserActivityEvent>('browser:activity', callback),
   },
-  heartbeats: {
-    list: () => invoke('heartbeats:list'),
-    manage: (id, action) => invoke('heartbeats:manage', id, action),
-  },
   schedules: {
     list: (harness) => invoke('schedules:list', harness),
     get: (id) => invoke('schedules:get', id),
@@ -196,4 +184,4 @@ const api: PrimeWorkApi = {
 }
 
 for (const domain of Object.values(api)) Object.freeze(domain)
-contextBridge.exposeInMainWorld('prime', Object.freeze(api))
+contextBridge.exposeInMainWorld('ptx', Object.freeze(api))

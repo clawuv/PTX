@@ -45,8 +45,7 @@ function services(): Record<string, unknown> {
     schedules: { ...serviceStub(), onDidChange: vi.fn(() => () => undefined) },
     browser: { ...serviceStub(), onDidChange: vi.fn(() => vi.fn()), onPointer: vi.fn(() => vi.fn()), onActivity: vi.fn(() => vi.fn()) },
     pets: { list: vi.fn(async () => [{ id: 'orb' }]), sprite: vi.fn(async () => 'data:image/webp;base64,pet') },
-    omp: harnessStub(),
-    pi: harnessStub(),
+    harnesses: { omp: { ...harnessStub(), projects: serviceStub(), sessions: { onDidChange: vi.fn(() => () => undefined) }, plugins: serviceStub() }, pi: harnessStub() },
     applyInterfaceZoom: vi.fn(),
   }
 }
@@ -146,21 +145,18 @@ describe('registerIpc verify gate', () => {
 
   it('recycles all harness runtimes when the universal ask_user toggle changes', async () => {
     const event = fakeEvent()
-    const refreshPrime = vi.fn(async () => undefined)
     const refreshOmp = vi.fn(async () => undefined)
     const refreshPi = vi.fn(async () => undefined)
     stubs.settings = {
       get: () => ({ askUserEnabled: true }),
       update: vi.fn(async () => ({ interfaceFontScale: 110, askUserEnabled: false })),
     }
-    stubs.agents = { ...serviceStub(), requestRuntimeEnvironmentRefresh: refreshPrime }
-    ;(stubs.omp as { agents: unknown }).agents = { ...serviceStub(), requestRuntimeEnvironmentRefresh: refreshOmp }
-    ;(stubs.pi as { agents: unknown }).agents = { ...serviceStub(), requestRuntimeEnvironmentRefresh: refreshPi }
+    ;((stubs.harnesses as Record<string, { agents: unknown }>).omp).agents = { ...serviceStub(), requestRuntimeEnvironmentRefresh: refreshOmp }
+    ;((stubs.harnesses as Record<string, { agents: unknown }>).pi).agents = { ...serviceStub(), requestRuntimeEnvironmentRefresh: refreshPi }
     registration.authorize(event.sender as never)
 
     await handlers.get('settings:update')!(event, { askUserEnabled: false })
 
-    expect(refreshPrime).toHaveBeenCalledOnce()
     expect(refreshOmp).toHaveBeenCalledOnce()
     expect(refreshPi).toHaveBeenCalledOnce()
     registration.dispose()

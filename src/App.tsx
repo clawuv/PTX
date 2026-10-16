@@ -46,10 +46,9 @@ import type {
   GitStatus,
   GitWorktree,
   HarnessId,
-  NativeHeartbeatRecord,
   OpenWithTargetId,
-  PrimeModelDescriptor,
-  PrimeProviderDescriptor,
+  AgentModelDescriptor,
+  AgentProviderDescriptor,
   ProjectRecord,
   QueuedPrompt,
   ScheduleTiming,
@@ -64,7 +63,6 @@ const Inspector = lazy(() => import('@/components/Inspector').then((module) => (
 const TerminalDrawer = lazy(() => import('@/components/TerminalDrawer').then((module) => ({ default: module.TerminalDrawer })))
 const CommandPalette = lazy(() => import('@/components/CommandPalette').then((module) => ({ default: module.CommandPalette })))
 const ExtensionUiModal = lazy(() => import('@/components/ExtensionUiModal').then((module) => ({ default: module.ExtensionUiModal })))
-const ProviderAuthModal = lazy(() => import('@/components/ProviderAuthModal').then((module) => ({ default: module.ProviderAuthModal })))
 const VoiceOrb = lazy(() => import('@/components/VoiceOrb').then((module) => ({ default: module.VoiceOrb })))
 const DesktopPet = lazy(() => import('@/components/DesktopPet').then((module) => ({ default: module.DesktopPet })))
 const ProjectsPage = lazy(() => import('@/pages/ProjectsPage').then((module) => ({ default: module.ProjectsPage })))
@@ -73,13 +71,12 @@ const ScheduledPage = lazy(() => import('@/pages/ScheduledPage').then((module) =
 const PluginsPage = lazy(() => import('@/pages/PluginsPage').then((module) => ({ default: module.PluginsPage })))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((module) => ({ default: module.SettingsPage })))
 
-const hasBridge = () => typeof window !== 'undefined' && typeof window.prime !== 'undefined'
+const hasBridge = () => typeof window !== 'undefined' && typeof window.ptx !== 'undefined'
 // Stable fallback identities keep memoized children from re-rendering while the catalog loads.
-const EMPTY_MODELS: PrimeModelDescriptor[] = []
-const EMPTY_PROVIDERS: PrimeProviderDescriptor[] = []
+const EMPTY_MODELS: AgentModelDescriptor[] = []
+const EMPTY_PROVIDERS: AgentProviderDescriptor[] = []
 const HARNESS_PROVIDER_DOCS: Record<HarnessId, string> = {
   omp: 'https://github.com/can1357/oh-my-pi/blob/main/docs/providers.md',
-  prime: 'https://github.com/PrimeIntellect-ai/prime-agent',
   pi: 'https://pi.dev',
 }
 // Suspense fallback labels stay plain strings at the call sites (the bundle
@@ -134,7 +131,7 @@ interface ActiveProjectScriptRun {
 type ProjectScriptRunOutcome = { cancelled: true } | { exitCode: number }
 
 export default function App() {
-  const bridge = hasBridge() ? window.prime : null
+  const bridge = hasBridge() ? window.ptx : null
   const initialProject = bridge ? undefined : SAMPLE_PROJECTS[0]
   const initialSession = bridge ? undefined : SAMPLE_SESSIONS[0]
   const [projects, setProjects] = useState<ProjectRecord[]>(() => (bridge ? [] : SAMPLE_PROJECTS))
@@ -142,7 +139,6 @@ export default function App() {
   const [clearedAttention, setClearedAttention] = useState<Record<string, string>>(() => readClearedAttention())
   const [clearedActivity, setClearedActivity] = useState<Record<string, string>>(() => readClearedActivity())
   const [schedules, setSchedules] = useState<AutomationScheduleRecord[]>(() => (bridge ? [] : SAMPLE_SCHEDULES))
-  const [heartbeats, setHeartbeats] = useState<NativeHeartbeatRecord[]>([])
   const [scheduleFocusId, setScheduleFocusId] = useState<string | null>(null)
   const schedulesAttention = useMemo(() => countSchedulesNeedingAttention(schedules), [schedules])
   const [scheduleError, setScheduleError] = useState('')
@@ -535,31 +531,6 @@ export default function App() {
       setView('scheduled')
     })
   }, [bridge])
-  const refreshHeartbeats = useCallback(async () => {
-    if (!bridge) return
-    try {
-      setHeartbeats(await bridge.heartbeats.list())
-    } catch (error) {
-      reportError(error)
-    }
-  }, [bridge, reportError])
-  useEffect(() => {
-    if (!bridge) return
-    void refreshHeartbeats()
-    // Prime Agent emits this event for both /heartbeat and rlm_heartbeat
-    // mutations. The 30s poll remains a recovery path for jobs created by a
-    // resident daemon outside this renderer, but normal changes are immediate.
-    const unsubscribe = bridge.agent.onEvent(({ event }) => {
-      if (event.type === 'heartbeats_changed') void refreshHeartbeats()
-    })
-    const interval = window.setInterval(() => {
-      void refreshHeartbeats()
-    }, 30_000)
-    return () => {
-      unsubscribe()
-      window.clearInterval(interval)
-    }
-  }, [bridge, refreshHeartbeats])
   const patchProjectScripts = useCallback((projectId: string, scripts: NonNullable<ProjectRecord['scripts']>) => {
     setProjects((current) => current.map((project) => (project.id === projectId ? { ...project, scripts } : project)))
   }, [])
@@ -610,7 +581,6 @@ export default function App() {
     createSchedule,
     updateSchedule,
     mutateSchedule,
-    manageHeartbeat,
     openScheduledSession,
     openBrowser,
     openChanges,
@@ -636,7 +606,6 @@ export default function App() {
     setToast,
     setSubmitting,
     refreshSchedules,
-    refreshHeartbeats,
     resetBrowserView: () => setBrowserGeneration((value) => value + 1),
     closeTerminalForSession: (sessionPath) => {
       const removed = terminalSessions.find((terminal) => terminal.sessionPath === sessionPath)
@@ -892,9 +861,6 @@ export default function App() {
     onRemoveProject: (project) => {
       void removeProject(project)
     },
-    onOpenDocs: () => {
-      openExternal(HARNESS_PROVIDER_DOCS[activeHarness])
-    },
     onOpenPalette: () => setPaletteOpen(true),
     onRenameSession: renameSession,
     onArchiveSession: (session) => setSessionArchived(session, true),
@@ -959,7 +925,6 @@ export default function App() {
       <ScheduledPage
         harness={activeHarness}
         schedules={schedules}
-        nativeHeartbeats={activeHarness === 'prime' ? heartbeats : []}
         projects={projects}
         sessions={sessions}
         models={provider.catalog?.models ?? EMPTY_MODELS}
@@ -976,7 +941,6 @@ export default function App() {
         onRunNow={(id: string) => mutateSchedule(() => bridge!.schedules.runNow(id))}
         onPreview={async (timing: ScheduleTiming) => (bridge ? bridge.schedules.preview(timing, 3) : { timing, occurrences: [] })}
         onOpenSession={openScheduledSession}
-        onManageHeartbeat={manageHeartbeat}
         openCreateSignal={pageActionSignal}
         showHeaderAction={false}
       />
@@ -1017,13 +981,10 @@ export default function App() {
         onUpdate={settingsState.updateSettings}
         onRefreshHarnesses={refreshDetectedHarnesses}
         onRefreshProviders={() => provider.refresh(true)}
-        onSaveProviderApiKey={provider.saveApiKey}
-        onLogoutProvider={provider.logout}
         onSetProviderEnabled={provider.setEnabled}
         onSetAllProvidersEnabled={provider.setAllEnabled}
         onSetAllProvidersDisabled={provider.setAllDisabled}
         onSetModelEnabled={provider.setModelEnabled}
-        onStartProviderOAuth={provider.startOAuth}
         onResetBrowser={async () => {
           if (!bridge) throw new Error(t('app.browser.desktopOnly'))
           if (!(await bridge.settings.resetBrowserData())) {
@@ -1263,11 +1224,6 @@ export default function App() {
                         messages={workspace.messages}
                         git={git}
                         automations={activeSession ? schedules.filter((task) => task.harness === activeHarness && task.target.kind === 'session' && task.target.sessionId === activeSession.id) : []}
-                        heartbeats={
-                          activeHarness === 'prime' && activeSession
-                            ? heartbeats.filter((heartbeat) => heartbeat.sessionId === activeSession.id || heartbeat.sessionFile === activeSession.filePath)
-                            : []
-                        }
                         onOpenAutomation={(id) => {
                           setScheduleFocusId(id)
                           setView('scheduled')
@@ -1374,11 +1330,6 @@ export default function App() {
         {extension.extensionUi ? (
           <Suspense fallback={<LoadingPanel label="request" />}>
             <ExtensionUiModal request={extension.extensionUi.request} onRespond={(response) => void extension.respondToExtensionUi(response)} platform={platform} />
-          </Suspense>
-        ) : null}
-        {provider.authEvent ? (
-          <Suspense fallback={<LoadingPanel label="provider login" />}>
-            <ProviderAuthModal event={provider.authEvent} onOpen={openExternal} onRespond={provider.respondOAuth} onCancel={provider.cancelOAuth} />
           </Suspense>
         ) : null}
         {meta && !detectedHarnesses.length && !noHarnessPromptDismissed ? (

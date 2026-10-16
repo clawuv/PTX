@@ -21,8 +21,8 @@ function openMarkdownLink(event: MouseEvent<HTMLAnchorElement>, href?: string): 
     return
   }
   if (!/^(https?:|mailto:)/i.test(href)) return
-  if (window.prime) {
-    void openExternalUrl(window.prime.app, href).then((failure) => {
+  if (window.ptx) {
+    void openExternalUrl(window.ptx.app, href).then((failure) => {
       // Transcript links have no toast surface of their own; the refusal still
       // has to leave a trace instead of looking like a dead link.
       if (failure) console.error('Opening a transcript link failed:', failure)

@@ -24,11 +24,11 @@ export function ChangesCard({ git, cwd, readOnly = false, onOpenChanges, onRefre
   const deletions = git.files.reduce((sum, file) => sum + file.deletions, 0)
 
   const undoAll = async () => {
-    if (readOnly || !cwd || !window.prime || undoBusy) return
+    if (readOnly || !cwd || !window.ptx || undoBusy) return
     setUndoBusy(true)
     setUndoError('')
     try {
-      const ok = await window.prime.git.restore(cwd, git.files.map((file) => file.path))
+      const ok = await window.ptx.git.restore(cwd, git.files.map((file) => file.path))
       if (!ok) throw new Error(t('changescard.undoFailed'))
       setConfirmUndo(false)
       await onRefreshGit?.()

@@ -70,8 +70,8 @@ export function readPageScript(mode: 'interactive' | 'text', maxTextChars: numbe
       if (el.disabled === true) entry.disabled = true
       elements.push(entry)
     }
-    window.__primeWorkAgentRefs = refs
-    window.__primeWorkAgentRefsUrl = location.href
+    window.__ptxAgentRefs = refs
+    window.__ptxAgentRefsUrl = location.href
     const result = {
       url: String(location.href).slice(0, 2000),
       title: bound(document.title, 300),
@@ -89,8 +89,8 @@ export function readPageScript(mode: 'interactive' | 'text', maxTextChars: numbe
 export function refPointScript(ref: number, focus: boolean): string {
   const index = boundedInt(ref, 0, 999, 'ref')
   return `(() => {
-    const refs = window.__primeWorkAgentRefs
-    if (!Array.isArray(refs) || window.__primeWorkAgentRefsUrl !== location.href) return JSON.stringify({ error: 'Element refs are stale. Call browser_read_page again to refresh them.' })
+    const refs = window.__ptxAgentRefs
+    if (!Array.isArray(refs) || window.__ptxAgentRefsUrl !== location.href) return JSON.stringify({ error: 'Element refs are stale. Call browser_read_page again to refresh them.' })
     const el = refs[${index}]
     if (!el || !el.isConnected) return JSON.stringify({ error: 'That element ref no longer exists on the page. Call browser_read_page again.' })
     el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' })
@@ -118,10 +118,10 @@ export function cursorMarkerScript(x: number, y: number): string {
   const px = boundedInt(x, 0, 100_000, 'x')
   const py = boundedInt(y, 0, 100_000, 'y')
   return `(() => {
-    let marker = document.getElementById('__primeWorkAgentCursorMarker')
+    let marker = document.getElementById('__ptxAgentCursorMarker')
     if (!marker) {
       marker = document.createElement('div')
-      marker.id = '__primeWorkAgentCursorMarker'
+      marker.id = '__ptxAgentCursorMarker'
       marker.style.cssText = 'position:fixed;z-index:2147483647;pointer-events:none;width:14px;height:14px;margin:-7px 0 0 -7px;border:2.5px solid #fff;border-radius:50%;background:#2488ff;box-shadow:0 0 0 1.5px rgba(0,0,0,.55), 0 0 8px rgba(36,136,255,.9)'
       if (document.documentElement) document.documentElement.appendChild(marker)
     }
@@ -133,7 +133,7 @@ export function cursorMarkerScript(x: number, y: number): string {
 
 export function removeCursorMarkerScript(): string {
   return `(() => {
-    const marker = document.getElementById('__primeWorkAgentCursorMarker')
+    const marker = document.getElementById('__ptxAgentCursorMarker')
     if (marker) marker.remove()
     return true
   })()`

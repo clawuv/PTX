@@ -1,10 +1,11 @@
+import '../helpers/node-script-fixtures'
 import { chmodSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AgentRpcManager, PI_RPC_ADAPTER } from '../../electron/main/agent-rpc'
 import type { ProviderCatalog } from '../../electron/main/agent-rpc'
-import type { PrimeModelDescriptor } from '../../src/types/api'
+import type { AgentModelDescriptor } from '../../src/types/api'
 import { waitUntil } from '../helpers/wait'
 
 const dirs: string[] = []
@@ -62,7 +63,7 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
   return { cwd, executable }
 }
 
-const lunaModel: PrimeModelDescriptor = {
+const lunaModel: AgentModelDescriptor = {
   key: 'openai-codex/gpt-5.6-luna', provider: 'openai-codex', id: 'gpt-5.6-luna', name: 'Luna GPT-5.6',
   reasoning: true, input: ['text', 'image'], contextWindow: 272_000, maxTokens: 64_000,
   availableThinkingLevels: ['off', 'low', 'medium', 'high'], fastModeSupported: true, available: true,
@@ -119,11 +120,11 @@ describe('pi RPC adapter argv', () => {
 
   it('injects only the enabled computer-use skill and forwards the scoped app extensions', () => {
     const environment = {
-      PRIME_WORK_SCHEDULE_SKILL_PATH: '/skills/schedule.md',
-      PRIME_WORK_BROWSER_SKILL_PATH: '/skills/browser.md',
-      PRIME_WORK_SCHEDULE_EXTENSION_PATH: '/extensions/schedules.ts',
-      PRIME_WORK_BROWSER_EXTENSION_PATH: '/extensions/browser.ts',
-      PRIME_WORK_ASK_USER_EXTENSION_PATH: '/extensions/ask-user.ts',
+      PTX_SCHEDULE_SKILL_PATH: '/skills/schedule.md',
+      PTX_BROWSER_SKILL_PATH: '/skills/browser.md',
+      PTX_SCHEDULE_EXTENSION_PATH: '/extensions/schedules.ts',
+      PTX_BROWSER_EXTENSION_PATH: '/extensions/browser.ts',
+      PTX_ASK_USER_EXTENSION_PATH: '/extensions/ask-user.ts',
       PTX_COLLABORATION_EXTENSION_PATH: '/extensions/collaboration.ts',
       PTX_PI_FAST_MODE_EXTENSION_PATH: '/extensions/pi-fast-mode.ts',
       PTX_COMPUTER_USE_SKILL_PATH: '/skills/computer-use.md',
@@ -140,7 +141,7 @@ describe('pi RPC adapter argv', () => {
   })
 
   it('drops unsafe extension paths instead of passing them through', () => {
-    const environment = { PRIME_WORK_BROWSER_EXTENSION_PATH: '--extension-injection' } as NodeJS.ProcessEnv
+    const environment = { PTX_BROWSER_EXTENSION_PATH: '--extension-injection' } as NodeJS.ProcessEnv
     expect(PI_RPC_ADAPTER.buildStartArgs({ ...baseInput, environment })).toEqual(['--mode', 'rpc'])
   })
 })
@@ -204,11 +205,11 @@ describe('pi RPC handshake', () => {
     const fake = fakePiAgent()
     const manager = piManager(fake.executable, { providers: piCatalog })
     manager.setRuntimeEnvironmentProvider(() => ({
-      PRIME_WORK_SCHEDULE_SKILL_PATH: '/skills/schedule.md',
-      PRIME_WORK_BROWSER_SKILL_PATH: '/skills/browser.md',
-      PRIME_WORK_SCHEDULE_EXTENSION_PATH: '/extensions/schedules.ts',
-      PRIME_WORK_BROWSER_EXTENSION_PATH: '/extensions/browser.ts',
-      PRIME_WORK_ASK_USER_EXTENSION_PATH: '/extensions/ask-user.ts',
+      PTX_SCHEDULE_SKILL_PATH: '/skills/schedule.md',
+      PTX_BROWSER_SKILL_PATH: '/skills/browser.md',
+      PTX_SCHEDULE_EXTENSION_PATH: '/extensions/schedules.ts',
+      PTX_BROWSER_EXTENSION_PATH: '/extensions/browser.ts',
+      PTX_ASK_USER_EXTENSION_PATH: '/extensions/ask-user.ts',
       PTX_COLLABORATION_EXTENSION_PATH: '/extensions/collaboration.ts',
       PTX_PI_FAST_MODE_EXTENSION_PATH: '/extensions/pi-fast-mode.ts',
     }))
@@ -254,11 +255,11 @@ describe('pi RPC command translation', () => {
     const runtime = await manager.start({ cwd: fake.cwd })
 
     await expect(manager.command(runtime.runtimeId, { type: 'send_message', targetActiveSessionId: 'session-1', message: 'hello' }))
-      .rejects.toThrow('RPC command send_message is not supported by the Pi harness')
+      .rejects.toThrow('RPC command send_message is not exposed to the renderer')
     await expect(manager.command(runtime.runtimeId, { type: 'clone' }))
-      .rejects.toThrow('RPC command clone is not supported by the Pi harness')
+      .rejects.toThrow('RPC command clone is not exposed to the renderer')
     await expect(manager.command(runtime.runtimeId, { type: 'list_heartbeats' }))
-      .rejects.toThrow('RPC command list_heartbeats is not supported by the Pi harness')
+      .rejects.toThrow('RPC command list_heartbeats is not exposed to the renderer')
     expect(events.some((event) => event.type === 'fake_unknown_command')).toBe(false)
   })
 

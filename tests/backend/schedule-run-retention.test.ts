@@ -31,7 +31,7 @@ function schedule(id: number, runs: ScheduleRunRecord[] = []): AutomationSchedul
   return {
     schemaVersion: 1,
     id: `schedule-${id}`,
-    harness: 'prime',
+    harness: 'omp',
     revision: 1,
     title: `Schedule ${id}`,
     prompt: 'Retain bounded history',
@@ -100,13 +100,11 @@ describe('scheduled run history retention', () => {
     expect(retained.map(({ id }) => id)).toContain('run-2000')
   })
 
-  it('applies the global invariant while migrating pre-harness schedule state', () => {
+  it('does not reassign retired unscoped schedules to a remaining harness', async () => {
     const legacySchedules = schedulesWithRuns(2_001).map(({ harness: _harness, ...task }) => task)
     const { store } = stateFile({ ...stateWithSchedules([]), version: 2, schedules: legacySchedules })
-
-    expect(allRuns(store)).toHaveLength(2_000)
-    expect(store.snapshot().schedules.every(({ harness }) => harness === 'prime')).toBe(true)
-    expect(allRuns(store).map(({ id }) => id)).not.toContain('run-0')
+    await store.ready()
+    expect(store.snapshot().schedules).toEqual([])
   })
 
   it('uses schedule and run order as a stable tie-breaker without reordering retained history', () => {

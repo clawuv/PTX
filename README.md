@@ -1,12 +1,12 @@
 # Ptx
 
-Ptx is a desktop workspace for [Pi](https://pi.dev/), [OMP](https://github.com/can1357/oh-my-pi), and [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent). It gives all three coding agents the same friendly interface on macOS, Linux, and Windows while leaving each harness in charge of its own models, logins, and saved sessions.
+Ptx is a desktop workspace for [Pi](https://pi.dev/) and [OMP](https://github.com/can1357/oh-my-pi). It gives both coding agents the same friendly interface on macOS, Linux, and Windows while leaving each harness in charge of its own models, logins, and saved sessions.
 
 <img width="2234" height="1332" alt="Ptx desktop workspace" src="https://github.com/user-attachments/assets/864ff0e1-71cc-49da-955f-f226710ef890" />
 
-## Three harnesses, one workspace
+## Two harnesses, one workspace
 
-Use the switcher in the top-left corner to move between Pi Work, OMP Work, and Prime Work. Ptx detects the harnesses installed on your computer and shows the ones that are ready. You can refresh detection or set a custom executable path in Settings.
+Use the switcher in the top-left corner to move between Pi Work and OMP Work. Ptx detects the harnesses installed on your computer and shows the ones that are ready. You can refresh detection or set a custom executable path in Settings.
 
 Each harness keeps its own projects, sessions, model list, provider visibility, and running work. Switching harnesses changes the workspace without stopping work already running in another one.
 
@@ -14,7 +14,6 @@ You only need one harness to get started:
 
 - [Pi](https://pi.dev/) is the base coding-agent harness in the Pi family.
 - [OMP](https://github.com/can1357/oh-my-pi) adds its own plugins, commands, and approval controls.
-- [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent) adds Prime's provider integrations and native heartbeats.
 
 ## What you can do
 
@@ -53,12 +52,36 @@ You only need one harness to get started:
 - Create one-time or recurring schedules for the active harness.
 - Pick the project or existing session, model, reasoning level, timezone, and Fast mode.
 - Run a schedule immediately, pause or resume it, and inspect the result and run history.
-- Manage Prime heartbeats alongside Ptx schedules when Prime Agent exposes them.
 - On macOS, opt in under **Settings → General** to keep scheduled work running from the menu bar after closing the window, and optionally launch Ptx in the background at login. The packaged app also accepts `--background` to start without opening its window.
 
 ### Add capabilities
 
 The Capabilities page brings together packages, plugins, extensions, skills, prompts, and MCP servers. Ptx can manage local stdio MCP definitions for OMP and adapter-enabled Pi. Network MCP and authentication stay under the selected harness's direct control; those entries are visible but read-only in Ptx, with bounded definition-only removal available for cleanup. MCP discovery has an independent 2,500-definition-per-settings-file limit and reports an explicit warning when that limit is exceeded, so unrelated capabilities cannot hide supported MCP rows.
+
+Ptx does not keep its own MCP configuration. It reads and writes the definition files each harness already owns:
+
+| Harness | Global definitions | Project definitions |
+|---|---|---|
+| OMP | `~/.omp/agent/mcp.json` | `<project>/.omp/mcp.json` |
+| Pi | `~/.pi/agent/mcp.json` | `<project>/.pi/mcp.json` |
+
+Pi has no native MCP support. Its definitions load through the third-party `pi-mcp-adapter` extension, so enable that adapter from the Capabilities page (or run `pi install npm:pi-mcp-adapter`) before a stdio entry will take effect. Definitions are read when a session starts, so open a new session after changing them.
+
+A stdio definition uses the standard schema, and the `command`/`args` must point at an executable that exists on your machine:
+
+```json
+{
+  "mcpServers": {
+    "example": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/absolute/path/to/server.mjs"]
+    }
+  }
+}
+```
+
+Ptx manages local stdio entries only. HTTP and SSE definitions stay with the harness, and Ptx never reads or writes MCP credentials or authorization state.
 
 Ptx also ships optional capabilities for:
 
@@ -84,7 +107,7 @@ Ask User and computer control are off by default. You can enable, disable, or re
 
 1. Install Pi, OMP, Prime Agent, or any combination of the three.
 2. Sign in or configure a model provider through each harness's own CLI.
-3. Download Ptx from [GitHub Releases](https://github.com/am-will/pi-studio/releases), or run it from source.
+3. Download Ptx from [GitHub Releases](https://github.com/clawuv/PTX/releases), or run it from source.
 4. Add a project folder and start a session.
 
 Ptx checks common install locations automatically. If a harness is missing, open **Settings → Harness** to refresh detection or choose its executable.
@@ -95,17 +118,17 @@ Harness provider credentials stay with the harness. Optional voice keys are encr
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=am-will%2Fpi-studio&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=clawuv%2FPTX&type=date&legend=top-left">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=am-will/pi-studio&type=date&theme=dark&legend=top-left&sealed_token=Gyqf4f7-dQQMVcOLDzasYvuEMUjpCSlTbbitvVvzi1dyMJRIttzqLWN-D1cijN9r-TqFj2A-ibdETPCeMHGsKGYRJrAzd9VflC7tpdapc0tRiSBi6qrSJQ" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=am-will/pi-studio&type=date&legend=top-left&sealed_token=Gyqf4f7-dQQMVcOLDzasYvuEMUjpCSlTbbitvVvzi1dyMJRIttzqLWN-D1cijN9r-TqFj2A-ibdETPCeMHGsKGYRJrAzd9VflC7tpdapc0tRiSBi6qrSJQ" />
-    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=am-will/pi-studio&type=date&legend=top-left&sealed_token=Gyqf4f7-dQQMVcOLDzasYvuEMUjpCSlTbbitvVvzi1dyMJRIttzqLWN-D1cijN9r-TqFj2A-ibdETPCeMHGsKGYRJrAzd9VflC7tpdapc0tRiSBi6qrSJQ" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=clawuv/PTX&type=date&theme=dark&legend=top-left" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=clawuv/PTX&type=date&legend=top-left" />
+    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=clawuv/PTX&type=date&legend=top-left" />
   </picture>
 </a>
 
 ## Run from source
 
-You will need Node.js 24.15.0 or newer and npm 12.0.2 or newer. The repository pins Node.js 24.15.0 in `.nvmrc`; with [nvm](https://github.com/nvm-sh/nvm), you can select it with:
+You will need Node.js 24.15.0 or newer and npm 12.0.2 or newer. The repository pins Node.js 24.15.0 in `.nvmrc` and both tool versions in `package.json` (`engines`, `packageManager`), so installs made with a different toolchain fail rather than producing a subtly different build; with [nvm](https://github.com/nvm-sh/nvm), you can select it with:
 
 ```bash
 nvm install && nvm use

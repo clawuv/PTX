@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_SETTINGS } from '../../src/lib/data'
 import { VoiceSettings } from '../../src/pages/settings/VoiceSettings'
-import type { AppSettings, PrimeWorkApi, VoiceCredentialStatus } from '../../src/types/api'
+import type { AppSettings, PtxApi, VoiceCredentialStatus } from '../../src/types/api'
 
 vi.mock('../../src/components/ui', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/components/ui')>()),
@@ -59,7 +59,7 @@ async function choose(label: string, value: string) {
   await act(async () => { options.find((option) => option.getAttribute('data-value') === value)!.click() })
 }
 
-function voiceBridge(overrides: Partial<PrimeWorkApi['voice']> = {}): PrimeWorkApi['voice'] {
+function voiceBridge(overrides: Partial<PtxApi['voice']> = {}): PtxApi['voice'] {
   return {
     credentialStatus: vi.fn().mockResolvedValue(emptyStatus),
     saveApiKey: vi.fn().mockResolvedValue(emptyStatus),
@@ -72,7 +72,7 @@ function voiceBridge(overrides: Partial<PrimeWorkApi['voice']> = {}): PrimeWorkA
   }
 }
 
-function Harness({ voice }: { voice: PrimeWorkApi['voice'] | null }) {
+function Harness({ voice }: { voice: PtxApi['voice'] | null }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
   return <VoiceSettings settings={settings} voice={voice} onUpdate={(patch) => { setSettings((current) => ({ ...current, ...patch })) }} />
 }

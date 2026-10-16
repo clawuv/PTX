@@ -72,11 +72,11 @@ describe('AppearanceSettings', () => {
     expect(document.activeElement).toBe(options[2])
 
     press('ArrowLeft')
-    expect(update).toHaveBeenLastCalledWith({ interfaceFontScale: 105 })
+    expect(update).toHaveBeenLastCalledWith({ interfaceFontScale: 95 })
     expect(document.activeElement).toBe(options[0])
 
     press('Home')
-    expect(update).toHaveBeenLastCalledWith({ interfaceFontScale: 105 })
+    expect(update).toHaveBeenLastCalledWith({ interfaceFontScale: 95 })
 
     press('End')
     expect(update).toHaveBeenLastCalledWith({ interfaceFontScale: 115 })

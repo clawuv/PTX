@@ -10,7 +10,6 @@ import {
   LOCAL_MCP_STATE_UNAVAILABLE_DETAIL,
   MAX_MCP_DEFINITION_KEY_LENGTH,
   NETWORK_MCP_UNAVAILABLE_DETAIL,
-  PRIME_MCP_MANAGEMENT_UNAVAILABLE_DETAIL,
 } from '../../../src/lib/mcp-policy'
 import { HARNESSES } from '../harness'
 import { mapLimit } from '../lib/async'
@@ -23,7 +22,6 @@ interface Candidate { path: string; kind: Exclude<Kind, 'package' | 'mcp'>; loca
 
 /** Project-relative directory that holds a harness's project agent state. */
 const PROJECT_AGENT_SEGMENTS: Record<HarnessId, readonly string[]> = {
-  prime: ['.prime', 'agent'],
   omp: ['.omp'],
   pi: ['.pi'],
 }
@@ -251,7 +249,7 @@ function displayName(candidate: Candidate, metadata: { name?: string }): string 
   return basename(file, extname(file))
 }
 
-async function buildCandidateRecords(candidates: Candidate[], safeProjectPath?: string, harness: HarnessId = 'prime'): Promise<SkillRecord[]> {
+async function buildCandidateRecords(candidates: Candidate[], safeProjectPath?: string, harness: HarnessId = 'omp'): Promise<SkillRecord[]> {
   const seenPaths = new Set<string>()
   return mapLimit(candidates, METADATA_CONCURRENCY, async (candidate): Promise<SkillRecord | null> => {
     let path: string
@@ -303,13 +301,9 @@ function addMcpSettingsMetadata(
   location: 'user' | 'project',
   output: SkillRecord[],
   warnings: PluginWarning[],
-  harness: HarnessId = 'prime',
-  // Only Prime loads MCP definitions from settings.json. OMP reads mcp.json
-  // natively and the Pi adapter reads the same layout; surfacing a stray
-  // settings.json key would make UI actions target a different definition.
-  includeMcpServers: boolean = harness === 'prime',
+  harness: HarnessId = 'omp',
 ): void {
-  if (!includeMcpServers || !isRecord(settings.mcpServers)) return
+  if (!isRecord(settings.mcpServers)) return
   const entries = Object.entries(settings.mcpServers)
   if (entries.length > MAX_MCP_DISCOVERY_RECORDS) {
     warnings.push({
@@ -338,38 +332,20 @@ function addMcpSettingsMetadata(
         kind: 'mcp', location, enabled, source: origin, ...definitionIdentity,
         availability: { available: false, detail: NETWORK_MCP_UNAVAILABLE_DETAIL },
       })
-    } else if (definition && (definition.type === 'stdio' || harness === 'pi' || harness === 'prime') && typeof definition.command === 'string') {
+    } else if (definition && (definition.type === 'stdio' || harness === 'pi') && typeof definition.command === 'string') {
       const command = basename(definition.command).slice(0, 120)
-      const availability = harness === 'prime'
-        ? { available: false as const, detail: PRIME_MCP_MANAGEMENT_UNAVAILABLE_DETAIL }
-        : !isAppManageableLocalMcpKey(name)
-          ? { available: false as const, detail: LOCAL_MCP_STATE_UNAVAILABLE_DETAIL }
-          : undefined
+      const availability = !isAppManageableLocalMcpKey(name)
+        ? { available: false as const, detail: LOCAL_MCP_STATE_UNAVAILABLE_DETAIL }
+        : undefined
       output.push({
         id: idFor('mcp', location, name), name: displayName,
-        description: `Local stdio MCP server (${command})${harness === 'prime' ? '. Managed outside Ptx.' : ''}`,
+        description: `Local stdio MCP server (${command})`,
         kind: 'mcp', location, enabled, source: command, ...definitionIdentity,
         ...(availability ? { availability } : {}),
       })
-    } else if (harness === 'prime') {
-      output.push({
-        id: idFor('mcp', location, name), name: displayName,
-        description: 'Prime Agent MCP definition with an externally managed format.',
-        kind: 'mcp', location, enabled, source: 'Prime Agent settings', ...definitionIdentity,
-        availability: { available: false, detail: PRIME_MCP_MANAGEMENT_UNAVAILABLE_DETAIL },
-      })
+
     }
   }
-}
-
-async function bundledSkillsDirectory(primeAgentPath: string | null): Promise<string | null> {
-  if (!primeAgentPath) return null
-  try {
-    const executable = await realpath(primeAgentPath)
-    const packageRoot = resolve(dirname(executable), '..', '..')
-    const candidate = join(packageRoot, 'skills')
-    return await pathExists(candidate) ? candidate : null
-  } catch { return null }
 }
 
 async function collectOmpPluginPackages(
@@ -448,7 +424,7 @@ async function collectOmpPluginPackages(
   }
 }
 
-export async function discoverPlugins(agentDir: string, safeProjectPath: string | undefined, agentPath: string | null, harness: HarnessId = 'prime'): Promise<PluginCatalog> {
+export async function discoverPlugins(agentDir: string, safeProjectPath: string | undefined, _agentPath: string | null, harness: HarnessId = 'omp'): Promise<PluginCatalog> {
   const candidates: Candidate[] = []
   const warnings: PluginWarning[] = []
   const budget: DiscoveryBudget = { candidates: 0, directories: 0, entries: 0, seenCandidates: new Set() }
@@ -467,9 +443,6 @@ export async function discoverPlugins(agentDir: string, safeProjectPath: string 
   await collectConfigured(globalSettings.extensions, agentDir, 'extension', 'user', candidates, budget, userConfiguredRoots)
   await collectConfigured(globalSettings.prompts, agentDir, 'prompt', 'user', candidates, budget, userConfiguredRoots)
 
-  const bundled = await bundledSkillsDirectory(harness === 'prime' ? agentPath : null)
-  if (bundled) await collectDirectory(bundled, 'skill', 'bundled', candidates, budget)
-
   const ompPackageRecords: SkillRecord[] = []
   if (harness === 'omp') await collectOmpPluginPackages(resolve(agentDir, '..', 'plugins'), 'user', safeProjectPath, candidates, ompPackageRecords, budget)
 
@@ -484,7 +457,7 @@ export async function discoverPlugins(agentDir: string, safeProjectPath: string 
       samePath(join(homedir(), '.agents', 'skills'), projectSkillsDir),
     ])
     const projectRoots = [safeProjectPath]
-    // A project can point back at the same Prime settings and shared skills
+    // A project can point back at the same harness settings and shared skills
     // directories. Discover those paths once as user-scoped records instead
     // of presenting every entry twice.
     if (!sameSettingsFile) {
@@ -515,20 +488,20 @@ export async function discoverPlugins(agentDir: string, safeProjectPath: string 
   const projectSettingsPath = safeProjectPath ? join(safeProjectPath, ...PROJECT_AGENT_SEGMENTS[harness], 'settings.json') : ''
   await addPackageSettingsMetadata(globalSettings, globalSettingsPath, 'user', result)
   await addPackageSettingsMetadata(projectSettings, projectSettingsPath, 'project', result)
-  addMcpSettingsMetadata(globalSettings, globalSettingsPath, 'user', mcpRecords, warnings, harness)
-  addMcpSettingsMetadata(projectSettings, projectSettingsPath, 'project', mcpRecords, warnings, harness)
   // OMP reads mcp.json natively; pi reads the same layout through the
   // pi-mcp-adapter extension (~/.pi/agent/mcp.json and project .pi/mcp.json).
-  if (harness !== 'prime') {
+  {
     const globalMcpPath = join(agentDir, 'mcp.json')
     const globalMcp = await readSettings(globalMcpPath, 'user')
     if (globalMcp.warning) warnings.push(globalMcp.warning)
-    addMcpSettingsMetadata(globalMcp.settings, globalMcpPath, 'user', mcpRecords, warnings, harness, true)
+    addMcpSettingsMetadata(globalMcp.settings, globalMcpPath, 'user', mcpRecords, warnings, harness)
     if (safeProjectPath) {
       const projectMcpPath = join(safeProjectPath, ...PROJECT_AGENT_SEGMENTS[harness], 'mcp.json')
-      const projectMcp = await readSettings(projectMcpPath, 'project')
-      if (projectMcp.warning) warnings.push(projectMcp.warning)
-      addMcpSettingsMetadata(projectMcp.settings, projectMcpPath, 'project', mcpRecords, warnings, harness, true)
+      if (!await samePath(globalMcpPath, projectMcpPath)) {
+        const projectMcp = await readSettings(projectMcpPath, 'project')
+        if (projectMcp.warning) warnings.push(projectMcp.warning)
+        addMcpSettingsMetadata(projectMcp.settings, projectMcpPath, 'project', mcpRecords, warnings, harness)
+      }
     }
   }
   result.push(...mcpRecords)

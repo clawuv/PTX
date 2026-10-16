@@ -195,7 +195,7 @@ describe('AgentBrowserService', () => {
     const { service, openAttached } = fixture()
     const { guest } = await openAttached('/sessions/a.jsonl', 'https://example.com/')
     guest.scriptResult = (code) => {
-      if (code.includes('__primeWorkAgentRefs')) return JSON.stringify({ x: 12, y: 34 })
+      if (code.includes('__ptxAgentRefs')) return JSON.stringify({ x: 12, y: 34 })
       return JSON.stringify({ url: guest.url, title: guest.title, innerWidth: 640, innerHeight: 480, scrollY: 0, scrollHeight: 900, readyState: 'complete' })
     }
     await service.click('/sessions/a.jsonl', { ref: 3 })
@@ -226,7 +226,7 @@ describe('AgentBrowserService', () => {
     expect(guest.inputEvents.slice(0, beforeDown).every((event) => event.type === 'mouseMoved')).toBe(true)
     // Focusing a field for typing also moves the cursor there.
     guest.scriptResult = (code) => {
-      if (code.includes('__primeWorkAgentRefs')) return JSON.stringify({ x: 40, y: 50 })
+      if (code.includes('__ptxAgentRefs')) return JSON.stringify({ x: 40, y: 50 })
       return JSON.stringify({ url: guest.url, title: guest.title, innerWidth: 640, innerHeight: 480, scrollY: 0, scrollHeight: 900, readyState: 'complete' })
     }
     await service.type('/sessions/a.jsonl', { text: 'hi', ref: 1 })
@@ -257,7 +257,7 @@ describe('AgentBrowserService', () => {
     await service.click('/sessions/a.jsonl', { x: 10, y: 10 })
     guest.executedScripts.length = 0
     await service.screenshot('/sessions/a.jsonl', {})
-    expect(guest.executedScripts.some((code) => code.includes('__primeWorkAgentCursorMarker') && code.includes("style.left = '10px'"))).toBe(true)
+    expect(guest.executedScripts.some((code) => code.includes('__ptxAgentCursorMarker') && code.includes("style.left = '10px'"))).toBe(true)
     expect(guest.executedScripts.some((code) => code.includes('marker.remove()'))).toBe(true)
   })
 

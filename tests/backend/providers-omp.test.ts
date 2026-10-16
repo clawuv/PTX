@@ -1,10 +1,11 @@
+import '../helpers/node-script-fixtures'
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ModelCatalogProvider } from '../../electron/main/model-catalog'
 import { OMP_NOT_INSTALLED_WARNING, OmpModelCatalogService, MAX_CATALOG_PROVIDERS } from '../../electron/main/providers-omp'
-import type { PrimeModelCatalog } from '../../src/types/api'
+import type { AgentModelCatalog } from '../../src/types/api'
 import { waitUntil } from '../helpers/wait'
 
 const dirs: string[] = []
@@ -44,7 +45,7 @@ const processExists = (pid: number): boolean => {
   try { process.kill(pid, 0); return true } catch { return false }
 }
 
-function expectRelationalIntegrity(catalog: PrimeModelCatalog): void {
+function expectRelationalIntegrity(catalog: AgentModelCatalog): void {
   const providerIds = catalog.providers.map((provider) => provider.id)
   expect(new Set(providerIds).size).toBe(providerIds.length)
   const providerIdSet = new Set(providerIds)
@@ -67,14 +68,14 @@ describe('OMP model catalog service', () => {
     await expect(service.catalog()).resolves.toMatchObject({ models: [], warning: OMP_NOT_INSTALLED_WARNING })
 
     executable = fakeOmpWithCatalog(sampleCatalog)
-    await expect(service.catalog()).resolves.toMatchObject({ primeVersion: '1.2.3', models: expect.any(Array) })
+    await expect(service.catalog()).resolves.toMatchObject({ harnessVersion: '1.2.3', models: expect.any(Array) })
   })
 
   it('parses the CLI catalog into Prime descriptor shapes', async () => {
     const service: ModelCatalogProvider = new OmpModelCatalogService(fakeOmpWithCatalog(sampleCatalog))
     const catalog = await service.catalog(true)
 
-    expect(catalog.primeVersion).toBe('1.2.3')
+    expect(catalog.harnessVersion).toBe('1.2.3')
     expect(catalog.warning).toBeUndefined()
     expect(catalog.models.map((model) => model.key)).toEqual([
       'anthropic/claude-fable-5',
@@ -141,7 +142,7 @@ describe('OMP model catalog service', () => {
     expect(catalog.models).toEqual([])
     expect(catalog.providers).toEqual([])
     expect(catalog.warning).toBe(OMP_NOT_INSTALLED_WARNING)
-    expect(catalog.primeVersion).toBe('unknown')
+    expect(catalog.harnessVersion).toBe('unknown')
     await expect(service.requireAvailableModel('anthropic/claude-fable-5')).rejects.toThrow(/not found/)
   })
 

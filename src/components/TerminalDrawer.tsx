@@ -76,7 +76,7 @@ const terminalTheme = (): ITheme => {
   return {
     background: read('--terminal-bg', '#ffffff'),
     foreground: read('--terminal-text', '#20201e'),
-    cursor: read('--prime', '#6b55e8'),
+    cursor: read('--accent', '#6b55e8'),
     selectionBackground: read('--terminal-selection', '#c8beff99'),
     black: read('--terminal-black', '#242423'),
     red: read('--terminal-red', '#b42318'),
@@ -153,9 +153,9 @@ const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(function 
   const publishActiveContext = () => {
     const terminal = terminalRef.current
     const terminalId = terminalIdRef.current
-    if (!visibleRef.current || !terminal || !terminalId || !window.prime) return
+    if (!visibleRef.current || !terminal || !terminalId || !window.ptx) return
     const content = readTerminalContent(terminal)
-    window.prime.terminal.setActiveContext(terminalId, { label: labelRef.current, content: content.content, truncated: content.contentTruncated })
+    window.ptx.terminal.setActiveContext(terminalId, { label: labelRef.current, content: content.content, truncated: content.contentTruncated })
   }
 
   const scheduleActiveContext = () => {
@@ -169,7 +169,7 @@ const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(function 
   useEffect(() => {
     if (!visible) {
       const terminalId = terminalIdRef.current
-      if (terminalId && window.prime) window.prime.terminal.clearActiveContext(terminalId)
+      if (terminalId && window.ptx) window.ptx.terminal.clearActiveContext(terminalId)
       return
     }
     requestAnimationFrame(() => {
@@ -181,8 +181,8 @@ const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(function 
 
   useEffect(() => {
     const terminalId = terminalIdRef.current
-    if (!terminalId || !sessionPath || !window.prime) return
-    void window.prime.terminal.bindSession(terminalId, sessionPath).then(() => scheduleActiveContext()).catch(() => undefined)
+    if (!terminalId || !sessionPath || !window.ptx) return
+    void window.ptx.terminal.bindSession(terminalId, sessionPath).then(() => scheduleActiveContext()).catch(() => undefined)
   }, [sessionPath])
 
   useEffect(() => {
@@ -205,8 +205,8 @@ const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(function 
         onOpenLinkRef.current(uri, terminalLinkOpensExternally(event))
         return
       }
-      if (!window.prime) return
-      void openExternalUrl(window.prime.app, uri).then((failure) => {
+      if (!window.ptx) return
+      void openExternalUrl(window.ptx.app, uri).then((failure) => {
         if (failure) onErrorRef.current?.(failure)
       })
     })
@@ -239,37 +239,37 @@ const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(function 
     }
     const inputDisposable = terminal.onData((data) => {
       const id = terminalIdRef.current
-      if (id && window.prime) window.prime.terminal.input(id, data)
+      if (id && window.ptx) window.ptx.terminal.input(id, data)
     })
     const resizeDisposable = terminal.onResize(({ cols, rows }) => {
       const id = terminalIdRef.current
-      if (id && window.prime) window.prime.terminal.resize(id, cols, rows)
+      if (id && window.ptx) window.ptx.terminal.resize(id, cols, rows)
     })
     const selectionDisposable = terminal.onSelectionChange(() => {
       const selection = boundTerminalText(terminal.getSelection(), TERMINAL_SELECTION_MAX_CHARS)
       onSelectionChangeRef.current(selection.text, selection.truncated)
     })
 
-    if (window.prime && cwd) {
+    if (window.ptx && cwd) {
       // Subscribe before create resolves: a fast shell can emit its prompt or exit before the IPC reply.
-      offData = window.prime.terminal.onData((event) => {
+      offData = window.ptx.terminal.onData((event) => {
         if (event.terminalId === terminalIdRef.current) terminal.write(event.data, scheduleActiveContext)
         else if (!terminalIdRef.current) {
           const next = `${bufferedData.get(event.terminalId) ?? ''}${event.data}`
           bufferedData.set(event.terminalId, next.slice(-256 * 1024))
         }
       })
-      offExit = window.prime.terminal.onExit((event) => {
+      offExit = window.ptx.terminal.onExit((event) => {
         if (event.terminalId === terminalIdRef.current) announceExit(event.exitCode)
         else if (!terminalIdRef.current) bufferedExits.set(event.terminalId, event.exitCode)
       })
-      window.prime.terminal.create({ cwd, shell, command, cols: terminal.cols, rows: terminal.rows }).then(({ terminalId, shell: actualShell }) => {
-        if (cancelled) { void window.prime.terminal.kill(terminalId); return }
+      window.ptx.terminal.create({ cwd, shell, command, cols: terminal.cols, rows: terminal.rows }).then(({ terminalId, shell: actualShell }) => {
+        if (cancelled) { void window.ptx.terminal.kill(terminalId); return }
         terminalIdRef.current = terminalId
         onStateChangeRef.current({ shellName: actualShell.split('/').at(-1) ?? actualShell, connected: true })
         const initialOutput = bufferedData.get(terminalId)
         const bindCurrentSession = async () => {
-          if (sessionPathRef.current) await window.prime.terminal.bindSession(terminalId, sessionPathRef.current)
+          if (sessionPathRef.current) await window.ptx.terminal.bindSession(terminalId, sessionPathRef.current)
           scheduleActiveContext()
         }
         if (initialOutput) terminal.write(initialOutput, () => { void bindCurrentSession().catch(() => undefined) })
@@ -288,7 +288,7 @@ const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(function 
     } else {
       terminal.writeln(`\x1b[38;5;141m${t('termdraw.bridge.title')}\x1b[0m`)
       terminal.writeln(`\x1b[90m${t('termdraw.bridge.hint')}\x1b[0m`)
-      terminal.write('\r\n\x1b[32m➜\x1b[0m \x1b[36mprime-work\x1b[0m \x1b[90mgit:(main)\x1b[0m ')
+      terminal.write('\r\n\x1b[32m➜\x1b[0m \x1b[36mptx\x1b[0m \x1b[90mgit:(main)\x1b[0m ')
     }
 
     const observer = new ResizeObserver(() => {
@@ -308,7 +308,7 @@ const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(function 
       if (activeContextTimerRef.current !== undefined) window.clearTimeout(activeContextTimerRef.current)
       const id = terminalIdRef.current
       terminalIdRef.current = null
-      if (id && window.prime) void window.prime.terminal.kill(id)
+      if (id && window.ptx) void window.ptx.terminal.kill(id)
       terminal.dispose()
       terminalRef.current = null
       fitRef.current = null

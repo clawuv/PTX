@@ -1,4 +1,4 @@
-import { Check, KeyRound, Laptop, LoaderCircle, Mic2, Radio, RefreshCw, Server, ShieldAlert, ShieldCheck, Trash2, Waves } from 'lucide-react'
+import { Check, KeyRound, Laptop, LoaderCircle, Mic2, RefreshCw, Server, ShieldAlert, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Modal, SelectMenu } from '@/components/ui'
 import { useI18n, type MessageKey } from '@/lib/i18n'
@@ -15,7 +15,7 @@ import {
   optionsWithCurrent,
   type VoiceOption,
 } from '@/lib/voice-options'
-import type { AppSettings, PrimeWorkApi, VoiceCredentialProvider, VoiceCredentialStatus, VoiceTranscriptionProvider } from '@/types/api'
+import type { AppSettings, PtxApi, VoiceCredentialProvider, VoiceCredentialStatus, VoiceTranscriptionProvider } from '@/types/api'
 import type { SettingsSectionProps } from './contracts'
 
 const CREDENTIALS: Array<{ id: VoiceCredentialProvider; nameKey: MessageKey; monogram: string; detailKey: MessageKey }> = [
@@ -28,7 +28,7 @@ const CREDENTIALS: Array<{ id: VoiceCredentialProvider; nameKey: MessageKey; mon
 const CONNECTION_CREDENTIALS = CREDENTIALS.filter((item) => item.id !== 'self-hosted')
 
 interface VoiceSettingsProps extends SettingsSectionProps {
-  voice: PrimeWorkApi['voice'] | null
+  voice: PtxApi['voice'] | null
   platform?: NodeJS.Platform
 }
 
@@ -157,11 +157,9 @@ export function VoiceSettings({ settings, onUpdate, voice, platform = 'darwin' }
         </div>
       ) : null}
 
-      <section className="voice-section" aria-labelledby="voice-connections-title">
-        <div className="voice-section__heading">
-          <span><ShieldCheck size={15} /></span>
-          <div><h2 id="voice-connections-title">{t('settings.voice.connections')}</h2><p>{t('settings.voice.connections.description')}</p></div>
-        </div>
+      <section className="settings-group" aria-labelledby="voice-connections-title">
+        <h2 id="voice-connections-title">{t('settings.voice.connections')}</h2>
+        <p className="settings-group__description">{t('settings.voice.connections.description')}</p>
         {serviceState === 'ready' && status && !secureStorageAvailable ? (
           <div className="voice-storage-notice" role="alert">
             <ShieldAlert size={17} />
@@ -188,11 +186,9 @@ export function VoiceSettings({ settings, onUpdate, voice, platform = 'darwin' }
         {failure && !credential ? <p className="settings-error" role="alert">{failure}</p> : null}
       </section>
 
-      <section className="voice-section" aria-labelledby="voice-dictation-title">
-        <div className="voice-section__heading">
-          <span><Waves size={15} /></span>
-          <div><h2 id="voice-dictation-title">{t('settings.voice.dictation')}</h2><p>{t('settings.voice.dictation.description')}</p></div>
-        </div>
+      <section className="settings-group" aria-labelledby="voice-dictation-title">
+        <h2 id="voice-dictation-title">{t('settings.voice.dictation')}</h2>
+        <p className="settings-group__description">{t('settings.voice.dictation.description')}</p>
         <div className="voice-setup-card">
           <label className="voice-choice-row">
             <span><strong>{t('settings.voice.service.label')}</strong><small>{t('settings.voice.service.description')}</small></span>
@@ -259,11 +255,9 @@ export function VoiceSettings({ settings, onUpdate, voice, platform = 'darwin' }
         </div>
       </section>
 
-      <section className="voice-section" aria-labelledby="voice-realtime-title">
-        <div className="voice-section__heading">
-          <span><Radio size={15} /></span>
-          <div><h2 id="voice-realtime-title">{t('settings.voice.realtime')}</h2><p>{t('settings.voice.realtime.description')}</p></div>
-        </div>
+      <section className="settings-group" aria-labelledby="voice-realtime-title">
+        <h2 id="voice-realtime-title">{t('settings.voice.realtime')}</h2>
+        <p className="settings-group__description">{t('settings.voice.realtime.description')}</p>
         <div className="voice-setup-card">
           <ModelSelect label={t('settings.voice.realtime.model.label')} description={t('settings.voice.realtime.model.description')} value={settings.voiceRealtimeModel} options={REALTIME_MODELS} onChange={(value) => update('voiceRealtimeModel', value)} />
           <ModelSelect label={t('settings.voice.realtime.voice.label')} description={t('settings.voice.realtime.voice.description')} value={settings.voiceRealtimeVoice} options={REALTIME_VOICES} onChange={(value) => update('voiceRealtimeVoice', value)} />

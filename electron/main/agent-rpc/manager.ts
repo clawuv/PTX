@@ -1,21 +1,21 @@
-import type { PrimeEventEnvelope, PrimeModelDescriptor, RuntimeInfo } from '../../../src/types/api'
+import type { AgentEventEnvelope, AgentModelDescriptor, RuntimeInfo } from '../../../src/types/api'
 import { assertNoMcpAuthenticationCommand } from '../../../src/lib/mcp-policy'
 import { parseSessionActionSnapshot, streamingBehaviorForIntent } from '../../../src/lib/session-actions'
 import { resolveExecutable, type ExecutableSource } from '../process-utils'
 import { canonicalSessionPath } from '../session-paths'
 import { isPathWithin, isRecord, rejectUnknownKeys, requireId, requireRecord, requireString } from '../validation'
 import { isThinkingLevel, validateRpcCommand } from './command-schema'
-import { PRIME_RPC_ADAPTER, type HarnessRpcAdapter } from './harness-adapter'
+import { PI_RPC_ADAPTER, type HarnessRpcAdapter } from './harness-adapter'
 import { RpcRuntime } from './runtime'
 import type { RpcObject } from './types'
 
 /**
- * Structural slice of the provider catalog the manager needs; PrimeProviderService
+ * Structural slice of the provider catalog the manager needs; the CLI catalog
  * satisfies it today and a future OMP model catalog can be injected in its place.
  */
 export interface ProviderCatalog {
-  requireAvailableModel(rawKey: unknown, disabledProviders?: ReadonlySet<string>, disabledModels?: ReadonlySet<string>): Promise<PrimeModelDescriptor>
-  capabilities(provider: string | undefined, modelId: string | undefined): Promise<PrimeModelDescriptor | undefined>
+  requireAvailableModel(rawKey: unknown, disabledProviders?: ReadonlySet<string>, disabledModels?: ReadonlySet<string>): Promise<AgentModelDescriptor>
+  capabilities(provider: string | undefined, modelId: string | undefined): Promise<AgentModelDescriptor | undefined>
 }
 
 export class AgentRpcManager {
@@ -24,7 +24,7 @@ export class AgentRpcManager {
   private readonly runtimeEnvironmentRevisions = new Map<string, number>()
   private runtimeEnvironmentRevision = 0
   private disabledModels: () => ReadonlySet<string> = () => new Set()
-  private eventSink: (envelope: PrimeEventEnvelope) => void = () => undefined
+  private eventSink: (envelope: AgentEventEnvelope) => void = () => undefined
   private runtimeEnvironmentProvider: (scope: { cwd: string; sessionPath?: string; interactive: boolean }) => NodeJS.ProcessEnv = () => ({})
   private runtimeStartListener: (environment: NodeJS.ProcessEnv, info: RuntimeInfo) => void = () => undefined
   private runtimeEndListener: (environment: NodeJS.ProcessEnv, info?: RuntimeInfo) => void = () => undefined
@@ -37,12 +37,12 @@ export class AgentRpcManager {
     private readonly validateSessionPath: (path: string) => Promise<string>,
     private readonly providers?: ProviderCatalog,
     private readonly disabledProviders: () => ReadonlySet<string> = () => new Set(),
-    private readonly adapter: HarnessRpcAdapter = PRIME_RPC_ADAPTER,
+    private readonly adapter: HarnessRpcAdapter = PI_RPC_ADAPTER,
     /** Approval-mode override consumed only by harness arg builders that support it (OMP). */
     private readonly approvalMode: () => string | undefined = () => undefined,
   ) {}
 
-  setEventSink(sink: (envelope: PrimeEventEnvelope) => void): void { this.eventSink = sink }
+  setEventSink(sink: (envelope: AgentEventEnvelope) => void): void { this.eventSink = sink }
 
   setDisabledModelsProvider(provider: () => ReadonlySet<string>): void { this.disabledModels = provider }
 
@@ -82,7 +82,7 @@ export class AgentRpcManager {
     const sessionPath = options.sessionPath === undefined
       ? undefined
       : await this.validateSessionPath(requireString(options.sessionPath, 'sessionPath', { max: 4096 }))
-    let selectedModel: PrimeModelDescriptor | undefined
+    let selectedModel: AgentModelDescriptor | undefined
     let modelId: string | undefined
     if (options.model !== undefined) {
       selectedModel = this.providers
@@ -191,7 +191,7 @@ export class AgentRpcManager {
     this.requireOpen()
     const policyPrompt = command.type === 'prompt' || command.type === 'steer' || command.type === 'follow_up'
       ? command.message
-      : command.type === 'set_heartbeat' ? command.prompt : undefined
+      : undefined
     if (typeof policyPrompt === 'string') assertNoMcpAuthenticationCommand(policyPrompt, this.adapter.id)
     // Validation is harness-independent; the harness vocabulary applies after
     // it. set_service_tier passes through untranslated because the fast-mode
@@ -211,7 +211,7 @@ export class AgentRpcManager {
     }
     const response = await runtime.command(translated)
     if (command.type === 'steer' || command.type === 'follow_up') {
-      // OMP reports only queuedMessageCount, while Prime reports the full
+      // OMP reports only queuedMessageCount, while other harnesses report the full
       // scheduler snapshot. Refresh after admission so both shapes reach the
       // renderer before a queued row can appear to vanish.
       try {

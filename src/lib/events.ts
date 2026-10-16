@@ -5,12 +5,12 @@
  * identity).
  */
 export {
-  applyPrimeEvent,
+  applyAgentEvent,
   createSteerAcceptedEvent,
   createSteerPickupEvent,
-  createPrimeEventBuffer,
-  replayPrimeEvents,
-  type PrimeEventBuffer,
-  type PrimeEventReplayStats,
+  createAgentEventBuffer,
+  replayAgentEvents,
+  type AgentEventBuffer,
+  type AgentEventReplayStats,
 } from './events/reduce'
 export { resetTranscriptIdsForTests } from './events/ids'

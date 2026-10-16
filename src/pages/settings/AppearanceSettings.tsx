@@ -13,8 +13,8 @@ const themes: Array<{ id: ThemeMode; label: MessageKey; icon: typeof Sun }> = [
 ]
 
 const fontScales: Array<{ value: InterfaceFontScale; label: MessageKey }> = [
-  { value: 105, label: 'appearance.text.smaller' },
-  { value: 110, label: 'appearance.text.default' },
+  { value: 95, label: 'appearance.text.smaller' },
+  { value: 100, label: 'appearance.text.default' },
   { value: 115, label: 'appearance.text.larger' },
 ]
 
@@ -49,53 +49,61 @@ export function AppearanceSettings({ settings, onUpdate }: SettingsSectionProps)
       <header><h1>{t('appearance.title')}</h1><p>{t('appearance.description')}</p></header>
       <section className="settings-group">
         <h2>{t('appearance.theme.title')}</h2>
-        <div className="theme-options">
-          {themes.map((item) => {
-            const Icon = item.icon
-            return (
-              <button type="button" key={item.id} className={settings.theme === item.id ? 'is-active' : ''} onClick={() => { void onUpdate({ theme: item.id }) }}>
-                <span><Icon size={17} /></span><strong>{t(item.label)}</strong>{settings.theme === item.id ? <Check size={13} /> : null}
-              </button>
-            )
-          })}
+        <div className="settings-group__card">
+          <div className="theme-options">
+            {themes.map((item) => {
+              const Icon = item.icon
+              return (
+                <button type="button" key={item.id} className={settings.theme === item.id ? 'is-active' : ''} onClick={() => { void onUpdate({ theme: item.id }) }}>
+                  <span><Icon size={17} /></span><strong>{t(item.label)}</strong>{settings.theme === item.id ? <Check size={13} /> : null}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </section>
       <section className="settings-group">
         <h2>{t('appearance.language.title')}</h2>
-        <label className="settings-row">
-          <span><strong>{t('appearance.language.label')}</strong><small>{t('appearance.language.description')} {t('appearance.language.available', { count: locales.length - 1 })}</small></span>
-          <SelectMenu
-            label={t('appearance.language.label')}
-            value={settings.locale}
-            options={locales.map((locale) => ({ value: locale.value, label: t(locale.label) }))}
-            onChange={(next) => { void onUpdate({ locale: next as LocalePreference }) }}
-          />
-        </label>
+        <div className="settings-group__card">
+          <label className="settings-row">
+            <span><strong>{t('appearance.language.label')}</strong><small>{t('appearance.language.description')} {t('appearance.language.available', { count: locales.length - 1 })}</small></span>
+            <SelectMenu
+              label={t('appearance.language.label')}
+              value={settings.locale}
+              options={locales.map((locale) => ({ value: locale.value, label: t(locale.label) }))}
+              onChange={(next) => { void onUpdate({ locale: next as LocalePreference }) }}
+            />
+          </label>
+        </div>
       </section>
       <section className="settings-group">
         <h2>{t('appearance.text.title')}</h2>
-        <div className="settings-row settings-row--text-size">
-          <span><strong>{t('appearance.text.label')}</strong><small>{t('appearance.text.description')}</small></span>
-          <div className="text-size-options" role="radiogroup" aria-label={t('appearance.text.aria')} onKeyDown={onScaleKeyDown}>
-            {fontScales.map((option, index) => (
-              <button
-                type="button"
-                key={option.value}
-                role="radio"
-                aria-checked={settings.interfaceFontScale === option.value}
-                tabIndex={index === selectedScale ? 0 : -1}
-                className={settings.interfaceFontScale === option.value ? 'is-active' : ''}
-                onClick={() => { void onUpdate({ interfaceFontScale: option.value }) }}
-              >
-                {t(option.label)}
-              </button>
-            ))}
+        <div className="settings-group__card">
+          <div className="settings-row settings-row--text-size">
+            <span><strong>{t('appearance.text.label')}</strong><small>{t('appearance.text.description')}</small></span>
+            <div className="text-size-options" role="radiogroup" aria-label={t('appearance.text.aria')} onKeyDown={onScaleKeyDown}>
+              {fontScales.map((option, index) => (
+                <button
+                  type="button"
+                  key={option.value}
+                  role="radio"
+                  aria-checked={settings.interfaceFontScale === option.value}
+                  tabIndex={index === selectedScale ? 0 : -1}
+                  className={settings.interfaceFontScale === option.value ? 'is-active' : ''}
+                  onClick={() => { void onUpdate({ interfaceFontScale: option.value }) }}
+                >
+                  {t(option.label)}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </section>
       <section className="settings-group">
         <h2>{t('appearance.motion.title')}</h2>
-        <SettingsToggle checked={settings.reduceMotion} onChange={(reduceMotion) => { void onUpdate({ reduceMotion }) }} label={t('appearance.motion.reduce')} description={t('appearance.motion.description')} />
+        <div className="settings-group__card">
+          <SettingsToggle checked={settings.reduceMotion} onChange={(reduceMotion) => { void onUpdate({ reduceMotion }) }} label={t('appearance.motion.reduce')} description={t('appearance.motion.description')} />
+        </div>
       </section>
     </>
   )

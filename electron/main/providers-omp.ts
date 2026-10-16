@@ -1,4 +1,4 @@
-import { PRIME_THINKING_LEVELS, type PrimeModelDescriptor, type PrimeThinkingLevel } from '../../src/types/api'
+import { AGENT_THINKING_LEVELS, type AgentModelDescriptor, type AgentThinkingLevel } from '../../src/types/api'
 import { CliModelCatalogService, validateModelEntry, type CliModelCatalogOptions } from './model-catalog-cli'
 import { runProcess, safeChildEnvironment } from './process-utils'
 
@@ -8,25 +8,22 @@ export const OMP_NOT_INSTALLED_WARNING = 'OMP is not installed. Install the omp 
 
 /**
  * OMP reports the per-model thinking vocabulary as `thinking: string[] | null`
- * using the same level names as Prime, except `off` is implicit (never listed
- * by `omp models --json`). Mirror Prime's `getSupportedThinkingLevels`
- * convention: non-reasoning models expose exactly `['off']`, and reasoning
+ * with `off` implicit (never listed by `omp models --json`). In the UI, non-reasoning models expose exactly `['off']`, and reasoning
  * models expose `off` plus the reported levels in canonical order. Unknown or
  * non-string reported levels are dropped.
  */
-function toThinkingLevels(reasoning: boolean, thinking: unknown): PrimeThinkingLevel[] {
+function toThinkingLevels(reasoning: boolean, thinking: unknown): AgentThinkingLevel[] {
   if (!reasoning) return ['off']
   const reported = new Set(Array.isArray(thinking) ? thinking.filter((level): level is string => typeof level === 'string') : [])
-  return PRIME_THINKING_LEVELS.filter((level) => level === 'off' || reported.has(level))
+  return AGENT_THINKING_LEVELS.filter((level) => level === 'off' || reported.has(level))
 }
 
 export type OmpModelCatalogOptions = CliModelCatalogOptions
 
 /**
  * Model catalog service for the OMP harness, backed by the `omp models --json`
- * CLI instead of in-process npm modules. Satisfies the same
- * `ModelCatalogProvider` surface as `PrimeProviderService`, so
- * `AgentRpcManager` and the `providers:catalog` IPC path can consume either.
+ * CLI. Implements `ModelCatalogProvider` for `AgentRpcManager` and the
+ * `providers:catalog` IPC path.
  *
  * The CLI output is untrusted: it is byte-bounded, time-bounded, spawned with
  * an argv array and a sanitized environment, and every field is validated
@@ -62,7 +59,7 @@ export class OmpModelCatalogService extends CliModelCatalogService {
   }
 
   /** Validates one untrusted CLI model entry; returns null when any field is hostile or malformed. */
-  protected toModelDescriptor(value: unknown): PrimeModelDescriptor | null {
+  protected toModelDescriptor(value: unknown): AgentModelDescriptor | null {
     const entry = validateModelEntry(value)
     if (!entry) return null
     const { thinking } = entry.record

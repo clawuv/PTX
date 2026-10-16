@@ -58,7 +58,7 @@ function setup(maxSessionFiles?: number): { root: string; project: string; servi
   const root = join(dir, 'sessions'); mkdirSync(root)
   const project = join(dir, 'project'); mkdirSync(project)
   const store = new JsonStateStore(join(dir, 'state.json'))
-  const service = new SessionService(store, null, maxSessionFiles, ompSessionServiceOptions(root))
+  const service = new SessionService(store, maxSessionFiles, ompSessionServiceOptions(root))
   return { root, project, service }
 }
 

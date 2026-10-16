@@ -5,10 +5,10 @@ import type {
   BrowserAnnotation,
   HarnessId,
   MessageEnterAction,
-  PrimeContextUsage,
-  PrimeModelDescriptor,
-  PrimeProviderDescriptor,
-  PrimeThinkingLevel,
+  AgentContextUsage,
+  AgentModelDescriptor,
+  AgentProviderDescriptor,
+  AgentThinkingLevel,
   PromptDeliveryIntent,
   PromptImage,
   QueuedPrompt,
@@ -34,22 +34,22 @@ interface ComposerProps {
   loading?: boolean
   disabled?: boolean
   model: string
-  effort: PrimeThinkingLevel
-  modelsByProvider: ReadonlyMap<string, PrimeModelDescriptor[]>
-  providers: PrimeProviderDescriptor[]
-  reasoningLevels: PrimeThinkingLevel[]
+  effort: AgentThinkingLevel
+  modelsByProvider: ReadonlyMap<string, AgentModelDescriptor[]>
+  providers: AgentProviderDescriptor[]
+  reasoningLevels: AgentThinkingLevel[]
   fast: boolean
   fastSupported: boolean
   fastAvailable: boolean
-  /** Active harness agent name for tooltips ("Prime Agent" / "OMP"). */
+  /** Active harness agent name for tooltips ("Pi" / "OMP"). */
   agentName?: string
-  /** Active harness short name for inline copy ("Prime" / "OMP"). */
+  /** Active harness short name for inline copy ("Pi" / "OMP"). */
   shortName?: string
   harness?: HarnessId
   imageInputSupported: boolean
   /** Primary action for Enter; Ctrl/Cmd+Enter selects the opposite action. */
   messageEnterAction?: MessageEnterAction
-  contextUsage?: PrimeContextUsage
+  contextUsage?: AgentContextUsage
   skills: SkillRecord[]
   /** Other sidebar sessions in the active project, available as @title references. */
   sessions?: SessionRecord[]
@@ -59,7 +59,7 @@ interface ComposerProps {
   terminalSelection?: TerminalSelectionContext
   /** Reads the active xterm buffer only at submit time, avoiding output-driven renderer updates. */
   getTerminalContext?(): TerminalPromptContext | undefined
-  /** Messages accepted by Prime but waiting for a turn boundary. */
+  /** Messages accepted by the harness but waiting for a turn boundary. */
   queuedMessages?: QueuedPrompt[]
   /** Messages held inside the harness when it exposes only a count, not previews. */
   harnessQueuedMessageCount?: number
@@ -69,7 +69,7 @@ interface ComposerProps {
   sendSignal?: number
   onModelChange(value: string): void
   onManageModels?(): void
-  onEffortChange(value: PrimeThinkingLevel): void
+  onEffortChange(value: AgentThinkingLevel): void
   onFastChange(value: boolean): void
   onSend(prompt: string, images: PromptImage[], intent: PromptDeliveryIntent): Promise<void> | void
   onStop(): Promise<void> | void
@@ -88,12 +88,7 @@ const commands = [
   { command: '/status', detail: 'composer.command.status' },
 ] as const
 
-const primeCommands = [
-  ...commands,
-  { command: '/mcp', detail: 'composer.command.mcp' },
-] as const
-
-const reasoningLabels: Record<PrimeThinkingLevel, MessageKey> = {
+const reasoningLabels: Record<AgentThinkingLevel, MessageKey> = {
   off: 'composer.reasoning.off',
   minimal: 'composer.reasoning.minimal',
   low: 'composer.reasoning.low',
@@ -123,9 +118,9 @@ export const Composer = memo(function Composer({
   fast,
   fastSupported,
   fastAvailable,
-  agentName = 'Prime Agent',
-  shortName = 'Prime',
-  harness = 'prime',
+  agentName = 'OMP',
+  shortName = 'OMP',
+  harness = 'omp',
   imageInputSupported,
   messageEnterAction = 'queue',
   contextUsage,
@@ -179,7 +174,7 @@ export const Composer = memo(function Composer({
     const draft = readComposerDraft(draftKey)
     if (!draft) return
     if (draft.model && draft.model !== model) onModelChange(draft.model)
-    if (draft.effort && draft.effort !== effort) onEffortChange(draft.effort as PrimeThinkingLevel)
+    if (draft.effort && draft.effort !== effort) onEffortChange(draft.effort as AgentThinkingLevel)
     if (draft.fast !== undefined && draft.fast !== fast) onFastChange(draft.fast)
   }, [draftKey, effort, fast, model, onEffortChange, onFastChange, onModelChange])
 
@@ -373,7 +368,7 @@ export const Composer = memo(function Composer({
 
   const suggestions =
     menu === 'command'
-      ? (harness === 'prime' ? primeCommands : commands)
+      ? commands
           .filter((item) => item.command.startsWith(value))
           .map((item) => ({
             key: item.command,
@@ -752,7 +747,7 @@ export const Composer = memo(function Composer({
               compact
               value={effort}
               options={reasoningLevels.map((level) => ({ value: level, label: t(reasoningLabels[level]) }))}
-              onChange={(next) => onEffortChange(next as PrimeThinkingLevel)}
+              onChange={(next) => onEffortChange(next as AgentThinkingLevel)}
             />
             {busy ? (
               <button type="button" className="send-button send-button--stop" aria-label={t('composer.stop')} onClick={() => void onStop()}>

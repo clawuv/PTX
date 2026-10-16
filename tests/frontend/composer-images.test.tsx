@@ -5,16 +5,16 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Composer } from '../../src/components/Composer'
 import { groupModelsByProvider } from '../../src/hooks/useProviderCatalog'
-import type { PrimeContextUsage, PrimeModelDescriptor, PrimeProviderDescriptor, SkillRecord } from '../../src/types/api'
+import type { AgentContextUsage, AgentModelDescriptor, AgentProviderDescriptor, SkillRecord } from '../../src/types/api'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
-const models: PrimeModelDescriptor[] = [{
+const models: AgentModelDescriptor[] = [{
   key: 'provider/vision', provider: 'provider', id: 'vision', name: 'Vision', reasoning: true,
   input: ['text', 'image'], contextWindow: 100_000, maxTokens: 8_000,
   availableThinkingLevels: ['medium'], fastModeSupported: false, available: true,
 }]
-const providers: PrimeProviderDescriptor[] = [{
+const providers: AgentProviderDescriptor[] = [{
   id: 'provider', name: 'Provider', authMethod: 'api_key', configured: true,
   modelCount: 1, availableModelCount: 1, enabled: true,
 }]
@@ -41,7 +41,7 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-function renderComposer(onSend = vi.fn(), imageInputSupported = true, busy = false, messageEnterAction: 'queue' | 'steer' = 'queue', contextUsage?: PrimeContextUsage) {
+function renderComposer(onSend = vi.fn(), imageInputSupported = true, busy = false, messageEnterAction: 'queue' | 'steer' = 'queue', contextUsage?: AgentContextUsage) {
   act(() => root.render(<Composer
     busy={busy}
     model="provider/vision"
@@ -545,7 +545,7 @@ describe('Composer context usage and stop control', () => {
     expect(dial?.textContent).toBe('')
     expect(dial?.hasAttribute('aria-valuenow')).toBe(false)
     expect(dial?.title).toContain('unavailable')
-    expect(container.querySelector('button[aria-label="Stop Prime"] .lucide-square')).not.toBeNull()
+    expect(container.querySelector('button.send-button--stop .lucide-square')).not.toBeNull()
     expect(container.querySelector('.lucide-circle-stop')).toBeNull()
   })
 })

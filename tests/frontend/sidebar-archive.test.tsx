@@ -10,11 +10,11 @@ import type { ProjectRecord, SessionRecord } from '../../src/types/api'
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const project: ProjectRecord = {
-  id: 'project', harness: 'prime', name: 'Project', path: '/project', folders: ['/project'], primaryFolder: '/project',
+  id: 'project', harness: 'omp', name: 'Project', path: '/project', folders: ['/project'], primaryFolder: '/project',
   pinned: false, createdAt: '2026-01-01T00:00:00.000Z', lastOpenedAt: '2026-01-01T00:00:00.000Z', sessionCount: 1,
 }
 const session: SessionRecord = {
-  id: 'session', harness: 'prime', filePath: '/sessions/session.jsonl', projectPath: '/project', title: 'Session',
+  id: 'session', harness: 'omp', filePath: '/sessions/session.jsonl', projectPath: '/project', title: 'Session',
   createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', status: 'idle', depth: 0,
 }
 
@@ -77,7 +77,7 @@ describe('sidebar project context menu', () => {
     expect(onUpdateAction).toHaveBeenCalledOnce()
   })
 
-  it('keeps the release control hidden when no update is available', async () => {
+  it('keeps the software update control available when no update is pending', async () => {
     await act(async () => {
       root.render(
         <Sidebar
@@ -88,7 +88,7 @@ describe('sidebar project context menu', () => {
       )
     })
 
-    expect(container.querySelector('.sidebar__footer .sidebar-update')).toBeNull()
+    expect(container.querySelector('.sidebar__footer .sidebar-update')).not.toBeNull()
     expect(container.querySelector('.sidebar__footer button[title="Settings"]')).not.toBeNull()
   })
 

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
-import { PRIME_THINKING_LEVELS } from '../../../src/types/api'
+import { AGENT_THINKING_LEVELS } from '../../../src/types/api'
 import type {
-  PrimeThinkingLevel,
+  AgentThinkingLevel,
   ScheduleChangeEvent,
   ScheduleExecution,
   ScheduleInput,
@@ -31,7 +31,7 @@ const MAX_AUTO_RETRIES = 2
 const DEFAULT_RETRY_DELAYS_MS = [5 * 60_000, 20 * 60_000]
 /** Consecutive terminal failures after which an active task is blocked automatically. */
 const MAX_CONSECUTIVE_FAILURES = 3
-const THINKING_LEVELS: ReadonlySet<string> = new Set(['auto', ...PRIME_THINKING_LEVELS])
+const THINKING_LEVELS: ReadonlySet<string> = new Set(['auto', ...AGENT_THINKING_LEVELS])
 
 export class ScheduleBlockedError extends Error {}
 
@@ -77,7 +77,7 @@ function parseExecution(value: unknown): ScheduleExecution {
   const thinking = requireString(execution.thinking, 'execution.thinking', { min: 1, max: 16, trim: true })
   if (!THINKING_LEVELS.has(thinking)) throw new TypeError('Invalid scheduled reasoning level')
   if (execution.speed !== 'normal' && execution.speed !== 'fast') throw new TypeError('Invalid scheduled speed')
-  return { model, thinking: thinking as 'auto' | PrimeThinkingLevel, speed: execution.speed }
+  return { model, thinking: thinking as 'auto' | AgentThinkingLevel, speed: execution.speed }
 }
 
 function parseTiming(value: unknown, now: Date): ScheduleTiming {
@@ -226,7 +226,7 @@ export class AutomationService {
     return { timing, occurrences: previewScheduleOccurrences(timing, count, now) }
   }
 
-  async create(inputValue: unknown, createdBy: 'user' | 'agent' = 'user', harness: HarnessId = 'prime'): Promise<AutomationScheduleRecord> {
+  async create(inputValue: unknown, createdBy: 'user' | 'agent' = 'user', harness: HarnessId = 'omp'): Promise<AutomationScheduleRecord> {
     const now = this.now()
     const input = parseInput(inputValue, now)
     this.options.validatePrompt?.(input.prompt, harness)

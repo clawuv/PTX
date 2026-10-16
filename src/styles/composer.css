@@ -1,6 +1,6 @@
 /* Composer */
 .composer-wrap { position: absolute; z-index: 10; left: 24px; right: 24px; bottom: 13px; width: min(calc(100% - 48px), var(--conversation-width)); margin: 0 auto; }
-.composer { position: relative; min-height: 82px; display: flex; flex-direction: column; padding: 10px 11px 7px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-raised); box-shadow: 0 2px 7px rgba(0,0,0,.045); }
+.composer { position: relative; min-height: 98px; display: flex; flex-direction: column; padding: 10px 11px 7px; border: 1px solid var(--border); border-radius: 22px; background: var(--surface-raised); box-shadow: 0 2px 7px rgba(0,0,0,.045); }
 :root[data-theme='dark'] .composer { border-color: transparent; }
 .composer-queue { display: grid; gap: 5px; margin: 0 0 8px; padding: 7px 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-raised); box-shadow: 0 3px 12px color-mix(in srgb, #000 8%, transparent); }
 .composer-queue__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--text-tertiary); font-size: 10.5px; font-weight: 620; letter-spacing: .01em; }
@@ -17,8 +17,8 @@
 .composer-queue__action { width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 5px; color: var(--text-tertiary); background: transparent; cursor: pointer; }
 .composer-queue__action:hover { color: var(--text-primary); background: var(--surface-hover); }
 .composer-queue__action--delete:hover { color: var(--danger); }
-.composer:focus-within { border-color: color-mix(in srgb, var(--border-strong) 65%, var(--focus)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--focus) 30%, transparent); }
-.composer--busy { border-color: color-mix(in srgb, var(--prime) 33%, var(--border-strong)); }
+.composer:focus-within { box-shadow: 0 2px 7px rgba(0,0,0,.045); }
+.composer--busy { border-color: color-mix(in srgb, var(--accent) 33%, var(--border-strong)); }
 .composer--image-dragging { border-color: var(--focus); box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 28%, transparent); }
 .composer-drop-feedback { position: absolute; z-index: 80; inset: 5px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px dashed color-mix(in srgb, var(--focus) 72%, var(--border)); border-radius: 10px; color: var(--text); background: color-mix(in srgb, var(--surface-raised) 91%, transparent); backdrop-filter: blur(4px); font-size: 12px; font-weight: 620; pointer-events: none; }
 .composer-input { position: relative; width: 100%; min-height: 44px; max-height: 240px; flex: 1; }
@@ -26,8 +26,8 @@
    caret, and platform scrollbar always share one authoritative content box. Text
    hugs the top-left corner; the inline height in Composer grows with content up
    to the shared 240px ceiling before an inner scrollbar appears. */
-.composer-input > textarea { width: 100%; min-height: 44px; max-height: 240px; display: block; padding: 1px 2px; border: 0; resize: none; outline: 0; color: var(--text); background: transparent; caret-color: var(--text); font: inherit; font-size: 13px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: break-word; }
-.composer-input > textarea::placeholder { color: var(--placeholder); font-size: 12px; }
+.composer-input > textarea { width: 100%; min-height: 44px; max-height: 240px; display: block; padding: 1px 2px; border: 0; resize: none; outline: 0; color: var(--text); background: transparent; font: inherit; font-size: 13px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: break-word; }
+.composer-input > textarea::placeholder { color: var(--placeholder); font-size: 14px; }
 /* Send button reads by state: empty = muted well with a dim arrow, filled = bright
    circle with a dark arrow; the well and arrow swap per theme via --send-* tokens. */
 .send-button { width: 28px; height: 28px; display: grid; place-items: center; flex: 0 0 auto; padding: 0; border-radius: 50%; color: var(--send-icon); background: var(--send-bg); transition: background 130ms ease-out, color 130ms ease-out, opacity 130ms ease-out; }
@@ -51,11 +51,11 @@
 .composer-attachment--annotations .composer-attachment__clear { width: 20px; height: 20px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 10px; color: var(--text-tertiary); background: transparent; }
 .composer-attachment--annotations .composer-attachment__clear:hover { color: var(--text); background: var(--surface-hover); }
 .composer-attachment--terminal { width: auto; max-width: 230px; height: 26px; align-self: center; gap: 0; padding: 0 1px 0 0; border-radius: 13px; background: var(--surface-subtle); }
-.composer-attachment--terminal.has-selection { border-color: color-mix(in srgb, var(--prime) 35%, var(--border)); background: color-mix(in srgb, var(--prime) 7%, var(--surface-subtle)); }
+.composer-attachment--terminal.has-selection { border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); background: color-mix(in srgb, var(--accent) 7%, var(--surface-subtle)); }
 .composer-attachment--terminal .composer-attachment__expand { width: auto; min-width: 0; height: 22px; display: inline-flex; align-items: center; gap: 4px; padding: 0 7px; border-radius: 11px; color: var(--text-secondary); background: transparent; font-size: 10.5px; white-space: nowrap; }
 .composer-attachment--terminal .composer-attachment__expand:disabled { cursor: default; }
 .composer-attachment--terminal .composer-attachment__expand > span { max-width: 92px; overflow: hidden; text-overflow: ellipsis; }
-.composer-attachment--terminal .composer-attachment__expand small { color: var(--prime); font-size: 9px; font-weight: 650; }
+.composer-attachment--terminal .composer-attachment__expand small { color: var(--accent); font-size: 9px; font-weight: 650; }
 .composer-attachment--terminal .composer-attachment__expand svg { flex: 0 0 auto; }
 .composer-attachment--terminal .composer-attachment__expand svg.is-open { transform: rotate(180deg); }
 .composer-attachment--terminal .composer-attachment__clear { width: 20px; height: 20px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 10px; color: var(--text-tertiary); background: transparent; }
@@ -89,7 +89,7 @@
 .composer .model-picker__trigger, .composer .select-menu--compact .select-menu__trigger { gap: 4px; padding: 0 5px; border-radius: 7px; font-size: 11.5px; font-weight: 520; }
 .composer-plan-mode { height: 26px; display: inline-flex; align-items: center; gap: 4px; padding: 0 5px; border-radius: 7px; color: var(--chip-quiet); background: transparent; font-size: 11.5px; font-weight: 520; }
 .composer-plan-mode:hover, .composer-plan-mode:focus-visible { color: var(--chip-quiet-hover); background: var(--surface-hover); }
-.composer-plan-mode.is-active { color: var(--prime); background: var(--prime-soft); }
+.composer-plan-mode.is-active { color: var(--accent); background: var(--accent-soft); }
 .composer-plan-mode > svg { flex: 0 0 auto; }
 .composer .fast-mode-toggle { gap: 5px; border-radius: 8px; }
 /* The reasoning menu drops from the composer's bottom edge; its popover shadow would
@@ -97,7 +97,7 @@
 .composer .select-menu__popover { box-shadow: none; }
 /* Token-usage ring: the arc fills with use, the center stays empty, and hover
    shows the exact numbers via the tooltip. */
-.context-usage-dial { --context-color: var(--prime); position: relative; width: 24px; height: 24px; display: grid; place-items: center; flex: 0 0 24px; border-radius: 50%; cursor: help; }
+.context-usage-dial { --context-color: var(--accent); position: relative; width: 24px; height: 24px; display: grid; place-items: center; flex: 0 0 24px; border-radius: 50%; cursor: help; }
 .context-usage-dial:hover { background: var(--surface-hover); }
 .context-usage-dial::before { content: ''; width: 15px; height: 15px; border-radius: 50%; background: conic-gradient(var(--context-color) var(--context-percent), var(--surface-selected) 0); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px)); }
 .context-usage-dial::after { content: attr(data-tooltip); position: absolute; z-index: 60; right: -10px; bottom: 38px; width: max-content; max-width: 250px; padding: 5px 7px; border: 1px solid var(--border); border-radius: 6px; color: var(--text); background: var(--surface-raised); box-shadow: var(--shadow-popover); font-size: 10px; font-weight: 450; line-height: 1.35; white-space: nowrap; opacity: 0; pointer-events: none; transform: translateY(2px); transition: opacity 120ms ease-out, transform 120ms ease-out; }

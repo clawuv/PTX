@@ -87,13 +87,13 @@ describe('panel layout inspector width', () => {
       root.render(<Harness />)
     })
     await rowResized(1200)
-    // 38% of a 1200px row, above the 275px floor.
-    expect(latest?.inspectorWidth).toBe(456)
+    // 30% of a 1200px row, above the 340px floor.
+    expect(latest?.inspectorWidth).toBe(360)
 
     await rowResized(1600)
-    expect(latest?.inspectorWidth).toBe(608)
+    expect(latest?.inspectorWidth).toBe(480)
     // Double-click reset is a fixed width, matching the sidebar default.
-    expect(latest?.inspectorDefault).toBe(275)
+    expect(latest?.inspectorDefault).toBe(360)
   })
 
   it('pins the width once the user drags the handle', async () => {
@@ -109,7 +109,7 @@ describe('panel layout inspector width', () => {
     await rowResized(1600)
     // The user's choice survives resizes and reloads; double-click still resets to the fixed default.
     expect(latest?.inspectorWidth).toBe(700)
-    expect(latest?.inspectorDefault).toBe(275)
+    expect(latest?.inspectorDefault).toBe(360)
     expect(window.localStorage.getItem('prime-work.inspector-width-user-set')).toBe('1')
   })
 })

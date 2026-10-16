@@ -121,7 +121,7 @@ const en = {
   'composer.fast.label': 'Fast',
   'composer.fast.title': 'Use {name} priority service tier',
   'composer.fast.unavailable': 'The installed {name} RPC runtime does not expose fast mode',
-  'composer.stop': 'Stop Prime',
+  'composer.stop': 'Stop Ptx',
   'composer.send': 'Send message',
 
   // Transcript: session-level states
@@ -130,7 +130,7 @@ const en = {
   'transcript.scrollToBottom': 'Scroll to bottom',
   'transcript.renderFailure': 'This message could not be displayed.',
   'transcript.working': '{name} is working',
-  'transcript.thinking': 'Prime is thinking',
+  'transcript.thinking': 'Ptx is thinking',
   'transcript.emptyTurn': 'Completed without a text response.',
   'transcript.steerReadOne': 'Steer read here',
   'transcript.steerReadMany': {
@@ -204,7 +204,7 @@ const en = {
   'transcript.markdown.attachment': 'attachment',
   'transcript.markdown.projectLink': 'Project-relative link: {url}',
   // Transcript: event-reducer fallbacks (matched by sentinel at render time)
-  'transcript.errorFallback': 'Prime encountered an error.',
+  'transcript.errorFallback': 'The agent encountered an error.',
   'transcript.runtimeExit': 'The agent stopped unexpectedly ({reason}). Send the message again to restart it.',
   'transcript.exitCode': 'exit code {code}',
   'transcript.unknownError': 'an unknown error',
@@ -246,7 +246,7 @@ const en = {
   'extui.hint': '{left} / {right} or PgUp/PgDn questions · ↑ ↓ choices · 1–9 select · Enter continue',
   'extui.notAnswered': 'Not answered',
   'extui.otherOption': 'Other (type your own answer)',
-  'extui.chooseOption': 'Choose an option to let Prime continue.',
+  'extui.chooseOption': 'Choose an option to let Ptx continue.',
   'extui.response': 'Response',
 } as const
 
@@ -362,7 +362,7 @@ export const chatCatalog = defineCatalog(en, {
   'composer.fast.label': '快速',
   'composer.fast.title': '使用 {name} 优先服务层级',
   'composer.fast.unavailable': '已安装的 {name} RPC 运行时未提供快速模式',
-  'composer.stop': '停止 Prime',
+  'composer.stop': '停止 Ptx',
   'composer.send': '发送消息',
 
   'transcript.loading': '正在加载会话…',
@@ -370,7 +370,7 @@ export const chatCatalog = defineCatalog(en, {
   'transcript.scrollToBottom': '滚动到底部',
   'transcript.renderFailure': '无法显示此消息。',
   'transcript.working': '{name} 正在工作中',
-  'transcript.thinking': 'Prime 正在思考',
+  'transcript.thinking': 'Ptx 正在思考',
   'transcript.emptyTurn': '已完成，但没有文本回复。',
   'transcript.steerReadOne': '插话已在此处读取',
   'transcript.steerReadMany': {
@@ -439,7 +439,7 @@ export const chatCatalog = defineCatalog(en, {
   'transcript.markdown.image': '[图片：{name}]',
   'transcript.markdown.attachment': '附件',
   'transcript.markdown.projectLink': '项目内相对链接：{url}',
-  'transcript.errorFallback': 'Prime 遇到了错误。',
+  'transcript.errorFallback': 'Ptx 遇到了错误。',
   'transcript.runtimeExit': '智能体意外停止（{reason}）。请重新发送消息以将其重启。',
   'transcript.exitCode': '退出码 {code}',
   'transcript.unknownError': '未知错误',
@@ -479,6 +479,6 @@ export const chatCatalog = defineCatalog(en, {
   'extui.hint': '{left} / {right} 或 PgUp/PgDn 切换问题 · ↑ ↓ 选择选项 · 1–9 选择 · Enter 继续',
   'extui.notAnswered': '未回答',
   'extui.otherOption': '其他（自行输入答案）',
-  'extui.chooseOption': '选择一个选项以让 Prime 继续。',
+  'extui.chooseOption': '选择一个选项以让 Ptx 继续。',
   'extui.response': '回复',
 })

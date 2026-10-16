@@ -14,7 +14,7 @@ const worktrees: GitWorktree[] = [
 ]
 const session = {
   id: 'session',
-  harness: 'prime' as const,
+  harness: 'omp' as const,
   filePath: '/sessions/session.jsonl',
   projectPath: '/repo',
   title: '分析项目结构与代码',

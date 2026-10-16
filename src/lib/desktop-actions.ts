@@ -1,8 +1,8 @@
 import { translate, type MessageKey, type MessageValues, type ResolvedLocale } from '@/lib/i18n'
-import type { PrimeWorkApi } from '@/types/api'
+import type { PtxApi } from '@/types/api'
 import { errorMessage } from './errors'
 
-type ShellApi = Pick<PrimeWorkApi['app'], 'openExternal' | 'revealPath'>
+type ShellApi = Pick<PtxApi['app'], 'openExternal' | 'revealPath'>
 
 /**
  * The I18nProvider mirrors the resolved locale onto `<html lang>`, so this

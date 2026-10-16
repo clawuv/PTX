@@ -8,7 +8,6 @@ import { EmptyState, Modal, SelectMenu } from '@/components/ui'
 
 const MCP_STDIO_HELP: Record<HarnessId, MessageKey> = {
   omp: 'plugins.mcpHelp.omp',
-  prime: 'plugins.mcpHelp.prime',
   pi: 'plugins.mcpHelp.pi',
 }
 
@@ -16,9 +15,8 @@ type DirectoryTab = 'plugins' | 'skills'
 type AddKind = 'mcp' | 'bundle' | 'extension'
 type McpScope = 'user' | 'project'
 
-const PACKAGE_LABELS: Record<HarnessId, MessageKey> = { prime: 'plugins.packageLabel.prime', omp: 'plugins.packageLabel.omp', pi: 'plugins.packageLabel.pi' }
+const PACKAGE_LABELS: Record<HarnessId, MessageKey> = { omp: 'plugins.packageLabel.omp', pi: 'plugins.packageLabel.pi' }
 const PACKAGE_HELP: Record<HarnessId, MessageKey> = {
-  prime: 'plugins.packageHelp.prime',
   omp: 'plugins.packageHelp.omp',
   pi: 'plugins.packageHelp.pi',
 }
@@ -95,9 +93,9 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
 
   const visible = useMemo(() => skills.map((skill) => skill.id === 'ptx-ask-user'
     ? { ...skill, enabled: askUserEnabled }
-    : skill.id === 'prime-work-browser' || skill.id === 'omp-work-browser' ? { ...skill, enabled: browserEnabled }
+    : skill.id === 'omp-work-browser' ? { ...skill, enabled: browserEnabled }
     : skill.id === 'ptx-computer-use' ? { ...skill, enabled: computerUseEnabled } : skill).filter((skill) => {
-    const capability = skill.id === 'prime-work-browser' || skill.id === 'omp-work-browser' || skill.kind !== 'skill' && skill.kind !== 'prompt'
+    const capability = skill.id === 'omp-work-browser' || skill.kind !== 'skill' && skill.kind !== 'prompt'
     return (tab === 'plugins' ? capability : !capability)
       && (filter === 'all' || filter === 'installed' && skill.enabled || filter === skill.location)
       && `${skill.name} ${skill.description}`.toLowerCase().includes(query.toLowerCase())
@@ -197,19 +195,14 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
       setMcpSupportUpdating(false)
     }
   }
-  const mcpServerName = (skill: SkillRecord): string => skill.id.startsWith('prime-mcp-') ? skill.id.slice('prime-mcp-'.length) : skill.name
+  const mcpServerName = (skill: SkillRecord): string => skill.name
   const setMcp = async (skill: SkillRecord, enabled: boolean) => {
     if (capabilityUpdating) return
     setCapabilityUpdating(skill.id)
     setCapabilityAlert('')
     try {
-      if (skill.id.startsWith('prime-mcp-')) {
-        const response = await mutateCapability({ kind: 'mcp', action: enabled ? 'enable' : 'disable', name: mcpServerName(skill), scope: 'user' })
-        if (!response.ok) setCapabilityAlert(response.output)
-      } else {
-        const response = await onSetMcpEnabled({ name: skill.name, scope: skill.location === 'project' ? 'project' : 'user', projectPath: skill.location === 'project' ? activeProjectPath : undefined, enabled })
-        if (!response.ok) setCapabilityAlert(response.output)
-      }
+      const response = await onSetMcpEnabled({ name: skill.name, scope: skill.location === 'project' ? 'project' : 'user', projectPath: skill.location === 'project' ? activeProjectPath : undefined, enabled })
+      if (!response.ok) setCapabilityAlert(response.output)
     } finally {
       setCapabilityUpdating('')
     }
@@ -217,7 +210,7 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
   const disableCapability = async (skill: SkillRecord) => {
     setConfirmDisable(null)
     if (skill.id === 'ptx-ask-user') await setAskUser(false)
-    else if (skill.id === 'prime-work-browser' || skill.id === 'omp-work-browser') await setBrowser(false)
+    else if (skill.id === 'omp-work-browser') await setBrowser(false)
     else if (skill.id === 'ptx-computer-use') await setComputerUse(skill, false)
     else if (skill.id === 'ptx-pi-mcp') await setMcpSupport(skill, false)
     else if (skill.kind === 'mcp') await setMcp(skill, false)
@@ -260,7 +253,7 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
     if (harness === 'pi' && skill.kind === 'mcp' && !piMcpAdapterInstalled) {
       return <span className="plugin-toggle" role="img" aria-label={t('plugins.adapterRequiredNamed', { name: skill.name })} aria-describedby={capabilityDetailId(skill)}><ShieldCheck aria-hidden="true" size={14}/></span>
     }
-    const isBrowser = skill.id === 'prime-work-browser' || skill.id === 'omp-work-browser'
+    const isBrowser = skill.id === 'omp-work-browser'
     const actionable = skill.id === 'ptx-ask-user' || isBrowser || skill.id === 'ptx-computer-use' || skill.id === 'ptx-pi-mcp' || skill.kind === 'mcp' || skill.kind === 'package'
     if (!actionable) return <span className={skill.enabled ? 'plugin-toggle is-enabled' : 'plugin-toggle'} aria-label={t(skill.enabled ? 'plugins.enabledNamed' : 'plugins.unavailableNamed', { name: skill.name })}>{skill.enabled ? <Check size={14}/> : <Plus size={14}/>}</span>
     const updating = skill.id === 'ptx-ask-user' ? askUserUpdating
@@ -332,7 +325,7 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
         ) : <EmptyState icon={<Sparkles size={23}/>} title={t('plugins.emptyTitle')}>{t('plugins.emptyHint', { harness: HARNESS_SHORT_NAMES[harness] })}</EmptyState>}
 
         {confirmDisable ? <Modal title={t('plugins.disableConfirmTitle', { name: confirmDisable.name })} onClose={() => setConfirmDisable(null)} footer={<><button type="button" className="button" onClick={() => setConfirmDisable(null)}>{t('plugins.cancel')}</button><button type="button" className="button button--danger" onClick={() => void disableCapability(confirmDisable)}>{t('plugins.disableConfirm')}</button></>}><p className="modal-intro">{t('plugins.disableConfirmBody')}</p></Modal> : null}
-        {confirmRemove ? <Modal title={t('plugins.removeConfirmTitle', { name: confirmRemove.name })} onClose={() => setConfirmRemove(null)} footer={<><button type="button" className="button" onClick={() => setConfirmRemove(null)}>{t('plugins.cancel')}</button><button type="button" className="button button--danger" onClick={() => void removeCapability(confirmRemove)}>{t('plugins.removeConfirm')}</button></>}><p className="modal-intro">{t('plugins.removeConfirmBody', { what: confirmRemove.kind === 'mcp' ? harness === 'prime' ? t('plugins.removeScope.primeMcp') : t('plugins.removeScope.mcp') : t('plugins.removeScope.package') })}</p></Modal> : null}
+        {confirmRemove ? <Modal title={t('plugins.removeConfirmTitle', { name: confirmRemove.name })} onClose={() => setConfirmRemove(null)} footer={<><button type="button" className="button" onClick={() => setConfirmRemove(null)}>{t('plugins.cancel')}</button><button type="button" className="button button--danger" onClick={() => void removeCapability(confirmRemove)}>{t('plugins.removeConfirm')}</button></>}><p className="modal-intro">{t('plugins.removeConfirmBody', { what: confirmRemove.kind === 'mcp' ? t('plugins.removeScope.mcp') : t('plugins.removeScope.package') })}</p></Modal> : null}
 
         {addOpen ? (
           <Modal
@@ -344,8 +337,8 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
           >
             {addKind === null ? (
               <div className="capability-choice-list">
-                <button type="button" disabled={harness === 'prime' || harness === 'pi' && !piMcpAdapterInstalled} onClick={() => selectAddKind('mcp')}>
-                  <span><Globe2 size={17}/></span><span><strong>{t('plugins.addMcp')}</strong><small>{harness === 'prime' ? t('plugins.addMcp.prime') : harness === 'pi' && !piMcpAdapterInstalled ? t('plugins.addMcp.enableAdapterFirst') : t('plugins.addMcp.localStdio')}</small></span><ChevronRight size={15}/>
+                <button type="button" disabled={harness === 'pi' && !piMcpAdapterInstalled} onClick={() => selectAddKind('mcp')}>
+                  <span><Globe2 size={17}/></span><span><strong>{t('plugins.addMcp')}</strong><small>{harness === 'pi' && !piMcpAdapterInstalled ? t('plugins.addMcp.enableAdapterFirst') : t('plugins.addMcp.localStdio')}</small></span><ChevronRight size={15}/>
                 </button>
                 <button type="button" onClick={() => selectAddKind('bundle')}>
                   <span><Package size={17}/></span><span><strong>{t(harness === 'omp' ? 'plugins.add.plugin' : 'plugins.add.package')}</strong><small>{t(PACKAGE_HELP[harness])}</small></span><ChevronRight size={15}/>

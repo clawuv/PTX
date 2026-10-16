@@ -8,7 +8,7 @@ import {
   updateActivityCriteria,
   type ActivityViewState,
 } from '../../src/pages/ActivityPage'
-import { applyPrimeEvent, createPrimeEventBuffer, createSteerAcceptedEvent, createSteerPickupEvent, replayPrimeEvents, resetTranscriptIdsForTests, type PrimeEventReplayStats } from '../../src/lib/events'
+import { applyAgentEvent, createAgentEventBuffer, createSteerAcceptedEvent, createSteerPickupEvent, replayAgentEvents, resetTranscriptIdsForTests, type AgentEventReplayStats } from '../../src/lib/events'
 import { reconcileTranscripts } from '../../src/app/transcript-reconcile'
 import { createSidebarActionProxy } from '../../src/hooks/useSidebarActions'
 import { mergeSessionCatalog } from '../../src/hooks/useBootstrap'
@@ -38,7 +38,7 @@ const transcriptText = (messages: TranscriptMessage[]) => {
 }
 
 function runTranscriptRace(frameBeforeRead: boolean): TranscriptMessage[] {
-  const eventBuffer = createPrimeEventBuffer()
+  const eventBuffer = createAgentEventBuffer()
   const pendingLoad = { generation: 4, eventBuffer }
   const frameQueue: PendingAgentEvent[] = []
   const events = [delta('one'), delta('-two')]
@@ -48,7 +48,7 @@ function runTranscriptRace(frameBeforeRead: boolean): TranscriptMessage[] {
   let messages: TranscriptMessage[] = []
   const flushFrame = () => {
     messages = eventsForWorkspace(frameQueue.splice(0), 4)
-      .reduce((current, event) => applyPrimeEvent(current, event), messages)
+      .reduce((current, event) => applyAgentEvent(current, event), messages)
   }
   const finishRead = () => { messages = eventBuffer.replay(transcript()) }
 
@@ -78,7 +78,7 @@ describe('streamed transcript event ownership', () => {
       { generation: 3, event: delta('-new-2') },
     ]
     const messages = eventsForWorkspace(queue, 3).reduce(
-      (current, event) => applyPrimeEvent(current, event),
+      (current, event) => applyAgentEvent(current, event),
       transcript(),
     )
 
@@ -105,7 +105,7 @@ describe('Sidebar memoization and scale bounds', () => {
   it('rejects a streaming parent rerender when navigation data and stable handlers are unchanged', () => {
     const callbacks = sidebarProps(() => undefined)
     const before = { ...callbacks }
-    const streamedMessages = applyPrimeEvent(transcript(), delta('next frame'))
+    const streamedMessages = applyAgentEvent(transcript(), delta('next frame'))
     const after = { ...callbacks }
 
     expect(streamedMessages).not.toBe(transcript())
@@ -129,11 +129,11 @@ describe('Sidebar memoization and scale bounds', () => {
 
   it('indexes 5,000 sessions once and bounds rendered rows per project', () => {
     const project: ProjectRecord = {
-      id: 'large', harness: 'prime', name: 'Large', path: '/large', folders: ['/large'], primaryFolder: '/large',
+      id: 'large', harness: 'omp', name: 'Large', path: '/large', folders: ['/large'], primaryFolder: '/large',
       pinned: false, createdAt: '2026-01-01T00:00:00.000Z', lastOpenedAt: '2026-01-01T00:00:00.000Z', sessionCount: 5_000,
     }
     const sessions: SessionRecord[] = Array.from({ length: 5_000 }, (_, index) => ({
-      id: `session-${index}`, harness: 'prime' as const, projectPath: '/large', filePath: `/sessions/${index}.jsonl`, title: `Session ${index}`,
+      id: `session-${index}`, harness: 'omp' as const, projectPath: '/large', filePath: `/sessions/${index}.jsonl`, title: `Session ${index}`,
       createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', status: 'idle', depth: 0,
     }))
     const stats = { projectPaths: 0, sessionScans: 0 }
@@ -171,7 +171,7 @@ afterEach(() => { vi.useRealTimers() })
 describe('batched Prime event reduction', () => {
   it('anchors an accepted steer immediately, then marks the exact pickup boundary', () => {
     const steer = { id: 'queued-1', text: 'change direction', intent: 'steer' as const, timestamp: 2, parts: [{ type: 'text' as const, text: 'change direction' }] }
-    const result = replayPrimeEvents(transcript(), [
+    const result = replayAgentEvents(transcript(), [
       delta('before acceptance'),
       createSteerAcceptedEvent(steer),
       delta('still finishing the current work'),
@@ -194,7 +194,7 @@ describe('batched Prime event reduction', () => {
   })
 
   it('places repeated picked-up steers between the tool segments that consumed them', () => {
-    const result = replayPrimeEvents(transcript(), [
+    const result = replayAgentEvents(transcript(), [
       { type: 'tool_execution_start', toolCallId: 'read', toolName: 'Read', args: { path: 'before.ts' } },
       createSteerPickupEvent([{ id: 'queued-1', text: 'change direction', intent: 'steer', timestamp: 2, parts: [{ type: 'text', text: 'change direction' }] }]),
       { type: 'turn_start' },
@@ -232,9 +232,9 @@ describe('batched Prime event reduction', () => {
       { type: 'agent_end' },
     ]
     resetTranscriptIdsForTests()
-    const sequential = events.reduce((current, event) => applyPrimeEvent(current, event), transcript())
+    const sequential = events.reduce((current, event) => applyAgentEvent(current, event), transcript())
     resetTranscriptIdsForTests()
-    const batched = replayPrimeEvents(transcript(), events)
+    const batched = replayAgentEvents(transcript(), events)
 
     expect(batched).toEqual(sequential)
     expect(batched[0]?.parts.map((part) => part.type)).toEqual([
@@ -257,7 +257,7 @@ describe('batched Prime event reduction', () => {
         return Reflect.get(target, key, receiver)
       },
     })
-    const result = replayPrimeEvents(measured, Array.from({ length: 1_000 }, () => delta('x')))
+    const result = replayAgentEvents(measured, Array.from({ length: 1_000 }, () => delta('x')))
 
     expect(transcriptText([result.at(-1)!])).toBe('x'.repeat(1_000))
     expect(indexedReads).toBeLessThan(6_100)
@@ -302,9 +302,9 @@ describe('linear event batches', () => {
       { type: 'runtime_exit', expected: true },
     ]
     resetTranscriptIdsForTests()
-    const sequential = events.reduce((current, event) => applyPrimeEvent(current, event), transcript())
+    const sequential = events.reduce((current, event) => applyAgentEvent(current, event), transcript())
     resetTranscriptIdsForTests()
-    expect(replayPrimeEvents(transcript(), events)).toEqual(sequential)
+    expect(replayAgentEvents(transcript(), events)).toEqual(sequential)
   })
 
   it('pairs id-less tool executions onto one tool row instead of adding a phantom row', () => {
@@ -317,9 +317,9 @@ describe('linear event batches', () => {
       { type: 'agent_end' },
     ]
     resetTranscriptIdsForTests()
-    const sequential = events.reduce((current, event) => applyPrimeEvent(current, event), transcript())
+    const sequential = events.reduce((current, event) => applyAgentEvent(current, event), transcript())
     resetTranscriptIdsForTests()
-    const batched = replayPrimeEvents(transcript(), events)
+    const batched = replayAgentEvents(transcript(), events)
 
     expect(batched).toEqual(sequential)
     const parts = batched[0]?.parts ?? []
@@ -337,7 +337,7 @@ describe('linear event batches', () => {
       { type: 'tool_execution_start', toolCallId: 'one', toolName: 'One', args: { command: 'ls -la' } },
       { type: 'tool_execution_update', toolCallId: 'one', toolName: 'One', partialResult: 'partial' },
     ]
-    const messages = replayPrimeEvents(transcript(), events)
+    const messages = replayAgentEvents(transcript(), events)
     const call = messages.flatMap((message) => message.parts).find((part) => part.type === 'toolCall')
     expect(call && 'args' in call ? call.args : undefined).toEqual({ command: 'ls -la' })
   })
@@ -364,9 +364,9 @@ describe('linear event batches', () => {
     for (let run = 0; run < 100; run += 1) {
       const events = Array.from({ length: 80 }, () => pool[random() % pool.length])
       resetTranscriptIdsForTests()
-      const sequential = events.reduce((current, event) => applyPrimeEvent(current, event), transcript())
+      const sequential = events.reduce((current, event) => applyAgentEvent(current, event), transcript())
       resetTranscriptIdsForTests()
-      expect(replayPrimeEvents(transcript(), events)).toEqual(sequential)
+      expect(replayAgentEvents(transcript(), events)).toEqual(sequential)
     }
   })
 
@@ -379,9 +379,9 @@ describe('linear event batches', () => {
       { type: 'agent_end' },
     ]
     resetTranscriptIdsForTests()
-    const sequential = [...batchA, ...batchB].reduce((current, event) => applyPrimeEvent(current, event), transcript())
+    const sequential = [...batchA, ...batchB].reduce((current, event) => applyAgentEvent(current, event), transcript())
     resetTranscriptIdsForTests()
-    const batched = replayPrimeEvents(replayPrimeEvents(transcript(), batchA), batchB)
+    const batched = replayAgentEvents(replayAgentEvents(transcript(), batchA), batchB)
 
     expect(batched).toEqual(sequential)
     expect(batched.filter((message) => message.role === 'assistant')).toHaveLength(2)
@@ -397,8 +397,8 @@ describe('linear event batches', () => {
     let commits = 0
     for (let batch = 0; batch < 50; batch += 1) {
       const events = Array.from({ length: 200 }, () => delta('x'))
-      const stats: PrimeEventReplayStats = { messageScans: 0, eventScans: 0, partScans: 0, transcriptCopies: 0 }
-      const next = replayPrimeEvents(state, events, stats)
+      const stats: AgentEventReplayStats = { messageScans: 0, eventScans: 0, partScans: 0, transcriptCopies: 0 }
+      const next = replayAgentEvents(state, events, stats)
       commits += 1
       expect(stats.messageScans).toBe(500)
       expect(stats.eventScans).toBe(200)
@@ -462,7 +462,7 @@ describe('external sync reconciliation', () => {
 
 describe('catalog tick session identity', () => {
   const record = (filePath: string, overrides: Partial<SessionRecord> = {}): SessionRecord => ({
-    id: filePath, harness: 'prime', projectPath: '/project', filePath, title: 'Session',
+    id: filePath, harness: 'omp', projectPath: '/project', filePath, title: 'Session',
     createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
     status: 'idle', depth: 0, ...overrides,
   })

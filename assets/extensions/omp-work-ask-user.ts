@@ -3,7 +3,7 @@
  *
  * Loaded explicitly for every OMP and base pi runtime started by the desktop
  * app. The extension is self-contained because packaged OMP imports it
- * directly from app resources. In RPC mode, the marker option lets Prime Work
+ * directly from app resources. In RPC mode, the marker option lets Ptx
  * combine the individual select requests into one multi-question modal.
  *
  * Schema builders come from the injected `pi.typebox` shim when the host

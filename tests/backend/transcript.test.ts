@@ -85,7 +85,7 @@ describe('Ptx agent messages', () => {
       version: 1,
       from_session_id: 'legacy-source',
       from_title: 'Legacy planner title',
-      from_harness: 'prime',
+      from_harness: 'omp',
       reply_with: 'session_send',
       nonce: '00000000-0000-4000-8000-000000000000',
       sent_at: '2026-08-13T12:00:00.000Z',
@@ -106,7 +106,7 @@ describe('Ptx agent messages', () => {
     expect(parsePtxAgentMessage(envelope)).toEqual({
       fromSessionId: 'legacy-source',
       fromTitle: 'Legacy planner title',
-      fromHarness: 'prime',
+      fromHarness: 'omp',
       text,
     })
   })

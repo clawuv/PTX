@@ -161,7 +161,7 @@ const en = {
   'settings.voice.modal.placeholder.key': 'Paste API key',
 
   // Pets
-  'settings.pets.description': 'Choose a companion that reacts while OMP or Prime works.',
+  'settings.pets.description': 'Choose a companion that reacts while OMP or Pi works.',
   'settings.pets.orb.description': 'A fluid voice orb that shifts with Ptx activity.',
   'settings.pets.ptx.description': 'A friendly purple jelly pet shaped like the mathematical pi symbol.',
   'settings.pets.activeCompanion': 'Active companion',
@@ -230,8 +230,8 @@ const en = {
 
   // About
   'settings.about.title': 'About Ptx',
-  'settings.about.description': 'A playful desktop workspace for OMP and Prime Agent.',
-  'settings.about.tagline': 'OMP + Prime Agent workspace · Version {version}',
+  'settings.about.description': 'A playful desktop workspace for OMP and Pi.',
+  'settings.about.tagline': 'OMP + Pi workspace · Version {version}',
   'settings.about.platform': 'Platform',
   'settings.about.homeDirectory': 'Home directory',
   'settings.about.docs': 'Help and documentation',
@@ -240,7 +240,6 @@ const en = {
   // Providers
   'providers.intro.omp': 'Choose which OMP providers and models appear in Ptx. These visibility settings do not change OMP itself; credentials remain managed by OMP. You may need to log in to or out of providers in the OMP CLI before they appear on this screen.',
   'providers.intro.pi': 'Choose which Pi providers and models appear in Ptx. These visibility settings do not change Pi itself; Pi provider authentication is managed by the pi CLI. You may need to log in to or out of providers in the Pi CLI before they appear on this screen.',
-  'providers.intro.prime': 'Connect accounts, choose which providers and their models appear in Ptx, and browse every model Prime Agent supports. You may need to log in to or out of providers in the Prime Agent CLI before they appear on this screen.',
   'providers.catalogue': '{name} catalogue',
   'providers.action.disableAll': 'Disable all',
   'providers.action.hideAll': 'Hide all',
@@ -255,7 +254,6 @@ const en = {
   'providers.summary.counts': '{providers} providers · {models} models',
   'providers.summary.loading': 'Loading provider catalogue…',
   'providers.summary.external': '{count} models are shown in Ptx; {name} checks credentials when you launch one',
-  'providers.summary.prime': '{count} models are available with your current {name} credentials',
   'providers.tabs.aria': 'Provider catalogue view',
   'providers.tabs.providers': 'Providers',
   'providers.tabs.models': 'Models',
@@ -264,7 +262,6 @@ const en = {
   'providers.auth.notConfiguredExternal': 'Uses credentials configured outside Ptx',
   'providers.auth.notConnected': 'Not connected',
   'providers.auth.environment': 'Environment',
-  'providers.auth.primeCli': 'Prime CLI account',
   'providers.auth.connectedAccount': 'Connected account',
   'providers.auth.storedKey': 'Stored API key',
   'providers.auth.configured': 'Configured',
@@ -288,20 +285,8 @@ const en = {
   'providers.models.showAria': 'Show {name} model',
   'providers.empty.providers': 'No providers match your search.',
   'providers.empty.models': 'No models match your search.',
-  'providers.modal.title': 'Connect {name}',
-  'providers.modal.save': 'Save API key',
-  'providers.modal.intro': 'The key is sent directly to Prime Agent’s protected auth store. Ptx clears it from renderer state when this dialog closes.',
 
   // Provider auth modal
-  'authmodal.title.success': 'Authentication successful',
-  'authmodal.title.failed': 'Authentication failed',
-  'authmodal.title.connect': 'Connect provider',
-  'authmodal.action.continue': 'Continue',
-  'authmodal.action.close': 'Close',
-  'authmodal.action.cancelLogin': 'Cancel login',
-  'authmodal.action.openSignIn': 'Open sign-in page',
-  'authmodal.instructions.fallback': 'Finish signing in through your browser.',
-  'authmodal.complete.message': 'Provider is connected. Start a new Prime session to use it.',
 } as const
 
 const zh = {
@@ -460,7 +445,7 @@ const zh = {
   'settings.voice.modal.placeholder.token': '粘贴访问令牌',
   'settings.voice.modal.placeholder.key': '粘贴 API 密钥',
 
-  'settings.pets.description': '选择一个会随 OMP 或 Prime 工作而做出反应的伙伴。',
+  'settings.pets.description': '选择一个会随 OMP 或 Pi 工作而做出反应的伙伴。',
   'settings.pets.orb.description': '随 Ptx 活动而变化的液态语音球。',
   'settings.pets.ptx.description': '形似数学符号 π 的友好紫色果冻宠物。',
   'settings.pets.activeCompanion': '当前伙伴',
@@ -525,8 +510,8 @@ const zh = {
   'settings.privacy.requests.description': '会话请求遵循所选代理及其服务商配置。',
 
   'settings.about.title': '关于 Ptx',
-  'settings.about.description': '一个为 OMP 和 Prime Agent 打造的趣味桌面工作区。',
-  'settings.about.tagline': 'OMP + Prime Agent 工作区 · 版本 {version}',
+  'settings.about.description': '一个为 OMP 和 Pi 打造的趣味桌面工作区。',
+  'settings.about.tagline': 'OMP + Pi 工作区 · 版本 {version}',
   'settings.about.platform': '平台',
   'settings.about.homeDirectory': '主目录',
   'settings.about.docs': '帮助与文档',
@@ -534,7 +519,6 @@ const zh = {
 
   'providers.intro.omp': '选择哪些 OMP 服务商和模型显示在 Ptx 中。这些可见性设置不会更改 OMP 本身；凭据仍由 OMP 管理。你可能需要先在 OMP CLI 中登录或退出服务商，它们才会显示在此界面上。',
   'providers.intro.pi': '选择哪些 Pi 服务商和模型显示在 Ptx 中。这些可见性设置不会更改 Pi 本身；Pi 服务商认证由 pi CLI 管理。你可能需要先在 Pi CLI 中登录或退出服务商，它们才会显示在此界面上。',
-  'providers.intro.prime': '连接账号，选择哪些服务商及其模型显示在 Ptx 中，并浏览 Prime Agent 支持的所有模型。你可能需要先在 Prime Agent CLI 中登录或退出服务商，它们才会显示在此界面上。',
   'providers.catalogue': '{name} 目录',
   'providers.action.disableAll': '全部禁用',
   'providers.action.hideAll': '全部隐藏',
@@ -549,7 +533,6 @@ const zh = {
   'providers.summary.counts': '{providers} 个服务商 · {models} 个模型',
   'providers.summary.loading': '正在加载服务商目录…',
   'providers.summary.external': '{count} 个模型将显示在 Ptx 中；{name} 会在你启动时检查凭据',
-  'providers.summary.prime': '当前 {name} 凭据下有 {count} 个模型可用',
   'providers.tabs.aria': '服务商目录视图',
   'providers.tabs.providers': '服务商',
   'providers.tabs.models': '模型',
@@ -558,7 +541,6 @@ const zh = {
   'providers.auth.notConfiguredExternal': '使用在 Ptx 之外配置的凭据',
   'providers.auth.notConnected': '未连接',
   'providers.auth.environment': '环境变量',
-  'providers.auth.primeCli': 'Prime CLI 账号',
   'providers.auth.connectedAccount': '已连接账号',
   'providers.auth.storedKey': '已存储的 API 密钥',
   'providers.auth.configured': '已配置',
@@ -582,19 +564,7 @@ const zh = {
   'providers.models.showAria': '显示 {name} 模型',
   'providers.empty.providers': '没有符合搜索条件的服务商。',
   'providers.empty.models': '没有符合搜索条件的模型。',
-  'providers.modal.title': '连接 {name}',
-  'providers.modal.save': '保存 API 密钥',
-  'providers.modal.intro': '密钥会直接发送到 Prime Agent 受保护的凭据存储。此对话框关闭时，Ptx 会将其从渲染进程状态中清除。',
 
-  'authmodal.title.success': '认证成功',
-  'authmodal.title.failed': '认证失败',
-  'authmodal.title.connect': '连接服务商',
-  'authmodal.action.continue': '继续',
-  'authmodal.action.close': '关闭',
-  'authmodal.action.cancelLogin': '取消登录',
-  'authmodal.action.openSignIn': '打开登录页面',
-  'authmodal.instructions.fallback': '请在浏览器中完成登录。',
-  'authmodal.complete.message': '服务商已连接。开启新的 Prime 会话即可使用。',
 }
 
 export const settingsCatalog = defineCatalog(en, zh)

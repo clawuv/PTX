@@ -11,7 +11,7 @@ import { MarkdownText } from './MarkdownText'
 import { ActivityMessage, AgentMessage, AssistantMessage, GoalMessage, SteerReadMarker, UserMessage } from './transcript/messages'
 import { useTranscriptScroll } from './transcript/scroll'
 import { LiveElapsed, ThinkingDots, WorkDisclosure } from './transcript/timeline'
-import { OmpMark, PiMark, PrimeMark } from './ui'
+import { OmpMark, PiMark } from './ui'
 
 export { tokenizeSyntax } from './transcript/syntax'
 export { classifyTool, formatWorkedDuration } from './transcript/timeline'
@@ -61,7 +61,7 @@ interface TranscriptProps {
   onOpenSessionReference?(sessionId: string, harness: HarnessId): void
 }
 
-const ASSISTANT_MARKS = { omp: OmpMark, prime: PrimeMark, pi: PiMark } satisfies Record<HarnessId, unknown>
+const ASSISTANT_MARKS = { omp: OmpMark, pi: PiMark } satisfies Record<HarnessId, unknown>
 function AssistantMark({ harness, size = 24 }: { harness: HarnessId; size?: number }) {
   const Mark = ASSISTANT_MARKS[harness]
   return <Mark size={size} />
@@ -170,7 +170,7 @@ function ActiveAssistantMessage({ message, harness, showReasoning, showTools }: 
 
 export function Transcript({
   messages,
-  harness = 'prime',
+  harness = 'omp',
   projectName,
   loading,
   active = false,

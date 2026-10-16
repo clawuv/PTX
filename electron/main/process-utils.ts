@@ -4,7 +4,7 @@ import { delimiter, posix, win32 } from 'node:path'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { homedir } from 'node:os'
 import { createAdmissionQueue } from './lib/async'
-import { HARNESSES, type HarnessDescriptor } from './harness'
+import type { HarnessDescriptor } from './harness'
 import type { ProcessFailureReason, ProcessOutcome } from '../../src/types/api'
 
 export interface ProcessResult {
@@ -426,7 +426,7 @@ export function harnessExecutableCandidates(
   }
   // Electron E2E fixtures must not silently connect to a developer machine's
   // globally installed harnesses after an explicit fixture binary disappears.
-  const fallbackDirs = env.PRIME_WORK_E2E_HIDE_WINDOWS === '1' ? [] : [
+  const fallbackDirs = env.PTX_E2E_HIDE_WINDOWS === '1' ? [] : [
     ...descriptor.candidateDirs(platform, home, env),
     ...sharedHarnessCandidateDirs(env, platform, home),
   ]
@@ -451,7 +451,7 @@ export async function nvmHarnessExecutableCandidates(
   platform = process.platform,
   home = homedir(),
 ): Promise<string[]> {
-  if (platform === 'win32' || env.PRIME_WORK_E2E_HIDE_WINDOWS === '1') return []
+  if (platform === 'win32' || env.PTX_E2E_HIDE_WINDOWS === '1') return []
   const root = env.NVM_DIR && posix.isAbsolute(env.NVM_DIR) ? env.NVM_DIR : posix.join(home, '.nvm')
   const versionsRoot = posix.join(root, 'versions', 'node')
   try {
@@ -497,18 +497,6 @@ export type ExecutableSource = string | null | (() => string | null)
 /** Resolves a startup-fixed path or a live discovery-backed executable source. */
 export function resolveExecutable(source: ExecutableSource): string | null {
   return typeof source === 'function' ? source() : source
-}
-
-export function primeAgentExecutableName(platform = process.platform): string {
-  return HARNESSES.prime.executableName(platform)
-}
-
-export function primeAgentCandidates(env: NodeJS.ProcessEnv = process.env, platform = process.platform): string[] {
-  return harnessExecutableCandidates(HARNESSES.prime, env, platform)
-}
-
-export async function findPrimeAgent(): Promise<string | null> {
-  return findHarnessExecutable(HARNESSES.prime)
 }
 
 export function runProcess(file: string, args: readonly string[], options: {

@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { StringDecoder } from 'node:string_decoder'
-import { PRIME_THINKING_LEVELS, type PrimeModelDescriptor, type PrimeThinkingLevel } from '../../src/types/api'
+import { AGENT_THINKING_LEVELS, type AgentModelDescriptor, type AgentThinkingLevel } from '../../src/types/api'
 import { CliModelCatalogService, validateModelEntry, type CliModelCatalogOptions } from './model-catalog-cli'
 import { killProcessTree, prepareExecutableSpawn, waitForProcessExit } from './process-utils'
 
@@ -20,9 +20,9 @@ export const PI_NOT_INSTALLED_WARNING = 'Pi is not installed. Install the pi CLI
  * map names them, and every other level is supported by default. Hostile
  * (non-string, non-null) map values are treated as absent.
  */
-function toThinkingLevels(reasoning: boolean, rawMap: Record<string, unknown> | undefined): PrimeThinkingLevel[] {
+function toThinkingLevels(reasoning: boolean, rawMap: Record<string, unknown> | undefined): AgentThinkingLevel[] {
   if (!reasoning) return ['off']
-  return PRIME_THINKING_LEVELS.filter((level) => {
+  return AGENT_THINKING_LEVELS.filter((level) => {
     const mapped = rawMap && Object.hasOwn(rawMap, level) ? rawMap[level] : undefined
     if (mapped === null) return false
     if (level === 'xhigh' || level === 'max') return typeof mapped === 'string'
@@ -144,8 +144,7 @@ export type PiModelCatalogOptions = CliModelCatalogOptions
 /**
  * Model catalog service for the pi harness, backed by the short-lived
  * `get_available_models` RPC probe instead of a CLI JSON list. Satisfies the
- * same `ModelCatalogProvider` surface as `PrimeProviderService` and
- * `OmpModelCatalogService`, so `AgentRpcManager` and the `providers:catalog`
+ * same `ModelCatalogProvider` surface as `OmpModelCatalogService`, so `AgentRpcManager` and the `providers:catalog`
  * IPC path can consume any of them.
  *
  * The probe output is untrusted: it is byte-bounded, time-bounded, spawned
@@ -177,7 +176,7 @@ export class PiModelCatalogService extends CliModelCatalogService {
   }
 
   /** Validates one untrusted RPC model entry; returns null when any field is hostile or malformed. */
-  protected toModelDescriptor(value: unknown): PrimeModelDescriptor | null {
+  protected toModelDescriptor(value: unknown): AgentModelDescriptor | null {
     const entry = validateModelEntry(value)
     if (!entry) return null
     const { thinkingLevelMap } = entry.record

@@ -1,3 +1,4 @@
+import '../helpers/node-script-fixtures'
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -13,7 +14,7 @@ import {
 import { RPC_READ_FRAME_LIMIT_BYTES } from '../../electron/main/jsonl-limits'
 import { OmpModelCatalogService, MAX_CATALOG_PROVIDERS } from '../../electron/main/providers-omp'
 import { ScheduledRunExecutor } from '../../electron/main/schedules/executor'
-import type { PrimeModelDescriptor } from '../../src/types/api'
+import type { AgentModelDescriptor } from '../../src/types/api'
 import { waitUntil } from '../helpers/wait'
 
 const dirs: string[] = []
@@ -102,7 +103,7 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
   return { cwd, executable }
 }
 
-const lunaModel: PrimeModelDescriptor = {
+const lunaModel: AgentModelDescriptor = {
   key: 'openai-codex/gpt-5.6-luna', provider: 'openai-codex', id: 'gpt-5.6-luna', name: 'Luna GPT-5.6',
   reasoning: true, input: ['text', 'image'], contextWindow: 200_000, maxTokens: 64_000,
   availableThinkingLevels: ['off', 'low', 'medium', 'high'], fastModeSupported: true, available: true,
@@ -238,11 +239,11 @@ describe('OMP RPC adapter argv', () => {
 
   it('appends the enabled computer-use skill and forwards the scoped app extensions', () => {
     const environment = {
-      PRIME_WORK_SCHEDULE_SKILL_PATH: '/skills/schedule.md',
-      PRIME_WORK_BROWSER_SKILL_PATH: '/skills/browser.md',
-      PRIME_WORK_SCHEDULE_EXTENSION_PATH: '/extensions/schedules.ts',
-      PRIME_WORK_BROWSER_EXTENSION_PATH: '/extensions/browser.ts',
-      PRIME_WORK_ASK_USER_EXTENSION_PATH: '/extensions/ask-user.ts',
+      PTX_SCHEDULE_SKILL_PATH: '/skills/schedule.md',
+      PTX_BROWSER_SKILL_PATH: '/skills/browser.md',
+      PTX_SCHEDULE_EXTENSION_PATH: '/extensions/schedules.ts',
+      PTX_BROWSER_EXTENSION_PATH: '/extensions/browser.ts',
+      PTX_ASK_USER_EXTENSION_PATH: '/extensions/ask-user.ts',
       PTX_COLLABORATION_EXTENSION_PATH: '/extensions/collaboration.ts',
       PTX_COMPUTER_USE_SKILL_PATH: '/skills/computer-use.md',
     } as NodeJS.ProcessEnv
@@ -309,11 +310,11 @@ describe('OMP RPC handshake', () => {
     const fake = fakeOmpAgent()
     const manager = ompManager(fake.executable, { providers: ompCatalog, approvalMode: () => 'yolo' })
     manager.setRuntimeEnvironmentProvider(() => ({
-      PRIME_WORK_SCHEDULE_SKILL_PATH: '/skills/schedule.md',
-      PRIME_WORK_BROWSER_SKILL_PATH: '/skills/browser.md',
-      PRIME_WORK_SCHEDULE_EXTENSION_PATH: '/extensions/schedules.ts',
-      PRIME_WORK_BROWSER_EXTENSION_PATH: '/extensions/browser.ts',
-      PRIME_WORK_ASK_USER_EXTENSION_PATH: '/extensions/ask-user.ts',
+      PTX_SCHEDULE_SKILL_PATH: '/skills/schedule.md',
+      PTX_BROWSER_SKILL_PATH: '/skills/browser.md',
+      PTX_SCHEDULE_EXTENSION_PATH: '/extensions/schedules.ts',
+      PTX_BROWSER_EXTENSION_PATH: '/extensions/browser.ts',
+      PTX_ASK_USER_EXTENSION_PATH: '/extensions/ask-user.ts',
       PTX_COLLABORATION_EXTENSION_PATH: '/extensions/collaboration.ts',
     }))
     const events: Array<Record<string, unknown>> = []
@@ -439,9 +440,9 @@ describe('OMP RPC command translation', () => {
     const runtime = await manager.start({ cwd: fake.cwd })
 
     await expect(manager.command(runtime.runtimeId, { type: 'send_message', targetActiveSessionId: 'session-1', message: 'hello' }))
-      .rejects.toThrow('RPC command send_message is not supported by the OMP harness')
+      .rejects.toThrow('RPC command send_message is not exposed to the renderer')
     await expect(manager.command(runtime.runtimeId, { type: 'clone' }))
-      .rejects.toThrow('RPC command clone is not supported by the OMP harness')
+      .rejects.toThrow('RPC command clone is not exposed to the renderer')
   })
 
   it('maps set_service_tier onto set_fast_mode', async () => {

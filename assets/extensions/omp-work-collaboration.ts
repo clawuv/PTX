@@ -1,4 +1,4 @@
-/** Shared Ptx session-collaboration tools for Prime Agent, OMP, and pi. */
+/** Shared Ptx session-collaboration tools for OMP and pi. */
 
 interface SchemaOptions { description?: string; minLength?: number; maxLength?: number; minimum?: number; maximum?: number }
 interface HostTypebox {

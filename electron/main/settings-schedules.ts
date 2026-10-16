@@ -68,7 +68,7 @@ export class SettingsService {
       enabledHarnesses: (value) => {
         if (!Array.isArray(value) || value.length > HARNESS_IDS.length) throw new TypeError('enabledHarnesses must be a bounded array')
         const enabled = [...new Set(value.map((entry, index) => {
-          if (entry !== 'prime' && entry !== 'omp' && entry !== 'pi') throw new TypeError(`enabledHarnesses[${index}] is invalid`)
+          if (entry !== 'omp' && entry !== 'pi') throw new TypeError(`enabledHarnesses[${index}] is invalid`)
           return entry
         }))]
         if (!enabled.length) throw new TypeError('At least one harness must be enabled')
@@ -77,7 +77,7 @@ export class SettingsService {
       browserHome: (value) => requireWebUrl(value),
       terminalShell: (value) => this.validateShell(value),
       activeHarness: (value) => {
-        if (value !== 'prime' && value !== 'omp' && value !== 'pi') throw new TypeError('Invalid harness')
+        if (value !== 'omp' && value !== 'pi') throw new TypeError('Invalid harness')
         return value
       },
       ompApprovalMode: (value) => {
@@ -112,15 +112,6 @@ export class SettingsService {
       voiceLocalWhisperModel: (value) => requireString(value, 'voiceLocalWhisperModel', { max: 4_096, trim: true }),
       voiceRealtimeModel: (value) => this.voiceModel(value, 'voiceRealtimeModel'),
       voiceRealtimeVoice: (value) => this.voiceModel(value, 'voiceRealtimeVoice'),
-      disabledProviders: (value) => {
-        if (!Array.isArray(value) || value.length > 128) throw new TypeError('disabledProviders must be a bounded array')
-        return [...new Set(value.map((entry, index) => {
-          const id = requireString(entry, `disabledProviders[${index}]`, { min: 1, max: 128, trim: true })
-          if (!/^[a-z0-9][a-z0-9._-]{0,127}$/i.test(id)) throw new TypeError(`disabledProviders[${index}] is not a valid provider ID`)
-          return id
-        }))]
-      },
-      disabledModels: (value) => this.disabledModels(value, 'disabledModels'),
       ompDisabledProviders: (value) => {
         if (!Array.isArray(value) || value.length > 256) throw new TypeError('ompDisabledProviders must be a bounded array')
         return [...new Set(value.map((entry, index) => {

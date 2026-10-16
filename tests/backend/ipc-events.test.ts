@@ -19,6 +19,14 @@ vi.mock('electron', () => electronMocks)
 
 import { registerIpc } from '../../electron/main/ipc'
 
+function registerFixtureIpc(input: unknown, url: string) {
+  const services = input as Record<string, any>
+  return registerIpc({ ...services, harnesses: {
+    omp: { id: 'omp', projects: services.projects, sessions: services.sessions, agents: services.agents, plugins: services.plugins, catalog: services.providers },
+    pi: { id: 'pi', ...services.pi },
+  } } as never, url)
+}
+
 function serviceStub(): Record<string, unknown> {
   return new Proxy({}, { get: () => vi.fn(async () => undefined) })
 }
@@ -53,7 +61,7 @@ describe('app:reveal-path authorization', () => {
     }
     electronMocks.ipcMain.handle.mockClear()
     electronMocks.shell.showItemInFolder.mockClear()
-    const registration = registerIpc(services as never, expectedUrl)
+    const registration = registerFixtureIpc(services as never, expectedUrl)
     const sender = {
       id: 11,
       getURL: () => expectedUrl,
@@ -164,7 +172,7 @@ describe('session change IPC', () => {
       send: vi.fn(),
     }
 
-    const registration = registerIpc(services as never, expectedUrl)
+    const registration = registerFixtureIpc(services as never, expectedUrl)
     registration.authorize(trusted as never)
     registration.authorize(navigated as never)
     navigatedUrl = 'https://example.com/'
@@ -212,7 +220,7 @@ describe('shell-facing app handlers', () => {
       pi: harnessStub(),
       ...overrides,
     }
-    const registration = registerIpc(services as never, expectedUrl)
+    const registration = registerFixtureIpc(services as never, expectedUrl)
     registration.authorize(sender as never)
     return registration
   }
@@ -345,7 +353,7 @@ describe('IPC registration lifecycle', () => {
   it('removes any prior listener before registering event channels', () => {
     electronMocks.ipcMain.on.mockClear()
     electronMocks.ipcMain.removeAllListeners.mockClear()
-    const registration = registerIpc(servicesWithUnsubscribe(vi.fn()) as never, 'prime-work://app/')
+    const registration = registerFixtureIpc(servicesWithUnsubscribe(vi.fn()) as never, 'prime-work://app/')
 
     const eventChannels = electronMocks.ipcMain.on.mock.calls.map(([channel]) => channel)
     expect(eventChannels.length).toBeGreaterThan(0)
@@ -358,10 +366,10 @@ describe('IPC registration lifecycle', () => {
   it('warns and disposes a previous registration when registerIpc is called again', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const firstUnsubscribe = vi.fn()
-    const first = registerIpc(servicesWithUnsubscribe(firstUnsubscribe) as never, 'prime-work://app/')
+    const first = registerFixtureIpc(servicesWithUnsubscribe(firstUnsubscribe) as never, 'prime-work://app/')
     expect(firstUnsubscribe).not.toHaveBeenCalled()
 
-    const second = registerIpc(servicesWithUnsubscribe(vi.fn()) as never, 'prime-work://app/')
+    const second = registerFixtureIpc(servicesWithUnsubscribe(vi.fn()) as never, 'prime-work://app/')
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('previous registration'))
     expect(firstUnsubscribe).toHaveBeenCalledTimes(1)
 

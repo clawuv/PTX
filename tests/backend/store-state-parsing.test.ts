@@ -6,14 +6,17 @@ import { defaultSettings, JsonStateStore } from '../../electron/main/store'
 import type { DesktopState } from '../../electron/main/store'
 
 const dirs: string[] = []
-afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }) })
+const stores: JsonStateStore[] = []
+afterEach(async () => { await Promise.all(stores.splice(0).map(store => store.beginShutdown())); for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }) })
 
 function loadState(value: unknown): DesktopState {
   const dir = mkdtempSync(join(tmpdir(), 'ptx-store-parse-'))
   dirs.push(dir)
   const path = join(dir, 'state.json')
   writeFileSync(path, JSON.stringify(value))
-  return new JsonStateStore(path).snapshot()
+  const store = new JsonStateStore(path)
+  stores.push(store)
+  return store.snapshot()
 }
 
 const validSchedule = {
@@ -50,7 +53,7 @@ describe('persisted project parsing', () => {
       version: 3,
       projects: [{
         id: 'project-1',
-        harness: 'prime',
+        harness: 'omp',
         name: 'Ptx',
         path: '/repos/pi-studio',
         primaryFolder: '/repos/pi-studio',
@@ -60,7 +63,7 @@ describe('persisted project parsing', () => {
       }],
     })
     expect(projects).toHaveLength(1)
-    expect(projects[0]).toMatchObject({ harness: 'prime', folders: ['/repos/pi-studio'], pinned: false, lastOpenedAt: '2025-12-02T09:00:00.000Z' })
+    expect(projects[0]).toMatchObject({ harness: 'omp', folders: ['/repos/pi-studio'], pinned: false, lastOpenedAt: '2025-12-02T09:00:00.000Z' })
     expect(Number.isFinite(Date.parse(projects[0].createdAt))).toBe(true)
     expect(projects[0].folderIdentities).toBeUndefined()
   })
@@ -78,7 +81,7 @@ describe('persisted project parsing', () => {
       version: 3,
       projects: [{
         id: 'project-1',
-        harness: 'prime',
+        harness: 'omp',
         name: 'Ptx',
         path: '/repos/pi-studio',
         folders: ['/repos/pi-studio', 7],
@@ -111,8 +114,7 @@ describe('persisted project parsing', () => {
       projects: [legacyProject, { ...legacyProject, id: 'unknown-project', harness: 'future-harness' }],
     })
 
-    expect(projects).toHaveLength(1)
-    expect(projects[0]).toMatchObject({ id: 'legacy-project', harness: 'prime' })
+    expect(projects).toEqual([])
   })
 
   it.each([3, 4])('drops version %s projects whose harness is absent or unknown', (version) => {
@@ -125,15 +127,15 @@ describe('persisted project parsing', () => {
     }
     const { projects } = loadState({
       version,
-      projects: [project, { ...project, id: 'unknown-project', harness: 'future-harness' }, { ...project, id: 'prime-project', harness: 'prime' }],
+      projects: [project, { ...project, id: 'unknown-project', harness: 'future-harness' }, { ...project, id: 'prime-project', harness: 'omp' }],
     })
 
-    expect(projects.map(({ id, harness }) => ({ id, harness }))).toEqual([{ id: 'prime-project', harness: 'prime' }])
+    expect(projects.map(({ id, harness }) => ({ id, harness }))).toEqual([{ id: 'prime-project', harness: 'omp' }])
   })
   it('bounds project scripts and preserves setup execution state', () => {
     const project = {
       id: 'project-1',
-      harness: 'prime',
+      harness: 'omp',
       name: 'Ptx',
       path: '/repos/pi-studio',
       folders: ['/repos/pi-studio'],
@@ -172,7 +174,7 @@ describe('persisted settings parsing', () => {
       version: 3,
       settings: { runtimePaths: { prime: '/usr/local/bin/prime', omp: 'omp', pi: '/'.padEnd(4_097, 'x') }, enabledHarnesses: ['omp', 'omp', 'ollama'], activeHarness: 'ollama' },
     })
-    expect(settings.runtimePaths).toEqual({ prime: '/usr/local/bin/prime', omp: '', pi: '' })
+    expect(settings.runtimePaths).toEqual({ omp: '', pi: '' })
     expect(settings.enabledHarnesses).toEqual(['omp'])
     expect(settings.activeHarness).toBe('omp')
   })
@@ -196,18 +198,14 @@ describe('persisted settings parsing', () => {
     const { settings } = loadState({
       version: 3,
       settings: {
-        disabledProviders: ['openai', 'openai', '-bad', 42],
-        disabledModels: ['openai/gpt-5', 'gpt-5', 7],
-        ompDisabledProviders: ['anthropic'],
-        ompDisabledModels: 'anthropic/claude',
+        ompDisabledProviders: ['openai', 'openai', '-bad', 42],
+        ompDisabledModels: ['openai/gpt-5', 'gpt-5', 7],
         piDisabledProviders: 'openai',
         piDisabledModels: ['openai/gpt-5'],
       },
     })
-    expect(settings.disabledProviders).toEqual(['openai'])
-    expect(settings.disabledModels).toEqual(['openai/gpt-5'])
-    expect(settings.ompDisabledProviders).toEqual(['anthropic'])
-    expect(settings.ompDisabledModels).toEqual([])
+    expect(settings.ompDisabledProviders).toEqual(['openai'])
+    expect(settings.ompDisabledModels).toEqual(['openai/gpt-5'])
     expect(settings.piDisabledProviders).toEqual([])
     expect(settings.piDisabledModels).toEqual(['openai/gpt-5'])
   })
@@ -217,14 +215,12 @@ describe('persisted settings parsing', () => {
       version: 4,
       settings: {
         lastSelectedModels: {
-          prime: 'openai-codex/gpt-5.6-sol',
-          omp: 'missing-slash',
+              omp: 'missing-slash',
           pi: 'anthropic/claude-sonnet-4',
         },
       },
     })
     expect(settings.lastSelectedModels).toEqual({
-      prime: 'openai-codex/gpt-5.6-sol',
       omp: '',
       pi: 'anthropic/claude-sonnet-4',
     })
@@ -238,12 +234,11 @@ describe('persisted schedule parsing', () => {
     expect(schedules[0]).toMatchObject({ id: 'schedule-1', harness: 'omp', revision: 2, runs: [] })
   })
 
-  it('migrates an absent version 2 schedule harness to Prime', () => {
+  it('drops retired unscoped version 2 schedules', () => {
     const { harness: _harness, ...legacySchedule } = validSchedule
     const { schedules } = loadState({ version: 2, schedules: [legacySchedule, { ...legacySchedule, id: 'unknown-schedule', harness: 'future-harness' }] })
 
-    expect(schedules).toHaveLength(1)
-    expect(schedules[0]).toMatchObject({ id: 'schedule-1', harness: 'prime' })
+    expect(schedules).toEqual([])
   })
 
   it('ignores every schedule in version 1, which predates schedules', () => {

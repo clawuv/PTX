@@ -3,7 +3,7 @@ import { renameSync, type BigIntStats, type Stats } from 'node:fs'
 import { lstat, mkdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type { CapabilityMutationInput, HarnessId, McpConnectionInput, McpStateInput, ProcessOutcome } from '../../../src/types/api'
-import { isAppManageableLocalMcpKey, isNetworkMcpDefinition, MAX_MCP_DEFINITION_KEY_LENGTH, NETWORK_MCP_UNAVAILABLE_DETAIL, PRIME_MCP_MANAGEMENT_UNAVAILABLE_DETAIL } from '../../../src/lib/mcp-policy'
+import { isAppManageableLocalMcpKey, isNetworkMcpDefinition, MAX_MCP_DEFINITION_KEY_LENGTH, NETWORK_MCP_UNAVAILABLE_DETAIL } from '../../../src/lib/mcp-policy'
 import { isPathWithin, isRecord, requireString } from '../validation'
 import { errorCode, readAtMost } from './file-io'
 
@@ -39,7 +39,7 @@ function sameSettingsLockOwner(left: SettingsLockOwner | null, right: SettingsLo
   return left?.version === right.version && left.pid === right.pid && left.token === right.token && left.createdAt === right.createdAt
 }
 
-async function readSettingsForUpdate(path: string, agentName = 'Prime Agent'): Promise<{ settings: Record<string, unknown>; fingerprint: string; source: string | null }> {
+async function readSettingsForUpdate(path: string, agentName = 'Agent'): Promise<{ settings: Record<string, unknown>; fingerprint: string; source: string | null }> {
   let content: string
   try {
     const value = await readAtMost(path, MAX_SETTINGS_BYTES)
@@ -59,7 +59,7 @@ async function readSettingsForUpdate(path: string, agentName = 'Prime Agent'): P
 export async function settingsFingerprint(path: string): Promise<string> {
   try {
     const value = await readAtMost(path, MAX_SETTINGS_BYTES)
-    if (value.truncated) throw new TypeError('Prime Agent settings exceed the maximum supported size')
+    if (value.truncated) throw new TypeError('Agent settings exceed the maximum supported size')
     return createHash('sha256').update(value.content).digest('hex')
   } catch (error) {
     if (errorCode(error) === 'ENOENT') return 'missing'
@@ -145,7 +145,7 @@ export async function acquireSettingsLock(settingsPath: string, verify?: () => P
     }
     await new Promise((resolveWait) => setTimeout(resolveWait, SETTINGS_LOCK_RETRY_MS))
   }
-  throw new Error('Prime Agent settings are busy; try again')
+  throw new Error('Agent settings are busy; try again')
 }
 
 interface FileIdentity {
@@ -159,7 +159,7 @@ function sameFileIdentity(left: FileIdentity, right: FileIdentity): boolean {
 
 async function regularFileIdentity(path: string): Promise<FileIdentity> {
   const stat = await lstat(path, { bigint: true })
-  if (stat.isSymbolicLink() || !stat.isFile()) throw new TypeError('Prime Agent settings staging file changed during update')
+  if (stat.isSymbolicLink() || !stat.isFile()) throw new TypeError('Agent settings staging file changed during update')
   return { dev: stat.dev.toString(), ino: stat.ino.toString() }
 }
 
@@ -223,10 +223,10 @@ async function writeSettingsAtomically(
     if (await fingerprint(path) !== expectedFingerprint) return false
     await verify?.()
     if (!sameFileIdentity(await regularFileIdentity(temporary), temporaryIdentity)) {
-      throw new TypeError('Prime Agent settings staging file changed during update')
+      throw new TypeError('Agent settings staging file changed during update')
     }
     if (backupIdentity && !sameFileIdentity(await regularFileIdentity(backup), backupIdentity)) {
-      throw new TypeError('Prime Agent settings backup changed during update')
+      throw new TypeError('Agent settings backup changed during update')
     }
     // There is no renameat-style API in Node on macOS. Await the pin re-check
     // immediately before the rename, then prove which inode won.
@@ -237,11 +237,11 @@ async function writeSettingsAtomically(
     renameSync(temporary, path)
     renamed = true
     if (!sameFileIdentity(await regularFileIdentity(path), temporaryIdentity)) {
-      throw new TypeError('Prime Agent settings target changed during update')
+      throw new TypeError('Agent settings target changed during update')
     }
     await verify?.()
     if (backupIdentity && !await removeOwnedFile(backup, backupIdentity)) {
-      throw new TypeError('Prime Agent settings backup changed during update')
+      throw new TypeError('Agent settings backup changed during update')
     }
     backupIdentity = null
     return true
@@ -251,7 +251,7 @@ async function writeSettingsAtomically(
         await rollbackSettingsRename(path, temporary, temporaryIdentity, backup, backupIdentity)
         renamed = false
       } catch (rollbackError) {
-        const message = error instanceof Error ? error.message : 'Prime Agent settings update failed'
+        const message = error instanceof Error ? error.message : 'Agent settings update failed'
         throw new AggregateError([error, rollbackError], `${message}; settings rollback could not be completed`)
       }
     }
@@ -262,19 +262,16 @@ async function writeSettingsAtomically(
   }
 }
 
-export function validateMcpConnection(value: unknown, harness: HarnessId = 'prime'): McpConnectionInput {
+export function validateMcpConnection(value: unknown, _harness: HarnessId = 'omp'): McpConnectionInput {
   if (!isRecord(value)) throw new TypeError('MCP connection must be an object')
   if (isNetworkMcpDefinition(value)) throw new TypeError(NETWORK_MCP_UNAVAILABLE_DETAIL)
   const name = requireString(value.name, 'MCP server name', { min: 1, max: 64, trim: true })
-  // Prime keeps its historical looser charset; OMP and pi mcp.json share the
-  // stricter native map-key charset.
-  const validName = harness === 'prime' ? /^[A-Za-z0-9][A-Za-z0-9._ -]*$/.test(name) : isAppManageableLocalMcpKey(name)
+  const validName = isAppManageableLocalMcpKey(name)
   if (!validName || ['__proto__', 'prototype', 'constructor'].includes(name)) throw new TypeError('MCP server name contains unsupported characters')
   const scope = value.scope
   if (scope !== 'user' && scope !== 'project') throw new TypeError('MCP scope must be user or project')
   const projectPath = scope === 'project' ? requireString(value.projectPath, 'projectPath', { min: 1, max: 4096 }) : undefined
   if (value.type === 'stdio') {
-    if (harness === 'prime') throw new TypeError(PRIME_MCP_MANAGEMENT_UNAVAILABLE_DETAIL)
     const command = requireString(value.command, 'MCP command', { min: 1, max: 2_048, trim: true })
     if (command.startsWith('-') || /[\0\r\n\u2028\u2029]/.test(command)) throw new TypeError('MCP command is invalid')
     if (value.args !== undefined && !Array.isArray(value.args)) throw new TypeError('MCP arguments must be a list')
@@ -289,10 +286,10 @@ export function validateMcpConnection(value: unknown, harness: HarnessId = 'prim
   throw new TypeError('MCP transport must be http or stdio')
 }
 
-export function validateMcpStateInput(value: unknown, harness: HarnessId = 'prime'): McpStateInput {
+export function validateMcpStateInput(value: unknown, _harness: HarnessId = 'omp'): McpStateInput {
   if (!isRecord(value)) throw new TypeError('MCP state must be an object')
   const name = requireString(value.name, 'MCP server name', { min: 1, max: 64, trim: true })
-  const validName = harness === 'prime' ? /^[A-Za-z0-9][A-Za-z0-9._ -]*$/.test(name) : isAppManageableLocalMcpKey(name)
+  const validName = isAppManageableLocalMcpKey(name)
   if (!validName || ['__proto__', 'prototype', 'constructor'].includes(name)) throw new TypeError('MCP server name contains unsupported characters')
   if (value.scope !== 'user' && value.scope !== 'project') throw new TypeError('MCP scope must be user or project')
   const projectPath = value.scope === 'project' ? requireString(value.projectPath, 'projectPath', { min: 1, max: 4096 }) : undefined
@@ -300,7 +297,7 @@ export function validateMcpStateInput(value: unknown, harness: HarnessId = 'prim
   return { name, scope: value.scope, projectPath, enabled: value.enabled }
 }
 
-export function validateCapabilityMutation(value: unknown, harness: HarnessId = 'prime'): CapabilityMutationInput {
+export function validateCapabilityMutation(value: unknown, harness: HarnessId = 'omp'): CapabilityMutationInput {
   if (!isRecord(value)) throw new TypeError('Capability mutation must be an object')
   if (value.kind !== 'package' && value.kind !== 'mcp') throw new TypeError('Capability kind is invalid')
   if (value.action !== 'enable' && value.action !== 'disable' && value.action !== 'remove') throw new TypeError('Capability action is invalid')
@@ -341,7 +338,7 @@ export async function prepareProjectSettingsPath(
   }
   await pin(projectRoot)
   let directory = projectRoot
-  for (const segment of options.segments ?? ['.prime', 'agent']) {
+  for (const segment of options.segments ?? ['.omp']) {
     const candidate = join(directory, segment)
     let existing: Stats | undefined
     try {
@@ -386,9 +383,9 @@ export async function updateMcpSettings(
   options: { agentName?: string; harness?: HarnessId; schema?: string; successMessage?: string; includeType?: boolean } = {},
 ): Promise<ProcessOutcome> {
   if (isNetworkMcpDefinition(input)) throw new TypeError(NETWORK_MCP_UNAVAILABLE_DETAIL)
-  if (options.harness !== 'omp' && options.harness !== 'pi') throw new TypeError(PRIME_MCP_MANAGEMENT_UNAVAILABLE_DETAIL)
+  if (options.harness !== 'omp' && options.harness !== 'pi') throw new TypeError('MCP management requires an OMP or Pi harness')
   if (input.type !== 'stdio') throw new TypeError(NETWORK_MCP_UNAVAILABLE_DETAIL)
-  const agentName = options.agentName ?? 'Prime Agent'
+  const agentName = options.agentName ?? 'Agent'
   const settingsPath = typeof target === 'string' ? target : target.path
   const verify = typeof target === 'string' ? undefined : target.verify
   const release = await acquireSettingsLock(settingsPath, verify)
@@ -426,9 +423,9 @@ export async function updateMcpState(
   options: { agentName?: string; harness?: HarnessId } = {},
 ): Promise<ProcessOutcome> {
   if (options.harness !== 'omp' && options.harness !== 'pi') {
-    return { ok: false, reason: 'blocked', output: PRIME_MCP_MANAGEMENT_UNAVAILABLE_DETAIL }
+    return { ok: false, reason: 'blocked', output: 'MCP management requires an OMP or Pi harness' }
   }
-  const agentName = options.agentName ?? 'Prime Agent'
+  const agentName = options.agentName ?? 'Agent'
   const settingsPath = typeof target === 'string' ? target : target.path
   const verify = typeof target === 'string' ? undefined : target.verify
   const release = await acquireSettingsLock(settingsPath, verify)
@@ -463,7 +460,7 @@ export async function removeMcpDefinition(
   fingerprint: FingerprintSettings = settingsFingerprint,
   options: { agentName?: string } = {},
 ): Promise<ProcessOutcome> {
-  const agentName = options.agentName ?? 'Prime Agent'
+  const agentName = options.agentName ?? 'Agent'
   const settingsPath = typeof target === 'string' ? target : target.path
   const definitionKey = input.definitionKey ?? input.name
   if (definitionKey.length > MAX_MCP_DEFINITION_KEY_LENGTH) {
@@ -499,7 +496,7 @@ export async function updatePackageState(
   options: { agentName?: string } = {},
 ): Promise<ProcessOutcome> {
   const source = input.source!
-  const agentName = options.agentName ?? 'Prime Agent'
+  const agentName = options.agentName ?? 'Agent'
   const settingsPath = typeof target === 'string' ? target : target.path
   const verify = typeof target === 'string' ? undefined : target.verify
   const release = await acquireSettingsLock(settingsPath, verify)

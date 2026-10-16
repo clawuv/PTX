@@ -8,7 +8,6 @@ type SidebarActions = Pick<SidebarProps,
   | 'onNewSession'
   | 'onAddProject'
   | 'onRemoveProject'
-  | 'onOpenDocs'
   | 'onOpenPalette'
   | 'onRenameSession'
   | 'onArchiveSession'
@@ -30,7 +29,6 @@ export function createSidebarActionProxy(initialActions: SidebarActions): Sideba
       onNewSession: (project) => current.onNewSession(project),
       onAddProject: () => current.onAddProject(),
       onRemoveProject: (project) => current.onRemoveProject(project),
-      onOpenDocs: () => current.onOpenDocs?.(),
       onOpenPalette: () => current.onOpenPalette(),
       onRenameSession: (session, title) => current.onRenameSession(session, title),
       onArchiveSession: (session) => current.onArchiveSession(session),

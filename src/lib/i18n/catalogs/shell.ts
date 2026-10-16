@@ -128,14 +128,13 @@ const en = {
   'shellui.resizeSidebar': 'Resize sidebar',
   'shellui.closeInspector': 'Close inspector',
   'shellui.mark.omp': 'OMP',
-  'shellui.mark.prime': 'Prime Intellect',
   'shellui.mark.pi': 'Pi',
   'shellui.mark.ptx': 'Ptx',
 
   // No-harness prompt
   'noprompt.title': 'No Pi family harness detected',
   'noprompt.action': 'Take me there',
-  'noprompt.body1': 'Ptx couldn’t find Pi, OMP, or Prime Agent. Install one to get started.',
+  'noprompt.body1': 'Ptx couldn’t find Pi or OMP. Install one to get started.',
   'noprompt.body2':
     'If you believe this is a mistake, or know where your Pi family harness is installed, configure its executable path in Harness settings. You can also refresh detection there after installing a harness.',
 
@@ -317,13 +316,12 @@ const zh = {
   'shellui.resizeSidebar': '调整侧边栏宽度',
   'shellui.closeInspector': '关闭检查器',
   'shellui.mark.omp': 'OMP',
-  'shellui.mark.prime': 'Prime Intellect',
   'shellui.mark.pi': 'Pi',
   'shellui.mark.ptx': 'Ptx',
 
   'noprompt.title': '未检测到 Pi 系列运行环境',
   'noprompt.action': '前往设置',
-  'noprompt.body1': 'Ptx 没有找到 Pi、OMP 或 Prime Agent。请安装其中一个以开始使用。',
+  'noprompt.body1': 'Ptx 没有找到 Pi 或 OMP。请安装其中一个以开始使用。',
   'noprompt.body2': '如果你认为这是误判，或者知道 Pi 系列运行环境的安装位置，请在“运行环境”设置中配置其可执行文件路径。安装运行环境后，也可以在那里重新检测。',
 
   'runctl.setup': '初始化',

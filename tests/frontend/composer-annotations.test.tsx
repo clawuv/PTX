@@ -6,11 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Mock } from 'vitest'
 import { Composer } from '../../src/components/Composer'
 import { groupModelsByProvider } from '../../src/hooks/useProviderCatalog'
-import type { BrowserAnnotation, PrimeModelDescriptor, PrimeProviderDescriptor, PromptDeliveryIntent, PromptImage, SessionRecord, TerminalPromptContext, TerminalSelectionContext } from '../../src/types/api'
+import type { BrowserAnnotation, AgentModelDescriptor, AgentProviderDescriptor, PromptDeliveryIntent, PromptImage, SessionRecord, TerminalPromptContext, TerminalSelectionContext } from '../../src/types/api'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
-const models: PrimeModelDescriptor[] = [
+const models: AgentModelDescriptor[] = [
   {
     key: 'provider/vision',
     provider: 'provider',
@@ -25,7 +25,7 @@ const models: PrimeModelDescriptor[] = [
     available: true,
   },
 ]
-const providers: PrimeProviderDescriptor[] = [
+const providers: AgentProviderDescriptor[] = [
   {
     id: 'provider',
     name: 'Provider',
@@ -130,7 +130,7 @@ const clickSend = async () => {
 describe('Composer session mentions', () => {
   it('closes an accepted mention and only reopens it after editing back into the query', async () => {
     const sessions: SessionRecord[] = [{
-      id: '019f0000-0000-7000-8000-000000000001', harness: 'prime', filePath: '/sessions/browser.jsonl', projectPath: '/project', title: 'Browser',
+      id: '019f0000-0000-7000-8000-000000000001', harness: 'omp', filePath: '/sessions/browser.jsonl', projectPath: '/project', title: 'Browser',
       createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', status: 'idle', depth: 0,
     }]
     renderComposer({ sessions })

@@ -92,10 +92,7 @@ export function createOmpSessionMetadataReader(io: SessionMetadataReaderIo = nod
 
 export const readOmpTranscript: TranscriptFileReader = createBranchSummaryTranscriptReader()
 
-/**
- * Fully wired SessionService options for an OMP session root. Construct the
- * service with a null CLI path: OMP has no `prime-agent list` live overlay.
- */
+/** Harness-specific discovery and transcript readers. */
 export function ompSessionServiceOptions(sessionRoot = ompSessionRoot()): SessionServiceOptions {
   return {
     harness: 'omp',

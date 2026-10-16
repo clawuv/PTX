@@ -1,3 +1,4 @@
+import '../helpers/node-script-fixtures'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -73,10 +74,6 @@ function buildServices() {
       providers: ['anthropic', 'openai'].map((id) => ({ id, enabled: providerEnabled(id) })),
     }
   }
-  const primeSessionGate = vi.fn(async (path: unknown) => {
-    if (path === PRIME_SESSION) return path
-    throw new TypeError('Session path is outside the Prime session directory')
-  })
   const ompSessionGate = vi.fn(async (path: unknown) => {
     if (path === OMP_SESSION) return path
     throw new TypeError('Session path is outside the Prime session directory')
@@ -88,35 +85,13 @@ function buildServices() {
   return {
     meta: { version: '0.0.0-test' },
     refreshHarnesses: vi.fn(async () => ({ meta: { version: '0.0.0-refreshed' }, settings: settingsState })),
-    projects: { ...serviceStub(), list: vi.fn(async () => ['prime-projects']), listWorktrees: vi.fn(async () => ['prime-worktrees']), openWorktree: vi.fn(async () => 'prime-open'), createWorktree: vi.fn(async () => 'prime-create'), grantInferred: vi.fn(async () => 'prime-grant') },
-    sessions: {
-      ...serviceStub(),
-      onDidChange: vi.fn(() => () => undefined),
-      requireSessionPath: primeSessionGate,
-      list: vi.fn(async () => ['prime-sessions']),
-      read: vi.fn(async () => ['prime-transcript']),
-      followUp: vi.fn(async () => true),
-      rename: vi.fn(async () => true),
-      archive: vi.fn(async () => true),
-    },
-    agents: {
-      ...serviceStub(),
-      has: vi.fn((id: string) => id === 'prime-runtime'),
-      start: vi.fn(async (options: unknown) => ({ started: 'prime', options })),
-      command: vi.fn(async () => ({ ok: 'prime' })),
-      stop: vi.fn(async () => true),
-      list: vi.fn(() => [{ runtimeId: 'prime-runtime', harness: 'prime' }]),
-    },
     terminals: { ...serviceStub(), killForSession: vi.fn(async () => undefined) },
     git: serviceStub(),
-    plugins: { ...serviceStub(), list: vi.fn(async () => 'prime-plugins'), install: vi.fn(async () => undefined), installExtension: vi.fn(async () => undefined), setMcpSupport: vi.fn(async () => undefined), connectMcp: vi.fn(async () => undefined), setMcpEnabled: vi.fn(async () => undefined), refresh: vi.fn(async () => 'prime-plugins') },
-    providers: { ...serviceStub(), catalog: vi.fn(async (_force, disabled, disabledModels) => catalog('prime', disabled, disabledModels)), saveApiKey: vi.fn(async () => undefined) },
     settings: {
       ...serviceStub(),
       get: vi.fn(() => settingsState),
       update: vi.fn(async (patch: Partial<typeof settingsState>) => { Object.assign(settingsState, patch); return settingsState }),
     },
-    heartbeats: serviceStub(),
     schedules: { ...serviceStub(), onDidChange: vi.fn(() => () => undefined), list: vi.fn(() => 'scheduled'), create: vi.fn(async () => 'created') },
     browser: { ...serviceStub(), closeForSession: vi.fn(() => true), onDidChange: vi.fn(() => vi.fn()), onPointer: vi.fn(() => vi.fn()), onActivity: vi.fn(() => vi.fn()) },
     omp: {
@@ -183,7 +158,7 @@ describe('harness-aware IPC routing', () => {
       handlers.set(channel, listener)
     })
     const services = buildServices()
-    const registration = registerIpc(services as never, EXPECTED_URL)
+    const registration = registerIpc({ ...services, harnesses: { omp: { id: 'omp', ...services.omp }, pi: { id: 'pi', ...services.pi } } } as never, EXPECTED_URL)
     const mainFrame = { url: EXPECTED_URL }
     const sender = { id: 1, isDestroyed: () => false, getURL: () => EXPECTED_URL, mainFrame }
     registration.authorize(sender as never)
@@ -214,34 +189,32 @@ describe('harness-aware IPC routing', () => {
     await expect(async () => harness.invoke('agent:start', { cwd: '/tmp', harness: 1 })).rejects.toThrow('Invalid harness')
     await expect(async () => harness.invoke('projects:list', 'Pi')).rejects.toThrow('Invalid harness')
     await expect(async () => harness.invoke('sessions:list', undefined, false, 'PI')).rejects.toThrow('Invalid harness')
-    expect(harness.services.agents.start).not.toHaveBeenCalled()
     expect(harness.services.omp.agents.start).not.toHaveBeenCalled()
   })
 
   it('routes agent:start by harness and strips the routing field before the manager sees it', async () => {
     await expect(harness.invoke('agent:start', { cwd: '/work', harness: 'omp' })).resolves.toEqual({ started: 'omp', options: { cwd: '/work' } })
     expect(harness.services.omp.agents.start).toHaveBeenCalledWith({ cwd: '/work' })
-    expect(harness.services.agents.start).not.toHaveBeenCalled()
     await expect(harness.invoke('agent:start', { cwd: '/work', harness: 'pi' })).resolves.toEqual({ started: 'pi', options: { cwd: '/work' } })
     expect(harness.services.pi.agents.start).toHaveBeenCalledWith({ cwd: '/work' })
 
-    await expect(harness.invoke('agent:start', { cwd: '/work' })).resolves.toEqual({ started: 'prime', options: { cwd: '/work' } })
-    expect(harness.services.agents.start).toHaveBeenCalledWith({ cwd: '/work' })
+    await expect(harness.invoke('agent:start', { cwd: '/work' })).resolves.toEqual({ started: 'omp', options: { cwd: '/work' } })
+    expect(harness.services.omp.agents.start).toHaveBeenCalledWith({ cwd: '/work' })
   })
 
-  it('routes agent:command and agent:stop by runtime ownership, defaulting unknown ids to prime', async () => {
+  it('routes agent:command and agent:stop by runtime ownership, defaulting unknown ids to OMP', async () => {
     await expect(harness.invoke('agent:command', 'omp-runtime', { type: 'abort' })).resolves.toEqual({ ok: 'omp' })
     expect(harness.services.omp.agents.command).toHaveBeenCalledWith('omp-runtime', { type: 'abort' })
     await expect(harness.invoke('agent:command', 'pi-runtime', { type: 'abort' })).resolves.toEqual({ ok: 'pi' })
     expect(harness.services.pi.agents.command).toHaveBeenCalledWith('pi-runtime', { type: 'abort' })
 
-    await expect(harness.invoke('agent:command', 'prime-runtime', { type: 'abort' })).resolves.toEqual({ ok: 'prime' })
-    expect(harness.services.agents.command).toHaveBeenCalledWith('prime-runtime', { type: 'abort' })
+    await expect(harness.invoke('agent:command', 'prime-runtime', { type: 'abort' })).resolves.toEqual({ ok: 'omp' })
+    expect(harness.services.omp.agents.command).toHaveBeenCalledWith('prime-runtime', { type: 'abort' })
 
     // An id neither manager owns lands on the Prime manager, preserving its
     // exact requireRuntime error semantics.
     await harness.invoke('agent:command', 'missing-runtime', { type: 'abort' })
-    expect(harness.services.agents.command).toHaveBeenCalledWith('missing-runtime', { type: 'abort' })
+    expect(harness.services.omp.agents.command).toHaveBeenCalledWith('missing-runtime', { type: 'abort' })
 
     await expect(harness.invoke('agent:stop', 'omp-runtime')).resolves.toBe(true)
     expect(harness.services.omp.agents.stop).toHaveBeenCalledWith('omp-runtime')
@@ -251,23 +224,21 @@ describe('harness-aware IPC routing', () => {
 
   it('concatenates all managers for agent:list', () => {
     expect(harness.invoke('agent:list')).toEqual([
-      { runtimeId: 'prime-runtime', harness: 'prime' },
       { runtimeId: 'omp-runtime', harness: 'omp' },
       { runtimeId: 'pi-runtime', harness: 'pi' },
     ])
   })
 
-  it('routes sessions:list and projects channels by the harness argument, defaulting to prime', async () => {
-    await expect(harness.invoke('sessions:list', undefined, false)).resolves.toEqual(['prime-sessions'])
+  it('routes sessions:list and projects channels by the harness argument, defaulting to OMP', async () => {
+    await expect(harness.invoke('sessions:list', undefined, false)).resolves.toEqual(['omp-sessions'])
     await expect(harness.invoke('sessions:list', undefined, false, 'omp')).resolves.toEqual(['omp-sessions'])
     await expect(harness.invoke('sessions:list', '/repo', true, 'omp', true)).resolves.toEqual(['omp-sessions'])
     expect(harness.services.omp.sessions.list).toHaveBeenLastCalledWith('/repo', true, true)
     await expect(harness.invoke('sessions:list', undefined, false, 'pi')).resolves.toEqual(['pi-sessions'])
-    await expect(harness.invoke('projects:list')).resolves.toEqual(['prime-projects'])
+    await expect(harness.invoke('projects:list')).resolves.toEqual(['omp-projects'])
     await expect(harness.invoke('projects:list', 'omp')).resolves.toEqual(['omp-projects'])
     await expect(harness.invoke('projects:grant-inferred', '/somewhere', 'omp')).resolves.toBe('omp-grant')
     expect(harness.services.omp.projects.grantInferred).toHaveBeenCalledWith('/somewhere')
-    expect(harness.services.projects.grantInferred).not.toHaveBeenCalled()
     await expect(harness.invoke('projects:grant-inferred', '/somewhere', 'pi')).resolves.toBe('pi-grant')
     expect(harness.services.pi.projects.grantInferred).toHaveBeenCalledWith('/somewhere')
     await expect(harness.invoke('projects:list-worktrees', '/repo', 'omp')).resolves.toEqual(['omp-worktrees'])
@@ -281,7 +252,6 @@ describe('harness-aware IPC routing', () => {
   it('routes plugin catalog, installation, and MCP configuration by harness', async () => {
     await harness.invoke('plugins:list', '/repo', 'omp')
     expect(harness.services.omp.plugins.list).toHaveBeenCalledWith('/repo')
-    expect(harness.services.plugins.list).not.toHaveBeenCalled()
 
     await harness.invoke('plugins:install', 'npm:example', 'omp')
     expect(harness.services.omp.plugins.install).toHaveBeenCalledWith('npm:example')
@@ -310,15 +280,13 @@ describe('harness-aware IPC routing', () => {
   it('routes session file operations by which harness root authorizes the path', async () => {
     await expect(harness.invoke('sessions:read', OMP_SESSION)).resolves.toEqual(['omp-transcript'])
     expect(harness.services.omp.sessions.read).toHaveBeenCalledWith(OMP_SESSION)
-    expect(harness.services.sessions.read).not.toHaveBeenCalled()
 
-    await expect(harness.invoke('sessions:read', PRIME_SESSION)).resolves.toEqual(['prime-transcript'])
-    expect(harness.services.sessions.read).toHaveBeenCalledWith(PRIME_SESSION)
+    await expect(harness.invoke('sessions:read', PRIME_SESSION)).rejects.toThrow('Session path is not authorized')
     await expect(harness.invoke('sessions:read', PI_SESSION)).resolves.toEqual(['pi-transcript'])
     expect(harness.services.pi.sessions.read).toHaveBeenCalledWith(PI_SESSION)
 
     // A path neither root contains fails with the Prime service's own error.
-    await expect(async () => harness.invoke('sessions:read', '/etc/passwd')).rejects.toThrow('outside the Prime session directory')
+    await expect(async () => harness.invoke('sessions:read', '/etc/passwd')).rejects.toThrow('Session path is not authorized')
 
     await expect(harness.invoke('sessions:rename', OMP_SESSION, 'Title')).resolves.toBe(false)
     expect(harness.services.omp.sessions.rename).toHaveBeenCalledWith(OMP_SESSION, 'Title')
@@ -340,20 +308,9 @@ describe('harness-aware IPC routing', () => {
     expect(harness.services.terminals.killForSession).not.toHaveBeenCalled()
   })
 
-  it('answers follow-up for an OMP session with the not-running result instead of the daemon path', async () => {
-    await expect(harness.invoke('sessions:follow-up', OMP_SESSION, 'hello', 'queue')).resolves.toBe(false)
-    expect(harness.services.omp.sessions.followUp).not.toHaveBeenCalled()
-    expect(harness.services.sessions.followUp).not.toHaveBeenCalled()
-    await expect(harness.invoke('sessions:follow-up', PI_SESSION, 'hello', 'queue')).resolves.toBe(false)
-    expect(harness.services.pi.sessions.followUp).not.toHaveBeenCalled()
-
-    await expect(harness.invoke('sessions:follow-up', PRIME_SESSION, 'hello', 'queue')).resolves.toBe(true)
-    expect(harness.services.sessions.followUp).toHaveBeenCalledWith(PRIME_SESSION, 'hello', 'queue')
-  })
-
   it('routes providers:catalog with independent desktop visibility per harness', async () => {
-    await expect(harness.invoke('providers:catalog', true)).resolves.toMatchObject({ from: 'prime' })
-    expect(harness.services.providers.catalog).toHaveBeenCalledWith(true, new Set(['blocked']), new Set())
+    await expect(harness.invoke('providers:catalog', true)).resolves.toMatchObject({ from: 'omp' })
+    expect(harness.services.omp.catalog.catalog).toHaveBeenCalledWith(true, new Set(['anthropic']), new Set())
 
     await expect(harness.invoke('providers:catalog', true, 'omp')).resolves.toMatchObject({ from: 'omp' })
     expect(harness.services.omp.catalog.catalog).toHaveBeenCalledWith(true, new Set(['anthropic']), new Set())
@@ -456,18 +413,11 @@ describe('harness-aware IPC routing', () => {
     await expect(async () => harness.invoke('providers:set-model-enabled', 'provider-256/model', false, 'omp')).rejects.toThrow('Model was not found')
   })
 
-  it.each([
-    ['omp', 'OMP'],
-    ['pi', 'Pi'],
-  ] as const)('rejects provider credential mutations aimed at the %s harness', async (harnessId, agentName) => {
-    for (const [channel, args] of [
-      ['providers:save-api-key', ['openai', 'key']],
-      ['providers:logout', ['openai']],
-      ['providers:start-oauth', ['openai']],
-    ] as const) {
-      await expect(async () => harness.invoke(channel, ...args, harnessId), channel).rejects.toThrow(`${agentName} provider authentication is managed by the ${harnessId} CLI`)
+  it('does not register retired daemon, credential, or heartbeat channels', () => {
+    for (const channel of ['sessions:follow-up', 'providers:save-api-key', 'providers:logout', 'providers:start-oauth', 'providers:respond-oauth', 'providers:cancel-oauth', 'heartbeats:list', 'heartbeats:manage']) {
+      expect(electronMocks.ipcMain.handle).not.toHaveBeenCalledWith(channel, expect.any(Function))
     }
-    expect(harness.services.providers.saveApiKey).not.toHaveBeenCalled()
+    expect(() => harness.invoke('projects:list', 'prime')).toThrow('Invalid harness')
   })
 
   it.each(['omp', 'pi'] as const)('routes schedules channels with the %s harness argument', async (harnessId) => {

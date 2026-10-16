@@ -51,6 +51,10 @@ describe('application window lifecycle', () => {
       autoHideMenuBar: true,
     })
     expect(mainWindowChromeOptions('win32')).toEqual({
+      frame: false,
+      thickFrame: false,
+      hasShadow: false,
+      accentColor: false,
       titleBarStyle: 'hidden',
       autoHideMenuBar: true,
     })
@@ -92,7 +96,7 @@ describe('application window lifecycle', () => {
     const otherPlatform = makeWindow()
     syncTrafficLightVisibility(otherPlatform as unknown as BrowserWindow, 'dark', 'win32')
     expect(otherPlatform.setWindowButtonVisibility).not.toHaveBeenCalled()
-    expect(otherPlatform.setBackgroundColor).toHaveBeenCalledWith('#0f0f0f')
+    expect(otherPlatform.setBackgroundColor).toHaveBeenCalledWith('#181818')
     const destroyed = makeWindow({ destroyed: true })
     syncTrafficLightVisibility(destroyed as unknown as BrowserWindow, 'dark', 'darwin')
     expect(destroyed.setWindowButtonVisibility).not.toHaveBeenCalled()
@@ -122,7 +126,7 @@ describe('application window lifecycle', () => {
   })
 
   it('asks nothing when no agent run or schedule is active', () => {
-    const idle: RuntimeInfo = { runtimeId: 'a', harness: 'prime', cwd: '/tmp', isStreaming: false }
+    const idle: RuntimeInfo = { runtimeId: 'a', harness: 'omp', cwd: '/tmp', isStreaming: false }
 
     expect(activeShutdownWork([idle], false)).toEqual({ runningAgents: 0, activeSchedules: false })
     expect(shutdownPrompt(activeShutdownWork([idle], false))).toBeNull()
@@ -130,7 +134,7 @@ describe('application window lifecycle', () => {
   })
 
   it('names the work at risk for streaming, compacting, queued, and scheduled state', () => {
-    const base = { harness: 'prime' as const, cwd: '/tmp', isStreaming: false }
+    const base = { harness: 'omp' as const, cwd: '/tmp', isStreaming: false }
     const actions = { queuedCount: 0, steering: [], followUps: [] }
     const runtimes: RuntimeInfo[] = [
       { ...base, runtimeId: 'a', isStreaming: true },

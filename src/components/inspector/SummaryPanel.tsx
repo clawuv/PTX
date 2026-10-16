@@ -1,21 +1,20 @@
 import { memo, useMemo } from 'react'
-import { CalendarClock, Check, CircleDot, GitBranch, HeartPulse, LoaderCircle } from 'lucide-react'
-import type { AutomationScheduleRecord, GitStatus, NativeHeartbeatRecord, ProjectRecord, RuntimeInfo, TranscriptMessage } from '@/types/api'
+import { CalendarClock, Check, CircleDot, GitBranch, LoaderCircle } from 'lucide-react'
+import type { AutomationScheduleRecord, GitStatus, ProjectRecord, RuntimeInfo, TranscriptMessage } from '@/types/api'
 import { formatRelative } from '@/lib/data'
 import { useI18n } from '@/lib/i18n'
 import { MarkdownText } from '../MarkdownText'
 
 interface SummaryPanelProps {
-  /** Active harness agent name ("Prime Agent" / "OMP"). */
+  /** Active harness agent name ("Pi" / "OMP"). */
   agentName?: string
-  /** Short harness name for working copy ("Prime" / "OMP"). */
+  /** Short harness name for working copy ("Pi" / "OMP"). */
   shortName?: string
   project?: ProjectRecord
   runtime?: RuntimeInfo | null
   messages: TranscriptMessage[]
   git: GitStatus
   automations: AutomationScheduleRecord[]
-  heartbeats: NativeHeartbeatRecord[]
   onOpenAutomation(id: string): void
 }
 
@@ -44,7 +43,7 @@ export function summarizeTranscript(messages: TranscriptMessage[]): TranscriptSu
   return { toolCount, lastText }
 }
 
-export const SummaryPanel = memo(function SummaryPanel({ agentName = 'Prime Agent', shortName = 'Prime', project, runtime, messages, git, automations, heartbeats, onOpenAutomation }: SummaryPanelProps) {
+export const SummaryPanel = memo(function SummaryPanel({ agentName = 'OMP', shortName = 'OMP', project, runtime, messages, git, automations, onOpenAutomation }: SummaryPanelProps) {
   const { t } = useI18n()
   const { toolCount, lastText } = useMemo(() => summarizeTranscript(messages), [messages])
   const active = Boolean(runtime?.isStreaming || runtime?.isCompacting)
@@ -57,14 +56,11 @@ export const SummaryPanel = memo(function SummaryPanel({ agentName = 'Prime Agen
       </section>
       <section className="summary-section"><h3>{t('inspector.summary.workspace')}</h3><dl className="detail-list"><div><dt>{t('inspector.summary.project')}</dt><dd>{project?.name ?? t('inspector.summary.noProject')}</dd></div><div><dt>{t('inspector.summary.branch')}</dt><dd><GitBranch size={12} />{git.branch ?? project?.gitBranch ?? '—'}</dd></div><div><dt>{t('inspector.summary.environment')}</dt><dd>{t('inspector.summary.environment.value')}</dd></div><div><dt>{t('inspector.summary.cwd')}</dt><dd title={project?.primaryFolder} className="mono truncate">{project?.primaryFolder ?? '—'}</dd></div></dl></section>
       <section className="summary-section"><h3>{t('inspector.summary.progress')}</h3><div className="progress-list"><div><Check size={13} /><span>{t('inspector.summary.progress.loaded')}</span></div><div><Check size={13} /><span>{t('inspector.summary.progress.tools', { count: toolCount })}</span></div><div className={git.files.length ? 'is-current' : ''}><CircleDot size={13} /><span>{git.files.length ? t('inspector.summary.progress.files', { count: git.files.length }) : git.isRepo ? t('inspector.summary.progress.clean') : t('inspector.summary.progress.noGit')}</span></div></div></section>
-      {automations.length || heartbeats.length ? <section className="summary-section"><h3>{t('inspector.summary.automations')}</h3><div className="summary-automation-list">
+      {automations.length ? <section className="summary-section"><h3>{t('inspector.summary.automations')}</h3><div className="summary-automation-list">
         {automations.slice(0, 2).map((task) => <button type="button" key={task.id} onClick={() => onOpenAutomation(task.id)}>
           <span className="summary-automation-icon"><CalendarClock size={14}/></span><span><strong>{task.title}</strong><small>{task.status}{task.nextRunAt ? t('inspector.summary.automation.next', { time: formatRelative(task.nextRunAt) }) : ''}</small></span>
         </button>)}
-        {heartbeats.slice(0, Math.max(0, 2 - automations.length)).map((heartbeat) => <button type="button" key={heartbeat.id} onClick={() => onOpenAutomation(heartbeat.id)}>
-          <span className="summary-automation-icon is-heartbeat"><HeartPulse size={14}/></span><span><strong>{heartbeat.label ?? (heartbeat.source === 'heartbeat' ? t('inspector.summary.heartbeat.thread') : t('inspector.summary.heartbeat.agent'))}</strong><small>{heartbeat.status}{heartbeat.nextRunAt ? t('inspector.summary.automation.next', { time: formatRelative(heartbeat.nextRunAt) }) : ''}</small></span>
-        </button>)}
-        {automations.length + heartbeats.length > 2 ? <button type="button" className="summary-automation-more" onClick={() => onOpenAutomation(automations[0]?.id ?? heartbeats[0]!.id)}>{t('inspector.summary.automations.viewAll', { count: automations.length + heartbeats.length })}</button> : null}
+        {automations.length > 2 ? <button type="button" className="summary-automation-more" onClick={() => onOpenAutomation(automations[0]!.id)}>{t('inspector.summary.automations.viewAll', { count: automations.length })}</button> : null}
       </div></section> : null}
       <section className="summary-section"><h3>{t('inspector.summary.context')}</h3><div className="context-meter"><div><span>{t('inspector.summary.context.session')}</span><span>{t('inspector.summary.context.managed')}</span></div><small>{t('inspector.summary.context.note', { name: agentName })}</small></div></section>
     </div>

@@ -2,7 +2,7 @@ import { PawPrint, RefreshCw, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { PetAvatar } from '@/components/PetAvatar'
 import { useI18n, type MessageKey } from '@/lib/i18n'
-import type { PetDefinition, PrimeWorkApi } from '@/types/api'
+import type { PetDefinition, PtxApi } from '@/types/api'
 import type { SettingsSectionProps } from './contracts'
 import { SettingsToggle } from './SettingsToggle'
 
@@ -17,7 +17,7 @@ const BUILT_IN_DESCRIPTION_KEYS: Partial<Record<string, MessageKey>> = {
   'pi-studio': 'settings.pets.ptx.description',
 }
 
-export function PetsSettings({ settings, onUpdate, pets }: SettingsSectionProps & { pets: PrimeWorkApi['pets'] | null }) {
+export function PetsSettings({ settings, onUpdate, pets }: SettingsSectionProps & { pets: PtxApi['pets'] | null }) {
   const { t } = useI18n()
   const [available, setAvailable] = useState<PetDefinition[]>(BUILT_INS)
   const [loading, setLoading] = useState(false)
@@ -48,37 +48,41 @@ export function PetsSettings({ settings, onUpdate, pets }: SettingsSectionProps 
       </section>
       <section className="settings-group">
         <h2>{t('settings.pets.companion')}</h2>
-        <SettingsToggle checked={settings.petEnabled} onChange={(petEnabled) => { void onUpdate({ petEnabled }) }} label={t('settings.pets.showPet.label')} description={t('settings.pets.showPet.description')} />
-        <div className="settings-row pet-size-row">
-          <span><label htmlFor="pet-size"><strong>{t('settings.pets.size.label')}</strong></label><small>{t('settings.pets.size.description')}</small></span>
-          <div className="pet-size-control">
-            <input id="pet-size" type="range" min="50" max="125" step="5" value={settings.petSize} style={{ '--pet-size-progress': `${(settings.petSize - 50) / .75}%` } as CSSProperties} onChange={(event) => { void onUpdate({ petSize: Number(event.target.value) }) }} />
-            <output htmlFor="pet-size">{settings.petSize}%</output>
+        <div className="settings-group__card">
+          <SettingsToggle checked={settings.petEnabled} onChange={(petEnabled) => { void onUpdate({ petEnabled }) }} label={t('settings.pets.showPet.label')} description={t('settings.pets.showPet.description')} />
+          <div className="settings-row pet-size-row">
+            <span><label htmlFor="pet-size"><strong>{t('settings.pets.size.label')}</strong></label><small>{t('settings.pets.size.description')}</small></span>
+            <div className="pet-size-control">
+              <input id="pet-size" type="range" min="50" max="125" step="5" value={settings.petSize} style={{ '--pet-size-progress': `${(settings.petSize - 50) / .75}%` } as CSSProperties} onChange={(event) => { void onUpdate({ petSize: Number(event.target.value) }) }} />
+              <output htmlFor="pet-size">{settings.petSize}%</output>
+            </div>
           </div>
-        </div>
-        <div className="pet-grid" role="radiogroup" aria-label={t('settings.pets.grid.aria')}>
-          {available.map((pet) => (
-            <button
-              type="button"
-              role="radio"
-              aria-checked={pet.id === selected.id}
-              className={pet.id === selected.id ? 'pet-choice is-active' : 'pet-choice'}
-              key={pet.id}
-              onClick={() => { void onUpdate({ petId: pet.id, petEnabled: true }) }}
-            >
-              <span className="pet-choice__art">
-                {pet.id === 'pi-studio' ? <img src="/ptx-mascot.png" alt="" /> : pet.kind === 'orb' ? <PetAvatar pet={pet} pets={pets} size={48} reduceMotion={settings.reduceMotion} /> : <PawPrint size={24} />}
-              </span>
-              <span><strong>{pet.displayName}</strong><small>{pet.source === 'built-in' ? t('settings.pets.source.builtIn') : t('settings.pets.source.codex')}</small></span>
-            </button>
-          ))}
+          <div className="pet-grid" role="radiogroup" aria-label={t('settings.pets.grid.aria')}>
+            {available.map((pet) => (
+              <button
+                type="button"
+                role="radio"
+                aria-checked={pet.id === selected.id}
+                className={pet.id === selected.id ? 'pet-choice is-active' : 'pet-choice'}
+                key={pet.id}
+                onClick={() => { void onUpdate({ petId: pet.id, petEnabled: true }) }}
+              >
+                <span className="pet-choice__art">
+                  {pet.id === 'pi-studio' ? <img src="/ptx-mascot.png" alt="" /> : pet.kind === 'orb' ? <PetAvatar pet={pet} pets={pets} size={48} reduceMotion={settings.reduceMotion} /> : <PawPrint size={24} />}
+                </span>
+                <span><strong>{pet.displayName}</strong><small>{pet.source === 'built-in' ? t('settings.pets.source.builtIn') : t('settings.pets.source.codex')}</small></span>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
       <section className="settings-group">
         <div className="settings-group__heading"><h2>{t('settings.pets.codex')}</h2><button type="button" className="button button--compact" disabled={!pets || loading} onClick={() => { void refresh() }}><RefreshCw size={12} className={loading ? 'spin' : ''} /> {t('settings.pets.codex.refresh')}</button></div>
-        <p className="settings-group__description">{t('settings.pets.codex.discovery.before')} <code>~/.codex/pets</code>{t('settings.pets.codex.discovery.after')}</p>
-        <div className="settings-row"><span><strong>{codexCount ? t('settings.pets.codex.found', { count: codexCount }) : t('settings.pets.codex.none')}</strong><small>{codexCount ? t('settings.pets.codex.foundHint') : t('settings.pets.codex.noneHint')}</small></span></div>
-        {loadError ? <p className="settings-error" role="alert">{loadError}</p> : null}
+        <div className="settings-group__card">
+          <p className="settings-group__description">{t('settings.pets.codex.discovery.before')} <code>~/.codex/pets</code>{t('settings.pets.codex.discovery.after')}</p>
+          <div className="settings-row"><span><strong>{codexCount ? t('settings.pets.codex.found', { count: codexCount }) : t('settings.pets.codex.none')}</strong><small>{codexCount ? t('settings.pets.codex.foundHint') : t('settings.pets.codex.noneHint')}</small></span></div>
+          {loadError ? <p className="settings-error" role="alert">{loadError}</p> : null}
+        </div>
       </section>
     </>
   )

@@ -5,7 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AssistantMessage } from '../../src/components/transcript/messages'
 import { WorkTimeline } from '../../src/components/transcript/timeline'
-import { replayPrimeEvents } from '../../src/lib/events'
+import { replayAgentEvents } from '../../src/lib/events'
 import type { TranscriptMessage } from '../../src/types/api'
 
 let container: HTMLDivElement
@@ -76,7 +76,7 @@ describe('timeline part identity', () => {
   })
 
   it('keeps an expanded activity panel attached to its content when a tool result is spliced in', () => {
-    const streamed = replayPrimeEvents([], [
+    const streamed = replayAgentEvents([], [
       { type: 'agent_start' },
       { type: 'tool_execution_start', toolCallId: 'tool-1', toolName: 'Read', args: { path: 'a.ts' } },
       {
@@ -91,7 +91,7 @@ describe('timeline part identity', () => {
     expect(container.querySelector('.activity-agent__details')?.textContent).toContain('Subagent finished the review.')
 
     // The tool result splices in between the tool call and the agent message.
-    const finished = replayPrimeEvents(streamed, [
+    const finished = replayAgentEvents(streamed, [
       { type: 'tool_execution_end', toolCallId: 'tool-1', toolName: 'Read', result: 'done' },
     ])
     expect(finished[0].parts.map((part) => part.type)).toEqual(['toolCall', 'toolResult', 'agentMessage'])
@@ -101,7 +101,7 @@ describe('timeline part identity', () => {
   })
 
   it('mints stable ids for reducer-created parts and preserves them across updates', () => {
-    const streamed = replayPrimeEvents([], [
+    const streamed = replayAgentEvents([], [
       { type: 'agent_start' },
       { type: 'message_update', assistantMessageEvent: { type: 'thinking_delta', delta: 'plan' } },
       { type: 'tool_execution_start', toolCallId: 'tool-1', toolName: 'Read', args: { path: 'a.ts' } },
@@ -110,7 +110,7 @@ describe('timeline part identity', () => {
     expect(ids.every((id) => typeof id === 'string' && id.length > 0)).toBe(true)
     expect(new Set(ids).size).toBe(ids.length)
 
-    const finished = replayPrimeEvents(streamed, [
+    const finished = replayAgentEvents(streamed, [
       { type: 'message_update', assistantMessageEvent: { type: 'thinking_delta', delta: ' more' } },
       { type: 'tool_execution_end', toolCallId: 'tool-1', toolName: 'Read', result: 'done' },
     ])

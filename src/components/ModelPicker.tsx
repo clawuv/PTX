@@ -1,19 +1,19 @@
 import { Brain, Check, ChevronDown, Search } from 'lucide-react'
 import { memo, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useI18n } from '@/lib/i18n'
-import type { PrimeModelDescriptor, PrimeProviderDescriptor } from '@/types/api'
+import type { AgentModelDescriptor, AgentProviderDescriptor } from '@/types/api'
 
 interface ModelPickerProps {
   value: string
-  modelsByProvider: ReadonlyMap<string, PrimeModelDescriptor[]>
-  providers: PrimeProviderDescriptor[]
+  modelsByProvider: ReadonlyMap<string, AgentModelDescriptor[]>
+  providers: AgentProviderDescriptor[]
   onChange(value: string): void
   onManageModels?(): void
 }
 
 interface ModelGroup {
-  provider: PrimeProviderDescriptor
-  models: PrimeModelDescriptor[]
+  provider: AgentProviderDescriptor
+  models: AgentModelDescriptor[]
 }
 
 export const ModelPicker = memo(function ModelPicker({ value, modelsByProvider, providers, onChange, onManageModels }: ModelPickerProps) {
@@ -55,7 +55,7 @@ export const ModelPicker = memo(function ModelPicker({ value, modelsByProvider, 
     setOpen(false)
     if (restoreFocus) requestAnimationFrame(() => triggerRef.current?.focus())
   }
-  const choose = (model: PrimeModelDescriptor | undefined) => {
+  const choose = (model: AgentModelDescriptor | undefined) => {
     if (!model?.available) return
     onChange(model.key)
     close(true)

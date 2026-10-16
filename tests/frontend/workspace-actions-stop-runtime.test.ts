@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createWorkspaceActions, type WorkspaceActionsDeps } from '../../src/hooks/useWorkspaceActions'
-import type { PrimeWorkApi, RuntimeInfo, TranscriptMessage } from '../../src/types/api'
+import type { PtxApi, RuntimeInfo, TranscriptMessage } from '../../src/types/api'
 
 interface Deferred<T> {
   promise: Promise<T>
@@ -17,7 +17,7 @@ function deferred<T>(): Deferred<T> {
 
 const runtime = (runtimeId: string, isStreaming = true): RuntimeInfo => ({
   runtimeId,
-  harness: 'prime',
+  harness: 'omp',
   cwd: '/project',
   sessionFile: `/sessions/${runtimeId}.jsonl`,
   isStreaming,
@@ -52,7 +52,7 @@ function stopRuntimeFixture(command: ReturnType<typeof deferred<unknown>>) {
     },
   }
   const actions = createWorkspaceActions(() => ({
-    bridge: { agent: { command: agentCommand } } as unknown as PrimeWorkApi,
+    bridge: { agent: { command: agentCommand } } as unknown as PtxApi,
     workspace,
     reportError,
   } as unknown as WorkspaceActionsDeps))
@@ -185,7 +185,6 @@ describe('workspace runtime abort ownership', () => {
 
 describe('workspace MCP command policy', () => {
   it.each([
-    ['prime', '/mcp login notion', 'Prime Agent', 'notion'],
     ['omp', '/mcp reauth docs', 'OMP', 'docs'],
     ['pi', '/mcp-auth files', 'Pi', 'files'],
   ] as const)('does not forward %s remote-auth commands to the harness', async (harness, prompt, agentName, server) => {
@@ -213,7 +212,7 @@ describe('workspace MCP command policy', () => {
 describe('idle prompt streaming behavior', () => {
   const project = {
     id: 'idle-project',
-    harness: 'prime' as const,
+    harness: 'omp' as const,
     name: 'Idle project',
     path: '/idle-project',
     folders: ['/idle-project'],
@@ -225,7 +224,7 @@ describe('idle prompt streaming behavior', () => {
   }
   const session = {
     id: 'idle-session',
-    harness: 'prime' as const,
+    harness: 'omp' as const,
     filePath: '/idle-project/session.jsonl',
     projectPath: '/idle-project',
     title: 'Idle session',
@@ -244,7 +243,7 @@ describe('idle prompt streaming behavior', () => {
     let currentRuntime: RuntimeInfo | null = null
     const runtime = {
       runtimeId: 'idle-runtime',
-      harness: 'prime' as const,
+      harness: 'omp' as const,
       cwd: project.primaryFolder,
       sessionFile: session.filePath,
       isStreaming: false,
@@ -279,7 +278,7 @@ describe('idle prompt streaming behavior', () => {
       sessions: [session],
       activeProject: project,
       workspace,
-      settingsState: { settings: { activeHarness: 'prime' } },
+      settingsState: { settings: { activeHarness: 'omp' } },
       provider: { model: 'auto', effort: 'medium', fast: false },
       submissionAdmissionRef: { current: { active: false, run: async (task: () => Promise<void>) => { await task(); return true } } },
       initialized: true,
@@ -352,7 +351,7 @@ describe('idle prompt streaming behavior', () => {
       sessions: [session],
       activeProject: project,
       workspace,
-      settingsState: { settings: { activeHarness: 'prime' } },
+      settingsState: { settings: { activeHarness: 'omp' } },
       provider: { model: 'auto', effort: 'medium', fast: false },
       submissionAdmissionRef: { current: { active: false, run: async (task: () => Promise<void>) => { await task(); return true } } },
       initialized: true,

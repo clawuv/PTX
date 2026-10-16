@@ -45,7 +45,7 @@ export const isPiSessionPath = isBucketedSessionPath
 
 const piMetadataParser = createBucketedMetadataParser((state, value) => {
   if (value.type === 'model_change') {
-    // Pi records split `provider` + `modelId` fields (Prime's shape), unlike
+    // Pi records split `provider` + `modelId` fields, unlike
     // OMP's single `provider/id` string.
     if (typeof value.modelId === 'string') state.model = value.modelId
     if (typeof value.provider === 'string') state.provider = value.provider
@@ -65,10 +65,7 @@ export function createPiSessionMetadataReader(io: SessionMetadataReaderIo = node
 
 export const readPiTranscript: TranscriptFileReader = createBranchSummaryTranscriptReader()
 
-/**
- * Fully wired SessionService options for a pi session root. Construct the
- * service with a null CLI path: pi has no `prime-agent list` live overlay.
- */
+/** Harness-specific discovery and transcript readers. */
 export function piSessionServiceOptions(sessionRoot = piSessionRoot()): SessionServiceOptions {
   return {
     harness: 'pi',

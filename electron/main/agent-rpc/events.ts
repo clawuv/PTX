@@ -1,4 +1,4 @@
-import type { PrimeEventEnvelope } from '../../../src/types/api'
+import type { AgentEventEnvelope } from '../../../src/types/api'
 import type { RpcObject } from './types'
 
 export interface AgentEventLimits {
@@ -27,7 +27,7 @@ export class AgentEventForwarder {
 
   constructor(
     private readonly runtimeId: string,
-    private readonly onEvent: (envelope: PrimeEventEnvelope) => void,
+    private readonly onEvent: (envelope: AgentEventEnvelope) => void,
     limits: Partial<AgentEventLimits> = {},
   ) {
     this.limits = { ...DEFAULT_AGENT_EVENT_LIMITS, ...limits }
@@ -47,23 +47,23 @@ export class AgentEventForwarder {
       if (this.runtimeExitDelivered) return
     } else if (critical) {
       this.criticalEventCount += 1
-      if (this.criticalEventCount > 32) { this.reportLimit('critical-count', 'Prime Agent lifecycle event rate exceeded the desktop limit'); return }
+      if (this.criticalEventCount > 32) { this.reportLimit('critical-count', 'Agent lifecycle event rate exceeded the desktop limit'); return }
     } else {
       this.eventCount += 1
-      if (this.eventCount > this.limits.maxEvents) { this.reportLimit('count', 'Prime Agent event rate exceeded the desktop limit'); return }
+      if (this.eventCount > this.limits.maxEvents) { this.reportLimit('count', 'Agent event rate exceeded the desktop limit'); return }
     }
 
-    const envelope: PrimeEventEnvelope = { runtimeId: this.runtimeId, event }
+    const envelope: AgentEventEnvelope = { runtimeId: this.runtimeId, event }
     const bytes = this.serializedBytes(envelope)
     if (bytes === null || bytes > this.limits.maxEnvelopeBytes) {
-      this.reportLimit('envelope', 'Prime Agent event exceeded the desktop envelope byte limit')
+      this.reportLimit('envelope', 'Agent event exceeded the desktop envelope byte limit')
       return
     }
     if (!isRuntimeExit) {
       const reserve = Math.min(64 * 1024, Math.floor(this.limits.maxWindowBytes / 4))
       const byteLimit = critical ? this.limits.maxWindowBytes : this.limits.maxWindowBytes - reserve
       if (this.windowBytes + bytes > byteLimit) {
-        this.reportLimit('bytes', 'Prime Agent event byte rate exceeded the desktop limit')
+        this.reportLimit('bytes', 'Agent event byte rate exceeded the desktop limit')
         return
       }
     }
@@ -88,14 +88,14 @@ export class AgentEventForwarder {
     // transport_limit, not transport_error: the desktop dropped events but the
     // agent is still running, so the renderer must reconcile the transcript
     // from disk rather than treat the turn as failed or finished.
-    const envelope: PrimeEventEnvelope = { runtimeId: this.runtimeId, event: { type: 'transport_limit', kind, error } }
+    const envelope: AgentEventEnvelope = { runtimeId: this.runtimeId, event: { type: 'transport_limit', kind, error } }
     const bytes = this.serializedBytes(envelope)
     if (bytes === null || bytes > this.limits.maxEnvelopeBytes || this.windowBytes + bytes > this.limits.maxWindowBytes) return
     this.windowBytes += bytes
     this.onEvent(envelope)
   }
 
-  private serializedBytes(envelope: PrimeEventEnvelope): number | null {
+  private serializedBytes(envelope: AgentEventEnvelope): number | null {
     try { return Buffer.byteLength(JSON.stringify(envelope), 'utf8') } catch { return null }
   }
 }

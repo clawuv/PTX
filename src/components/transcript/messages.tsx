@@ -13,7 +13,7 @@ import { HARNESS_SHORT_NAMES } from '@/lib/harness'
 import { ChangesCard } from '../ChangesCard'
 import type { TurnChanges } from '@/hooks/useTurnChanges'
 import { MarkdownText } from '../MarkdownText'
-import { PrimeMark } from '../ui'
+import { PtxMark } from '../ui'
 import { InlineText } from './syntax'
 import { TranscriptImage } from './TranscriptImage'
 import { ThinkingDots, WorkDisclosure, WorkTimeline } from './timeline'
@@ -150,7 +150,7 @@ interface TurnChangesSlot {
 const noopOpenChanges = () => undefined
 
 export const AssistantMessage = memo(
-  function AssistantMessage({ message, harness = 'prime', showReasoning, showTools, changes, changesCwd, changesReadOnly, onOpenChanges, onRefreshGit }: { message: TranscriptMessage; harness?: HarnessId; showReasoning: boolean; showTools: boolean } & TurnChangesSlot) {
+  function AssistantMessage({ message, harness = 'omp', showReasoning, showTools, changes, changesCwd, changesReadOnly, onOpenChanges, onRefreshGit }: { message: TranscriptMessage; harness?: HarnessId; showReasoning: boolean; showTools: boolean } & TurnChangesSlot) {
     const { t } = useI18n()
     const isActivity = (part: MessagePart) => part.type === 'thinking' || part.type === 'toolCall' || part.type === 'toolResult' || part.type === 'agentMessage' || part.type === 'compaction'
     const firstActivity = message.parts.findIndex(isActivity)
@@ -299,7 +299,7 @@ export const SteerReadMarker = memo(function SteerReadMarker({ message }: { mess
   return <div className="message message--steer-read" role="status"><span>{text}</span></div>
 })
 
-export const ActivityMessage = memo(function ActivityMessage({ message, harness = 'prime' }: { message: TranscriptMessage; harness?: HarnessId }) {
+export const ActivityMessage = memo(function ActivityMessage({ message, harness = 'omp' }: { message: TranscriptMessage; harness?: HarnessId }) {
   const { t } = useI18n()
   const activityLabel = t('transcript.harnessMessage', { name: HARNESS_SHORT_NAMES[harness] })
   const sourceParts: MessagePart[] =
@@ -328,7 +328,7 @@ export const AgentMessage = memo(function AgentMessage({ message }: { message: T
   return (
     <article className={`message message--agent ${open ? 'is-open' : ''}`}>
       <button type="button" className="agent-message__summary" aria-expanded={open} aria-controls={contentId} aria-label={label} onClick={() => setOpen((value) => !value)}>
-        <PrimeMark size={18} />
+        <PtxMark size={18} />
         <span className="agent-message__label">{t('transcript.agentMessage')}</span>
         {message.agentName ? <span className="agent-message__name">{message.agentName}</span> : null}
         {open ? <ChevronDown className="agent-message__chevron" size={13} /> : <ChevronRight className="agent-message__chevron" size={13} />}

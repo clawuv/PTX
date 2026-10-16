@@ -26,7 +26,6 @@ export function createHarnessRuntimeMap(
   runtimes: Record<HarnessId, Omit<HarnessRuntime, 'id'>>,
 ): HarnessRuntimeMap {
   return Object.freeze({
-    prime: Object.freeze({ id: 'prime', ...runtimes.prime }),
     omp: Object.freeze({ id: 'omp', ...runtimes.omp }),
     pi: Object.freeze({ id: 'pi', ...runtimes.pi }),
   }) satisfies HarnessRuntimeMap

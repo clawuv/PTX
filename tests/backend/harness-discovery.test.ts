@@ -1,3 +1,4 @@
+import '../helpers/node-script-fixtures'
 import { describe, expect, it, vi } from 'vitest'
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -16,14 +17,14 @@ function deferred<T>() {
 describe('HarnessDiscoveryService', () => {
   it('reconciles against the settings state inside the serialized transaction', async () => {
     const state = { settings: defaultSettings() } as DesktopState
-    state.settings.activeHarness = 'prime'
+    state.settings.activeHarness = 'pi'
     let releaseFirst!: () => void
     const firstGate = new Promise<void>((resolve) => { releaseFirst = resolve })
     let queue = Promise.resolve()
     const store = {
       update<T>(mutator: (draft: DesktopState) => T): Promise<T> {
         const operation = queue.then(async () => {
-          if (state.settings.activeHarness === 'prime') await firstGate
+          if (state.settings.activeHarness === 'pi') await firstGate
           return mutator(state)
         })
         queue = operation.then(() => undefined, () => undefined)
@@ -33,7 +34,6 @@ describe('HarnessDiscoveryService', () => {
     const userSelection = store.update((draft) => { draft.settings.activeHarness = 'omp' })
     const reconciliation = reconcileActiveHarness(store, {
       omp: { path: '/bin/omp', version: '1' },
-      prime: { path: '/bin/prime-agent', version: '1' },
       pi: { path: null, version: null },
     })
     releaseFirst()
@@ -44,7 +44,7 @@ describe('HarnessDiscoveryService', () => {
   })
 
   it('publishes one atomic status snapshot using the current runtime overrides', async () => {
-    const runtimePaths = { omp: '/configured/omp', prime: '', pi: '' }
+    const runtimePaths = { omp: '/configured/omp', pi: '' }
     const findExecutable = vi.fn(async (descriptor: HarnessDescriptor, configured?: string, accept?: (candidate: string) => Promise<boolean>) => {
       const candidate = descriptor.id === 'omp' ? configured ?? null : descriptor.id === 'pi' ? '/usr/bin/pi' : null
       return candidate && await accept?.(candidate) ? candidate : null
@@ -56,7 +56,6 @@ describe('HarnessDiscoveryService', () => {
 
     expect(statuses).toEqual({
       omp: { path: '/configured/omp', version: '/configured/omp-version' },
-      prime: { path: null, version: null },
       pi: { path: '/usr/bin/pi', version: '/usr/bin/pi-version' },
     })
     expect(discovery.executable('omp')).toBe('/configured/omp')
@@ -66,7 +65,7 @@ describe('HarnessDiscoveryService', () => {
 
   it('excludes existing but non-runnable candidates and continues discovery', async () => {
     const discovery = new HarnessDiscoveryService(
-      () => ({ omp: '/broken/omp', prime: '', pi: '' }),
+      () => ({ omp: '/broken/omp', pi: '' }),
       {
         findExecutable: async (descriptor, _configured, accept) => {
           if (descriptor.id !== 'omp' || !accept) return null
@@ -88,7 +87,7 @@ describe('HarnessDiscoveryService', () => {
     const firstOmp = deferred<string | null>()
     let generation = 0
     const discovery = new HarnessDiscoveryService(
-      () => ({ omp: '', prime: '', pi: '' }),
+      () => ({ omp: '', pi: '' }),
       {
         findExecutable: async (descriptor, _configured, accept) => {
           if (descriptor.id !== 'omp') return null
@@ -117,7 +116,7 @@ describe('HarnessDiscoveryService', () => {
   ] as const)('reports a %s probe failure', async (_label, failure) => {
     const probeFailure = failure as HarnessProbeFailure
     const discovery = new HarnessDiscoveryService(
-      () => ({ omp: '', prime: '', pi: '' }),
+      () => ({ omp: '', pi: '' }),
       {
         findExecutable: async (descriptor, _configured, accept, onFailure) => {
           if (descriptor.id !== 'pi' || !accept) return null
@@ -155,7 +154,7 @@ describe('HarnessDiscoveryService', () => {
 
   it('does not report an absent automatic candidate', async () => {
     const discovery = new HarnessDiscoveryService(
-      () => ({ omp: '', prime: '', pi: '' }),
+      () => ({ omp: '', pi: '' }),
       {
         findExecutable: async (descriptor, _configured, _accept, onFailure) => {
           if (descriptor.id === 'pi') onFailure?.({ path: '/automatic/pi', reason: 'path does not exist', kind: 'missing' })
@@ -173,7 +172,7 @@ describe('HarnessDiscoveryService', () => {
 
   it('reports an automatic candidate that exists but is rejected', async () => {
     const discovery = new HarnessDiscoveryService(
-      () => ({ omp: '', prime: '', pi: '' }),
+      () => ({ omp: '', pi: '' }),
       {
         findExecutable: async (descriptor, _configured, _accept, onFailure) => {
           if (descriptor.id === 'pi') onFailure?.({ path: '/automatic/pi', reason: 'probe failed', kind: 'rejected' })
@@ -189,7 +188,7 @@ describe('HarnessDiscoveryService', () => {
 
   it('reports an absent configured override', async () => {
     const discovery = new HarnessDiscoveryService(
-      () => ({ omp: '', prime: '', pi: '/configured/pi' }),
+      () => ({ omp: '', pi: '/configured/pi' }),
       {
         findExecutable: async (descriptor, _configured, _accept, onFailure) => {
           if (descriptor.id === 'pi') onFailure?.({ path: '/configured/pi', reason: 'path does not exist', kind: 'missing' })

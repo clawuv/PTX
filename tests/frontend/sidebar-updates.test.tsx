@@ -9,11 +9,11 @@ import type { AppUpdateState, ProjectRecord, SessionRecord } from '../../src/typ
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const project: ProjectRecord = {
-  id: 'project', harness: 'prime', name: 'Project', path: '/project', folders: ['/project'], primaryFolder: '/project',
+  id: 'project', harness: 'omp', name: 'Project', path: '/project', folders: ['/project'], primaryFolder: '/project',
   pinned: false, createdAt: '2026-01-01T00:00:00.000Z', lastOpenedAt: '2026-01-01T00:00:00.000Z', sessionCount: 1,
 }
 const session: SessionRecord = {
-  id: 'session', harness: 'prime', filePath: '/sessions/session.jsonl', projectPath: '/project', title: 'Session',
+  id: 'session', harness: 'omp', filePath: '/sessions/session.jsonl', projectPath: '/project', title: 'Session',
   createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', status: 'idle', depth: 0,
 }
 
@@ -54,6 +54,22 @@ async function renderSidebar(updateState: AppUpdateState, onUpdateAction: () => 
 }
 
 describe('sidebar update control', () => {
+  it.each(['idle', 'not-available'] as const)('keeps checking available in the %s state without an install confirmation', async (phase) => {
+    const onUpdateAction = vi.fn()
+    await renderSidebar({ phase }, onUpdateAction)
+    const update = container.querySelector<HTMLButtonElement>('.sidebar-update')
+    expect(update?.disabled).toBe(false)
+    expect(container.querySelector('.sidebar__help')).toBeNull()
+    await press(update!)
+    expect(onUpdateAction).toHaveBeenCalledOnce()
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+  })
+
+  it.each(['checking', 'unsupported'] as const)('keeps the update button visible but disabled when %s', async (phase) => {
+    await renderSidebar({ phase }, vi.fn())
+    expect(container.querySelector<HTMLButtonElement>('.sidebar-update')?.disabled).toBe(true)
+  })
+
   it('asks only about restarting when the update is already downloaded', async () => {
     const onUpdateAction = vi.fn()
     await renderSidebar({ phase: 'downloaded', version: '0.2.0' }, onUpdateAction)

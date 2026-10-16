@@ -2,7 +2,7 @@ import { Mic, MicOff, X } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import type { MessageKey, MessageValues } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n'
-import type { HarnessId, PrimeWorkApi, VoiceTaskStarted, VoiceToolRequest } from '@/types/api'
+import type { HarnessId, PtxApi, VoiceTaskStarted, VoiceToolRequest } from '@/types/api'
 import { HARNESS_SHORT_NAMES } from '@/lib/harness'
 import { DesktopPet, type DesktopPetProps } from './DesktopPet'
 import type { PetActivity } from './PetAvatar'
@@ -10,7 +10,7 @@ import type { PetActivity } from './PetAvatar'
 type OrbState = 'connecting' | 'listening' | 'user-speaking' | 'thinking' | 'agent-speaking' | 'error'
 
 interface VoiceOrbProps {
-  voice: PrimeWorkApi['voice']
+  voice: PtxApi['voice']
   harness: HarnessId
   onClose(): void
   onTaskStarted(task: VoiceTaskStarted): Promise<void>

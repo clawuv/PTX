@@ -25,7 +25,7 @@ const isSeparator = (row: MenuRow): row is MenuSeparator => 'separator' in row
 
 /** Replica menus mirror the native application menu; accelerators stay live through the installed native menu. */
 const MENUS: ReadonlyArray<{ name: ApplicationMenuName; key: MessageKey; rows: ReadonlyArray<MenuRow> }> = [
-  { name: 'file', key: 'menu.file', rows: [{ label: 'menu.quit', run: () => { void window.prime?.app.close() } }] },
+  { name: 'file', key: 'menu.file', rows: [{ label: 'menu.quit', run: () => { void window.ptx?.app.close() } }] },
   { name: 'edit', key: 'menu.edit', rows: [
     { label: 'menu.undo', accelerator: 'Ctrl+Z', command: 'undo' },
     { label: 'menu.redo', accelerator: 'Ctrl+Y', command: 'redo' },
@@ -47,7 +47,7 @@ const MENUS: ReadonlyArray<{ name: ApplicationMenuName; key: MessageKey; rows: R
     { separator: true },
     { label: 'menu.toggleFullscreen', accelerator: 'F11', command: 'toggleFullscreen' },
   ] },
-  { name: 'help', key: 'menu.help', rows: [{ label: 'menu.checkForUpdates', run: () => { void window.prime?.updates.check() } }] },
+  { name: 'help', key: 'menu.help', rows: [{ label: 'menu.checkForUpdates', run: () => { void window.ptx?.updates.check() } }] },
 ]
 
 function MinimizeGlyph() {
@@ -99,7 +99,7 @@ export function TitleToolbar({ onToggleSidebar, platform = 'darwin', sessionActi
 
   const runEntry = (entry: MenuEntry) => {
     setOpenMenu(null)
-    if (entry.command) void window.prime?.app.menuCommand(entry.command).catch(() => undefined)
+    if (entry.command) void window.ptx?.app.menuCommand(entry.command).catch(() => undefined)
     else entry.run?.()
   }
 
@@ -147,9 +147,9 @@ export function TitleToolbar({ onToggleSidebar, platform = 'darwin', sessionActi
         ))}
       </nav> : null}
       {drawWindowControls ? <div className="titlebar-controls no-drag">
-        <button type="button" className="titlebar-control" aria-label={t('shellui.minimizeWindow')} onClick={() => { void window.prime?.app.minimize() }}><MinimizeGlyph /></button>
-        <button type="button" className="titlebar-control" aria-label={t('shellui.maximizeWindow')} onClick={() => { void window.prime?.app.toggleMaximize() }}><MaximizeGlyph /></button>
-        <button type="button" className="titlebar-control titlebar-control--close" aria-label={t('shellui.closeWindow')} onClick={() => { void window.prime?.app.close() }}><CloseGlyph /></button>
+        <button type="button" className="titlebar-control" aria-label={t('shellui.minimizeWindow')} onClick={() => { void window.ptx?.app.minimize() }}><MinimizeGlyph /></button>
+        <button type="button" className="titlebar-control" aria-label={t('shellui.maximizeWindow')} onClick={() => { void window.ptx?.app.toggleMaximize() }}><MaximizeGlyph /></button>
+        <button type="button" className="titlebar-control titlebar-control--close" aria-label={t('shellui.closeWindow')} onClick={() => { void window.ptx?.app.close() }}><CloseGlyph /></button>
       </div> : null}
     </header>
   )

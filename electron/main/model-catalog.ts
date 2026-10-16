@@ -1,6 +1,5 @@
-import type { PrimeModelCatalog, PrimeModelDescriptor, PrimeProviderDescriptor } from '../../src/types/api'
+import type { AgentModelCatalog, AgentModelDescriptor, AgentProviderDescriptor } from '../../src/types/api'
 import type { ProviderCatalog } from './agent-rpc'
-import type { PrimeProviderService } from './providers'
 
 /**
  * The model-catalog surface shared by every agent harness provider service.
@@ -12,19 +11,18 @@ import type { PrimeProviderService } from './providers'
  * - The `providers:catalog` IPC handler calls `catalog(force, disabledProviders, disabledModels)`.
  *
  * Auth mutations (API keys, logout, OAuth flows) are intentionally excluded:
- * the manager never touches them and they are Prime-specific — OMP
- * authentication is owned by the omp CLI itself.
+ * authentication is owned by the harness CLI itself.
  */
 export interface ModelCatalogProvider extends ProviderCatalog {
-  catalog(force?: boolean, disabledProviders?: ReadonlySet<string>, disabledModels?: ReadonlySet<string>): Promise<PrimeModelCatalog>
+  catalog(force?: boolean, disabledProviders?: ReadonlySet<string>, disabledModels?: ReadonlySet<string>): Promise<AgentModelCatalog>
 }
 
 export const MAX_CATALOG_MODELS = 5_000
 export const MAX_CATALOG_PROVIDERS = 256
 
 export interface CatalogLimitResult {
-  models: PrimeModelDescriptor[]
-  providers: PrimeProviderDescriptor[]
+  models: AgentModelDescriptor[]
+  providers: AgentProviderDescriptor[]
   totalModelCount: number
   totalProviderCount: number
   modelsOmittedWithProviders: number
@@ -39,8 +37,8 @@ export interface CatalogLimitResult {
  * stale provider total.
  */
 export function limitCatalogRelations(
-  rawModels: ReadonlyArray<PrimeModelDescriptor>,
-  rawProviders: ReadonlyArray<PrimeProviderDescriptor>,
+  rawModels: ReadonlyArray<AgentModelDescriptor>,
+  rawProviders: ReadonlyArray<AgentProviderDescriptor>,
 ): CatalogLimitResult {
   const seenProviderIds = new Set<string>()
   const uniqueProviders = [...rawProviders]
@@ -103,10 +101,3 @@ export function catalogLimitWarnings(
   }
   return warnings
 }
-
-/**
- * Compile-time proof that PrimeProviderService structurally satisfies the
- * shared surface without editing providers.ts. Harness wiring can use this to
- * hand either service to catalog consumers.
- */
-export const asModelCatalogProvider = (service: PrimeProviderService): ModelCatalogProvider => service

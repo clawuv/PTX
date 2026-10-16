@@ -133,7 +133,7 @@ function isSameFolderIdentity(expected: FolderIdentity, current: FolderIdentity,
 /**
  * One ProjectService instance exists per harness. Instances share the one
  * desktop state store but each sees, creates, and authorizes only records of
- * its own harness: a grant made for Prime never authorizes an OMP runtime's
+ * its own harness: a grant made for Pi never authorizes an OMP runtime's
  * cwd and vice versa. Dismissed inferred-project paths remain shared, matching
  * the single dismissedProjectPaths list in persisted state.
  */
@@ -155,7 +155,7 @@ export class ProjectService {
   constructor(
     private readonly store: JsonStateStore,
     private readonly windowProvider: () => BrowserWindow | null,
-    private readonly harness: HarnessId = 'prime',
+    private readonly harness: HarnessId = 'omp',
     private readonly identityFilesystem: FolderIdentityFilesystem = defaultFolderIdentityFilesystem,
   ) {}
 

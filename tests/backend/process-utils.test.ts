@@ -7,7 +7,7 @@ import { PassThrough } from 'node:stream'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { probeHarnessExecutable } from '../../electron/main/harness-discovery'
 import { HARNESSES } from '../../electron/main/harness'
-import { PROCESS_CONCURRENCY_LIMIT, executableChildEnvironment, harnessExecutableCandidates, isAbsolutePathForPlatform, killProcessTree, prepareExecutableSpawn, nvmHarnessExecutableCandidates, primeAgentCandidates, primeAgentExecutableName, processFailureReason, processOutcome, runProcess, stopChildProcesses, waitForProcessExit, type ProcessResult } from '../../electron/main/process-utils'
+import { PROCESS_CONCURRENCY_LIMIT, executableChildEnvironment, harnessExecutableCandidates, isAbsolutePathForPlatform, killProcessTree, prepareExecutableSpawn, nvmHarnessExecutableCandidates, processFailureReason, processOutcome, runProcess, stopChildProcesses, waitForProcessExit, type ProcessResult } from '../../electron/main/process-utils'
 import { waitUntil } from '../helpers/wait'
 
 const spawnOverride = vi.hoisted(() => ({ current: null as null | ((...args: unknown[]) => unknown) }))
@@ -253,29 +253,6 @@ describe('waitForProcessExit', () => {
   }, 10_000)
 })
 
-describe('Prime Agent discovery candidates', () => {
-  it('uses native executable names and absolute paths for every supported desktop platform', () => {
-    expect(primeAgentExecutableName('darwin')).toBe('prime-agent')
-    expect(primeAgentExecutableName('linux')).toBe('prime-agent')
-    expect(primeAgentExecutableName('win32')).toBe('prime-agent.exe')
-    expect(isAbsolutePathForPlatform('/opt/prime-agent', 'linux')).toBe(true)
-    expect(isAbsolutePathForPlatform('C:\\Tools\\prime-agent.exe', 'win32')).toBe(true)
-    expect(isAbsolutePathForPlatform('prime-agent.exe', 'win32')).toBe(false)
-  })
-
-  it('accepts explicit Windows binaries and searches the Windows PATH without speculative install locations', () => {
-    const candidates = primeAgentCandidates({
-      PRIME_AGENT_BINARY: 'C:\\Tools\\prime-agent.exe',
-      Path: 'C:\\Program Files\\Prime Agent;D:\\bin',
-      LOCALAPPDATA: 'C:\\Users\\Ada\\AppData\\Local',
-    }, 'win32')
-    expect(candidates).toContain('C:\\Tools\\prime-agent.exe')
-    expect(candidates).toContain('C:\\Program Files\\Prime Agent\\prime-agent.exe')
-    expect(candidates).toContain('D:\\bin\\prime-agent.exe')
-    expect(candidates).not.toContain('C:\\Users\\Ada\\AppData\\Local\\Programs\\Prime Agent\\prime-agent.exe')
-  })
-})
-
 describe('OMP discovery candidates', () => {
   it('uses native executable names for every supported desktop platform', () => {
     expect(HARNESSES.omp.executableName('darwin')).toBe('omp')
@@ -370,15 +347,14 @@ describe('OMP discovery candidates', () => {
   })
 
   it('keeps E2E discovery hermetic when a fixture executable disappears', async () => {
-    const env = { PRIME_WORK_E2E_HIDE_WINDOWS: '1', PATH: '/fixture/bin' }
+    const env = { PTX_E2E_HIDE_WINDOWS: '1', PATH: '/fixture/bin' }
     expect(harnessExecutableCandidates(HARNESSES.pi, env, 'darwin', undefined, '/fixture/home')).toEqual(['/fixture/bin/pi'])
     await expect(nvmHarnessExecutableCandidates(HARNESSES.pi, env, 'darwin', '/fixture/home')).resolves.toEqual([])
   })
 
-  it('adds official standalone-node locations for Pi and Prime on Linux', () => {
+  it('adds official standalone-node locations for Pi on Linux', () => {
     const env = { PATH: '/usr/bin', XDG_DATA_HOME: '/data' }
     expect(harnessExecutableCandidates(HARNESSES.pi, env, 'linux', undefined, '/home/ada')).toContain('/data/pi-node/current/bin/pi')
-    expect(harnessExecutableCandidates(HARNESSES.prime, env, 'linux', undefined, '/home/ada')).toContain('/data/prime-agent-node/current/bin/prime-agent')
     expect(harnessExecutableCandidates(HARNESSES.omp, env, 'linux', undefined, '/home/ada')).toContain('/home/linuxbrew/.linuxbrew/bin/omp')
   })
 

@@ -47,6 +47,11 @@ export const SummaryPanel = memo(function SummaryPanel({ agentName = 'OMP', shor
   const { t } = useI18n()
   const { toolCount, lastText } = useMemo(() => summarizeTranscript(messages), [messages])
   const active = Boolean(runtime?.isStreaming || runtime?.isCompacting)
+  const usage = runtime?.contextUsage
+  const contextPercent = usage?.percent === null || usage?.percent === undefined ? null : Math.min(100, Math.max(0, usage.percent))
+  const contextTokens = usage && usage.tokens !== null
+    ? t('inspector.summary.context.tokens', { tokens: usage.tokens.toLocaleString('en-US'), window: usage.contextWindow.toLocaleString('en-US') })
+    : null
   return (
     <div className="inspector-scroll scroll-area summary-panel">
       <section className="summary-hero">
@@ -62,7 +67,7 @@ export const SummaryPanel = memo(function SummaryPanel({ agentName = 'OMP', shor
         </button>)}
         {automations.length > 2 ? <button type="button" className="summary-automation-more" onClick={() => onOpenAutomation(automations[0]!.id)}>{t('inspector.summary.automations.viewAll', { count: automations.length })}</button> : null}
       </div></section> : null}
-      <section className="summary-section"><h3>{t('inspector.summary.context')}</h3><div className="context-meter"><div><span>{t('inspector.summary.context.session')}</span><span>{t('inspector.summary.context.managed')}</span></div><small>{t('inspector.summary.context.note', { name: agentName })}</small></div></section>
+      <section className="summary-section"><h3>{t('inspector.summary.context')}</h3><div className="context-meter"><div><span>{t('inspector.summary.context.session')}</span><span>{contextTokens ?? t('inspector.summary.context.managed')}</span></div>{contextPercent === null ? <small>{t('inspector.summary.context.unavailable')}</small> : <small>{t('inspector.summary.context.percent', { percent: Math.round(contextPercent) })}</small>}<small>{t('inspector.summary.context.note', { name: agentName })}</small></div></section>
     </div>
   )
 })

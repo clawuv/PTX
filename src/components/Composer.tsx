@@ -1,11 +1,8 @@
-import { ArrowUp, AtSign, CalendarDays, ChevronDown, Clock3, Command, Edit3, ImageIcon, MessageCirclePlus, Paperclip, Plus, Square, SquareTerminal, Trash2, X, Zap } from 'lucide-react'
+import { ArrowUp, AtSign, ChevronDown, Clock3, Command, Edit3, ImageIcon, MessageCirclePlus, Paperclip, Plus, Square, SquareTerminal, Trash2, X, Zap } from 'lucide-react'
 import { memo, useEffect, useId, useMemo, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
 import type {
   BrowserAnnotation,
-  HarnessId,
   MessageEnterAction,
-  AgentContextUsage,
   AgentModelDescriptor,
   AgentProviderDescriptor,
   AgentThinkingLevel,
@@ -45,11 +42,9 @@ interface ComposerProps {
   agentName?: string
   /** Active harness short name for inline copy ("Pi" / "OMP"). */
   shortName?: string
-  harness?: HarnessId
   imageInputSupported: boolean
   /** Primary action for Enter; Ctrl/Cmd+Enter selects the opposite action. */
   messageEnterAction?: MessageEnterAction
-  contextUsage?: AgentContextUsage
   skills: SkillRecord[]
   /** Other sidebar sessions in the active project, available as @title references. */
   sessions?: SessionRecord[]
@@ -120,10 +115,8 @@ export const Composer = memo(function Composer({
   fastAvailable,
   agentName = 'OMP',
   shortName = 'OMP',
-  harness = 'omp',
   imageInputSupported,
   messageEnterAction = 'queue',
-  contextUsage,
   skills,
   sessions = [],
   annotations = EMPTY_ANNOTATIONS,
@@ -409,12 +402,6 @@ export const Composer = memo(function Composer({
     setActiveSuggestion(0)
   }, [menu, value, suggestions.length])
   const chooseSuggestion = (index: number) => suggestions[index]?.choose()
-  const contextPercent = contextUsage?.percent === null || contextUsage?.percent === undefined ? null : Math.min(100, Math.max(0, contextUsage.percent))
-  const contextLabel =
-    contextUsage && contextUsage.tokens !== null
-      ? t('composer.context.tokens', { tokens: contextUsage.tokens.toLocaleString('en-US'), window: contextUsage.contextWindow.toLocaleString('en-US') })
-      : t('composer.context.unavailable')
-  const contextStyle = { '--context-percent': `${contextPercent ?? 0}%` } as CSSProperties
   const sendQueuedMessageImmediately = async (queued: QueuedPrompt) => {
     // While the steer round-trip is in flight the item's actions stay disabled,
     // so a double-click cannot deliver the same queued message twice.
@@ -712,7 +699,7 @@ export const Composer = memo(function Composer({
                 requestAnimationFrame(() => textareaRef.current?.focus())
               }}
             >
-              <CalendarDays size={13} /> <span>{t('composer.planMode.label')}</span> <ChevronDown size={12} />
+              <span>{t('composer.planMode.label')}</span> <ChevronDown size={12} />
             </button>
             {fastSupported ? (
               <button
@@ -728,19 +715,6 @@ export const Composer = memo(function Composer({
             ) : null}
           </div>
           <div className="composer__actions">
-            <span
-              className={`context-usage-dial ${contextPercent === null ? 'is-unavailable' : contextPercent >= 95 ? 'is-critical' : contextPercent >= 80 ? 'is-warning' : ''}`}
-              role="meter"
-              tabIndex={0}
-              aria-label={t('composer.context.usage')}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={contextPercent === null ? undefined : Math.round(contextPercent)}
-              aria-valuetext={contextLabel}
-              title={contextLabel}
-              data-tooltip={contextLabel}
-              style={contextStyle}
-            />
             <ModelPicker value={model} modelsByProvider={modelsByProvider} providers={providers} onChange={onModelChange} onManageModels={onManageModels} />
             <SelectMenu
               label={t('composer.reasoning.label')}
@@ -751,7 +725,7 @@ export const Composer = memo(function Composer({
             />
             {busy ? (
               <button type="button" className="send-button send-button--stop" aria-label={t('composer.stop')} onClick={() => void onStop()}>
-                <Square size={10} fill="currentColor" aria-hidden="true" />
+                <Square size={12} fill="currentColor" aria-hidden="true" />
               </button>
             ) : (
               <button
@@ -761,7 +735,7 @@ export const Composer = memo(function Composer({
                 disabled={(!value.trim() && images.length === 0 && unsupportedFiles.length === 0 && annotations.length === 0 && !terminalSelection?.text) || processingImages || submitting || loading || disabled}
                 onClick={() => void submit()}
               >
-                <ArrowUp size={16} />
+                <ArrowUp size={12} />
               </button>
             )}
           </div>

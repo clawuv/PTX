@@ -40,6 +40,9 @@ const en = {
   'inspector.summary.context.session': 'Session context',
   'inspector.summary.context.managed': 'Managed',
   'inspector.summary.context.note': '{name} monitors and compacts context when needed.',
+  'inspector.summary.context.tokens': '{tokens} / {window} tokens',
+  'inspector.summary.context.percent': '{percent}% of the window used',
+  'inspector.summary.context.unavailable': 'Token usage appears after the next response.',
 
   // Files panel (FilesPanel.tsx)
   'files.empty.title': 'No project files',
@@ -184,6 +187,9 @@ export const inspectorCatalog = defineCatalog(en, {
   'inspector.summary.context.session': '会话上下文',
   'inspector.summary.context.managed': '自动管理',
   'inspector.summary.context.note': '{name} 会在需要时监控并压缩上下文。',
+  'inspector.summary.context.tokens': '{tokens} / {window} tokens',
+  'inspector.summary.context.percent': '已使用窗口的 {percent}%',
+  'inspector.summary.context.unavailable': 'Token 用量将在下一次响应后显示。',
 
   'files.empty.title': '没有项目文件',
   'files.empty.description': '选择一个本地项目以查看文件。',

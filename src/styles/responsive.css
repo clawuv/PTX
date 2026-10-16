@@ -75,7 +75,8 @@
   .terminal-drawer { height: var(--terminal-height, 46vh); flex-basis: var(--terminal-height, 46vh); }
   .terminal-toolbar .icon-button { width: 32px; height: 32px; }
   .terminal-actions .icon-button:nth-of-type(-n+2), .terminal-cwd { display: none; }
-  .page-container, .settings-content__inner { padding: 25px 18px 55px; }
+  .page-container { padding: 25px 18px 55px; }
+  .settings-content__inner { padding: 18px 18px 32px; }
   .page-header { align-items: stretch; flex-direction: column; margin-bottom: 18px; }
   .page-header .button { align-self: flex-start; min-height: 38px; }
   .page-tools { align-items: stretch; flex-direction: column; padding-bottom: 8px; }

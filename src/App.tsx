@@ -1095,7 +1095,6 @@ export default function App() {
                         <Transcript
                           key={workspace.activeSessionId ?? 'new-session'}
                           messages={workspace.messages}
-                          harness={activeHarness}
                           projectName={activeProject?.name}
                           loading={workspace.loadingSession}
                           active={turnActive}
@@ -1141,9 +1140,7 @@ export default function App() {
                           fastAvailable={workspace.runtime?.fastModeAvailable !== false}
                           agentName={HARNESS_AGENT_NAMES[activeHarness]}
                           shortName={HARNESS_SHORT_NAMES[activeHarness]}
-                          harness={activeHarness}
                           imageInputSupported={Boolean(provider.selectedModel?.input.includes('image'))}
-                          contextUsage={workspace.runtime?.contextUsage}
                           skills={pluginSkills.skills}
                           sessions={mentionableSessions}
                           annotations={browserAnnotations.annotations}

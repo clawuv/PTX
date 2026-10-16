@@ -47,6 +47,10 @@ const piRuntime = primeRuntime
 const meta: AppMeta = {
   version: '1', platform: 'darwin', homeDir: '/Users/you',
   harnesses: { omp: { path: null, version: null }, pi: { path: '/usr/local/bin/pi', version: '0.84.1' } },
+  harnessCapabilities: {
+    omp: { nativeApprovals: false, approvalModeOverride: true, nativeMcp: true, offlineRename: false, serviceTierRpc: true },
+    pi: { nativeApprovals: false, approvalModeOverride: false, nativeMcp: false, offlineRename: false, serviceTierRpc: false },
+  },
 }
 const allDetectedMeta: AppMeta = {
   ...meta,
@@ -81,9 +85,15 @@ async function click(element: Element) {
 }
 
 async function openCombobox(label: string) {
+  await act(async () => {
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+  })
   const trigger = [...container.querySelectorAll<HTMLButtonElement>('[role="combobox"]')].find((button) => button.getAttribute('aria-label') === label)!
   await act(async () => { trigger.click() })
-  return [...document.body.querySelectorAll<HTMLButtonElement>('[role="option"]')]
+  const lists = [...document.body.querySelectorAll<HTMLElement>('[role="listbox"]')]
+  const list = lists.at(-1)
+  return [...(list ?? document.body).querySelectorAll<HTMLButtonElement>('[role="option"]')]
 }
 
 describe('bootstrap harness switching', () => {
@@ -556,7 +566,7 @@ describe('harness settings surfaces', () => {
     const primeSettings: AppSettings = { ...DEFAULT_SETTINGS, activeHarness: 'pi' }
     await act(async () => { root.render(<AgentSettings settings={primeSettings} meta={meta} onUpdate={onUpdate} onRefreshHarnesses={onRefreshHarnesses} />) })
     expect(container.textContent).toContain('Default harness')
-    expect(container.textContent).toContain('OMP approval mode')
+    expect(container.textContent).not.toContain('OMP approval mode')
     expect(container.textContent).toContain('Pi is ready')
     expect(container.textContent).toContain('OMP not detected')
     let options = await openCombobox('Default harness')
@@ -574,6 +584,12 @@ describe('harness settings surfaces', () => {
 
     const piSettings: AppSettings = { ...DEFAULT_SETTINGS, activeHarness: 'pi' }
     await act(async () => { root.render(<AgentSettings settings={piSettings} meta={allDetectedMeta} onUpdate={onUpdate} onRefreshHarnesses={onRefreshHarnesses} />) })
+    expect(container.textContent).not.toContain('OMP approval mode')
+    const harnessOptions = await openCombobox('Default harness')
+    expect(harnessOptions.map((option) => option.textContent)).toEqual(['OMP Work', 'Pi Work'])
+
+    const ompSettings: AppSettings = { ...DEFAULT_SETTINGS, activeHarness: 'omp' }
+    await act(async () => { root.render(<AgentSettings settings={ompSettings} meta={allDetectedMeta} onUpdate={onUpdate} onRefreshHarnesses={onRefreshHarnesses} />) })
     expect(container.textContent).toContain('OMP approval mode')
     const approvalOptions = await openCombobox('OMP approval mode')
     expect(approvalOptions.map((option) => option.textContent)).toEqual([
@@ -584,8 +600,22 @@ describe('harness settings surfaces', () => {
     ])
     await click(approvalOptions.find((option) => option.textContent === 'Prompt for exec only (write)')!)
     expect(onUpdate).toHaveBeenCalledWith({ ompApprovalMode: 'write' })
-    const harnessOptions = await openCombobox('Default harness')
-    expect(harnessOptions.map((option) => option.textContent)).toEqual(['OMP Work', 'Pi Work'])
+  })
+
+  it('hides the OMP-only approval mode for Pi while harness capabilities are still loading', async () => {
+    const onUpdate = vi.fn()
+    const onRefreshHarnesses = vi.fn(async () => undefined)
+    const loadingMeta: AppMeta = { version: '1', platform: 'darwin', homeDir: '/Users/you', harnesses: allDetectedMeta.harnesses }
+
+    await act(async () => {
+      root.render(<AgentSettings settings={{ ...DEFAULT_SETTINGS, activeHarness: 'pi' }} meta={loadingMeta} onUpdate={onUpdate} onRefreshHarnesses={onRefreshHarnesses} />)
+    })
+    expect(container.textContent).not.toContain('OMP approval mode')
+
+    await act(async () => {
+      root.render(<AgentSettings settings={{ ...DEFAULT_SETTINGS, activeHarness: 'omp' }} meta={loadingMeta} onUpdate={onUpdate} onRefreshHarnesses={onRefreshHarnesses} />)
+    })
+    expect(container.textContent).toContain('OMP approval mode')
   })
 
   it('renders a harness discovery problem in its runtime card', async () => {

@@ -21,7 +21,7 @@ export function AgentSettings({ settings, meta, onUpdate, onRefreshHarnesses }: 
   const { t } = useI18n()
   const activeHarness = settings.activeHarness
   const availableHarnesses = detectedHarnesses(meta)
-  const approvalModeSupported = meta?.harnessCapabilities?.[activeHarness]?.approvalModeOverride ?? true
+  const approvalModeSupported = meta?.harnessCapabilities?.[activeHarness]?.approvalModeOverride ?? (activeHarness === 'omp')
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState('')
   const platform = meta?.platform ?? detectRendererPlatform()

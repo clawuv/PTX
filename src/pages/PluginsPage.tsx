@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, BookOpen, Check, ChevronRight, FileCode2, FileText, GitFork, Globe2, Package, Palette, Plus, RefreshCw, Search, Settings2, ShieldCheck, Sparkles, Trash2, WandSparkles, X } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, BookOpen, Check, ChevronRight, FileCode2, FileText, GitFork, Globe2, Package, Palette, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Trash2, WandSparkles, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CapabilityMutationInput, ExtensionInstallInput, HarnessId, McpConnectionInput, McpStateInput, PluginWarning, SkillRecord } from '@/types/api'
 import { HARNESS_SHORT_NAMES } from '@/lib/harness'
@@ -278,7 +278,6 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
           <div><h1>{t('plugins.title', { harness: HARNESS_SHORT_NAMES[harness] })}</h1><p>{t('plugins.subtitle')}</p></div>
           <div>
             <button type="button" className="button" onClick={() => void onRefresh()}><RefreshCw className={loading ? 'spin' : ''} size={13}/> {t('plugins.refresh')}</button>
-            <button type="button" className="button" onClick={() => setFilter('installed')}><Settings2 size={13}/> {t('plugins.manage')}</button>
             {showHeaderAction ? <button type="button" className="button button--primary" onClick={openAdd}><Plus size={14}/> {t('plugins.add')}</button> : null}
           </div>
         </header>

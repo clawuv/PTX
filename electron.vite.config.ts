@@ -14,6 +14,7 @@ export default defineConfig({
     build: {
       lib: { entry: 'electron/preload/index.ts', formats: ['cjs'] },
       rollupOptions: { output: { format: 'cjs', entryFileNames: 'index.js' } },
+      minify: 'esbuild',
     },
   },
   renderer: {
@@ -29,6 +30,11 @@ export default defineConfig({
       },
     },
     build: {
+      // electron-vite defaults the renderer to minify: false, which also turns
+      // off CSS minification (cssMinify follows minify). Minify like main and
+      // preload do: Electron never consumes readable output, and less source
+      // is faster for V8 to read, parse, and compile at startup.
+      minify: 'esbuild',
       rollupOptions: {
         input: resolve('index.html'),
         output: {

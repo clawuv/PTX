@@ -37,6 +37,10 @@ Ptx (`package.json` name `ptx`) is an Electron desktop app that gives the Pi, OM
 
 Biome (`scripts/release/biome.json`): 2-space indent, single quotes, no semicolons, trailing commas, 200-char line width. TypeScript strict mode throughout.
 
+## Renderer styling
+
+Renderer CSS is per-surface files under `src/styles/` with semantic class names; theme tokens live in `src/styles/base.css`. Read [`docs/css-guidelines.md`](docs/css-guidelines.md) before adding styles — it records the deferred token-framework decision and the feature triggers that would reverse it.
+
 ## File size
 
 Keep handwritten production files at or below 750 lines when practical. Treat 750 lines as a review threshold, not a reason to create arbitrary wrapper modules or split cohesive logic.

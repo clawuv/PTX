@@ -146,7 +146,6 @@ export default function App() {
   const [worktrees, setWorktrees] = useState<GitWorktree[]>([])
   const [worktreesLoading, setWorktreesLoading] = useState(false)
   const [view, setView] = useState<WorkspaceView>('session')
-  const [pageActionSignal, setPageActionSignal] = useState(0)
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSection>('general')
   const [noHarnessPromptDismissed, setNoHarnessPromptDismissed] = useState(false)
   const [browserGeneration, setBrowserGeneration] = useState(0)
@@ -941,8 +940,6 @@ export default function App() {
         onRunNow={(id: string) => mutateSchedule(() => bridge!.schedules.runNow(id))}
         onPreview={async (timing: ScheduleTiming) => (bridge ? bridge.schedules.preview(timing, 3) : { timing, occurrences: [] })}
         onOpenSession={openScheduledSession}
-        openCreateSignal={pageActionSignal}
-        showHeaderAction={false}
       />
     ) : view === 'plugins' ? (
       <PluginsPage
@@ -965,8 +962,6 @@ export default function App() {
         onConnectMcp={connectMcp}
         onSetMcpEnabled={setMcpEnabled}
         onMutateCapability={mutateCapability}
-        openAddSignal={pageActionSignal}
-        showHeaderAction={false}
       />
     ) : view === 'settings' ? (
       <SettingsPage
@@ -1070,15 +1065,15 @@ export default function App() {
                 onOpenWith={openWith}
               />
             ) : <div className="workbench-titlebar-drag-region drag-region" aria-hidden="true" />}
-            {view === 'projects' || view === 'scheduled' || view === 'plugins' ? (
+            {view === 'projects' ? (
               <div className="workbench-titlebar-actions">
                 <button
                   type="button"
                   className="button button--primary workbench-titlebar-actions__primary"
-                  onClick={view === 'projects' ? () => void addProject() : () => setPageActionSignal((signal) => signal + 1)}
+                  onClick={() => void addProject()}
                 >
                   <Plus size={14} />
-                  {view === 'projects' ? t('projects.add') : view === 'scheduled' ? t('scheduled.newSchedule') : t('plugins.add')}
+                  {t('projects.add')}
                 </button>
               </div>
             ) : null}

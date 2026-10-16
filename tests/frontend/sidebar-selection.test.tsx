@@ -92,10 +92,12 @@ describe('sidebar session selection across projects', () => {
     expect(selectedTitles()).toEqual([sessionB.title])
   })
 
-  it('highlights a recent-section session after activating it', async () => {
+  it('omits sessions that belong to no listed project', async () => {
     await act(async () => { root.render(<Harness initialSessionId={sessionA.id} />) })
 
-    await press(rowByTitle(sessionC.title))
-    expect(selectedTitles()).toEqual([sessionC.title])
+    // The Recent section is gone, so an unassigned session has no row to render.
+    const titles = [...container.querySelectorAll('.session-row__title')].map((node) => node.textContent)
+    expect(titles).not.toContain(sessionC.title)
+    expect(titles).toEqual(expect.arrayContaining([sessionA.title, sessionB.title]))
   })
 })

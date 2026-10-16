@@ -536,37 +536,15 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
 
-  test('renders the compact context-usage dial as a hollow ring without a number', async () => {
+  test('keeps the context-usage meter out of the composer', async () => {
     await page.locator('.session-row-wrap').filter({ hasText: 'Hermetic desktop fixture' }).locator('.session-row').click()
-    const dial = page.locator('.context-usage-dial')
-    await expect(dial).toBeVisible()
     const composer = page.getByRole('combobox', { name: 'Message Pi' })
     await composer.fill('Refresh context usage')
     await composer.press('Enter')
-    await expect(dial).toHaveAttribute('aria-valuenow', '12')
-    const ring = await dial.evaluate((node) => {
-      const style = getComputedStyle(node)
-      const hole = getComputedStyle(node, '::before')
-      const rect = node.getBoundingClientRect()
-      return {
-        text: node.textContent,
-        arc: style.backgroundImage,
-        holeInset: hole.inset,
-        holeRadius: hole.borderRadius,
-        size: rect.width,
-        center: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
-        box: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom },
-      }
-    })
-    // No digits in the middle: the ring is the whole indicator; numbers live in the hover tooltip.
-    expect(ring.text).toBe('')
-    expect(ring.arc).toContain('conic-gradient')
-    expect(ring.size).toBeCloseTo(26.4, 1)
-    expect(ring.holeInset).not.toBe('')
-    expect(ring.holeRadius).toBe('50%')
-    // The ring stays centered on its own box (no stray text shifting the layout).
-    expect(ring.center.x).toBeCloseTo((ring.box.left + ring.box.right) / 2, 1)
-    expect(ring.center.y).toBeCloseTo((ring.box.top + ring.box.bottom) / 2, 1)
+    // Usage is reported in the Summary panel now; the composer shows no ring.
+    await expect(page.locator('.context-usage-dial')).toHaveCount(0)
+    await expect(page.locator('.composer__actions [role="meter"]')).toHaveCount(0)
+    await expect(page.locator('.composer__actions [aria-label="Send message"]')).toBeVisible()
   })
 
   test('picks, previews, and removes an image in the composer', async () => {

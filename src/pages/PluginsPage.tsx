@@ -273,9 +273,8 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
   }
 
   return (
-    <div className="page plugin-page scroll-area">
-      <div className="page-container plugin-container">
-        <header className="plugin-header">
+    <div className="page plugin-page page--fixed-header">
+        <header className="plugin-header page-fixed-header">
           <div><h1>{t('plugins.title', { harness: HARNESS_SHORT_NAMES[harness] })}</h1><p>{t('plugins.subtitle')}</p></div>
           <div>
             <button type="button" className="button" onClick={() => void onRefresh()}><RefreshCw className={loading ? 'spin' : ''} size={13}/> {t('plugins.refresh')}</button>
@@ -283,6 +282,7 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
             {showHeaderAction ? <button type="button" className="button button--primary" onClick={openAdd}><Plus size={14}/> {t('plugins.add')}</button> : null}
           </div>
         </header>
+      <div className="page-body-scroll scroll-area"><div className="page-container plugin-container">
         <div className="directory-tabs">
           <button type="button" className={tab === 'plugins' ? 'is-active' : ''} onClick={() => setTab('plugins')}>{t('plugins.tab.capabilities')}</button>
           <button type="button" className={tab === 'skills' ? 'is-active' : ''} onClick={() => setTab('skills')}>{t('plugins.tab.skills')}</button>
@@ -380,6 +380,7 @@ export function PluginsPage({ harness, skills, warnings, loading, activeProjectP
             {result ? <pre className="install-output" role="status">{result}</pre> : null}
           </Modal>
         ) : null}
+      </div>
       </div>
     </div>
   )

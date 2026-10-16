@@ -57,6 +57,7 @@
 .app-shell[data-platform="win32"] .title-toolbar {
   flex-basis: auto;
   height: max(36px, var(--windows-titlebar-height));
+  padding-left: 24px;
   padding-right: 0;
 }
 .app-shell[data-platform="linux"] .title-toolbar {
@@ -737,3 +738,5 @@ button.summary-popover__row[aria-expanded="true"] {
 .app-shell:not([data-platform="darwin"]) .titlebar-menus { margin-left: 18px; gap: 6px; }
 .app-shell:not([data-platform="darwin"]) .titlebar-arrow { width: 13px; height: 13px; }
 .app-shell[data-platform="win32"] .title-toolbar { border-bottom: 0; font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif; }
+
+.app-shell[data-platform="win32"] .titlebar-arrow > svg { width: 13px; height: 13px; }

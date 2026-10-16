@@ -5,7 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Composer } from '../../src/components/Composer'
 import { groupModelsByProvider } from '../../src/hooks/useProviderCatalog'
-import type { AgentContextUsage, AgentModelDescriptor, AgentProviderDescriptor, SkillRecord } from '../../src/types/api'
+import type { AgentModelDescriptor, AgentProviderDescriptor, SkillRecord } from '../../src/types/api'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -41,7 +41,7 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-function renderComposer(onSend = vi.fn(), imageInputSupported = true, busy = false, messageEnterAction: 'queue' | 'steer' = 'queue', contextUsage?: AgentContextUsage) {
+function renderComposer(onSend = vi.fn(), imageInputSupported = true, busy = false, messageEnterAction: 'queue' | 'steer' = 'queue') {
   act(() => root.render(<Composer
     busy={busy}
     model="provider/vision"
@@ -54,7 +54,6 @@ function renderComposer(onSend = vi.fn(), imageInputSupported = true, busy = fal
     fastAvailable
     imageInputSupported={imageInputSupported}
     messageEnterAction={messageEnterAction}
-    contextUsage={contextUsage}
     skills={[]}
     onModelChange={vi.fn()}
     onEffortChange={vi.fn()}
@@ -524,27 +523,16 @@ describe('Composer submission lifecycle', () => {
 })
 
 describe('Composer context usage and stop control', () => {
-  it('shows the exact context usage in a hollow dial before the send button', () => {
-    renderComposer(vi.fn(), true, false, 'queue', { tokens: 50_000, contextWindow: 100_000, percent: 50 })
-
-    const dial = container.querySelector<HTMLElement>('[role="meter"]')
-    const actions = container.querySelector('.composer__actions')
-    // The dial is a bare ring: no digits inside; the exact numbers stay in the tooltip/aria text.
-    expect(dial?.textContent).toBe('')
-    expect(dial?.title).toBe('50,000 / 100,000 tokens')
-    expect(dial?.getAttribute('aria-valuenow')).toBe('50')
-    expect(dial?.style.getPropertyValue('--context-percent')).toBe('50%')
-    expect(actions?.firstElementChild).toBe(dial)
-    expect(actions?.querySelector('[aria-label="Send message"]')).not.toBeNull()
+  it('keeps context usage out of the composer actions', () => {
+    renderComposer()
+    // Token usage now lives in the Summary panel; the composer must not render a meter.
+    expect(container.querySelector('[role="meter"]')).toBeNull()
+    expect(container.querySelector('.context-usage-dial')).toBeNull()
+    expect(container.querySelector('.composer__actions [aria-label="Send message"]')).not.toBeNull()
   })
 
-  it('shows unavailable usage honestly and uses a square stop icon', () => {
-    renderComposer(vi.fn(), true, true, 'queue', { tokens: null, contextWindow: 100_000, percent: null })
-
-    const dial = container.querySelector<HTMLElement>('[role="meter"]')
-    expect(dial?.textContent).toBe('')
-    expect(dial?.hasAttribute('aria-valuenow')).toBe(false)
-    expect(dial?.title).toContain('unavailable')
+  it('uses a square stop icon while the agent is working', () => {
+    renderComposer(vi.fn(), true, true)
     expect(container.querySelector('button.send-button--stop .lucide-square')).not.toBeNull()
     expect(container.querySelector('.lucide-circle-stop')).toBeNull()
   })

@@ -97,14 +97,6 @@
 .composer .select-menu__popover { box-shadow: none; }
 /* Token-usage ring: the arc fills with use, the center stays empty, and hover
    shows the exact numbers via the tooltip. */
-.context-usage-dial { --context-color: var(--accent); position: relative; width: 24px; height: 24px; display: grid; place-items: center; flex: 0 0 24px; border-radius: 50%; cursor: help; }
-.context-usage-dial:hover { background: var(--surface-hover); }
-.context-usage-dial::before { content: ''; width: 15px; height: 15px; border-radius: 50%; background: conic-gradient(var(--context-color) var(--context-percent), var(--surface-selected) 0); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px)); }
-.context-usage-dial::after { content: attr(data-tooltip); position: absolute; z-index: 60; right: -10px; bottom: 38px; width: max-content; max-width: 250px; padding: 5px 7px; border: 1px solid var(--border); border-radius: 6px; color: var(--text); background: var(--surface-raised); box-shadow: var(--shadow-popover); font-size: 10px; font-weight: 450; line-height: 1.35; white-space: nowrap; opacity: 0; pointer-events: none; transform: translateY(2px); transition: opacity 120ms ease-out, transform 120ms ease-out; }
-.context-usage-dial:hover::after, .context-usage-dial:focus-visible::after { opacity: 1; transform: translateY(0); }
-.context-usage-dial.is-unavailable { --context-color: var(--text-tertiary); }
-.context-usage-dial.is-warning { --context-color: var(--warning); }
-.context-usage-dial.is-critical { --context-color: var(--danger); }
 .is-spinning { animation: spin 900ms linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .permissions-chip { height: 26px; display: inline-flex; align-items: center; gap: 4px; padding: 0 7px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-secondary); background: var(--surface-subtle); font-size: 10.5px; }

@@ -599,8 +599,9 @@ export function ScheduledPage({
   }
 
   return (
-    <div className="page scroll-area"><div className="page-container schedule-page">
-      <header className="page-header schedule-page__header"><div><h1>{t('scheduled.title')}</h1><p>{t('scheduled.subtitle', { harness: HARNESS_SHORT_NAMES[harness] })}</p></div>{showHeaderAction ? <button type="button" className="button button--primary" onClick={openCreate}><Plus size={14} /> {t('scheduled.newSchedule')}</button> : null}</header>
+    <div className="page page--fixed-header">
+      <header className="page-header schedule-page__header page-fixed-header"><div><h1>{t('scheduled.title')}</h1><p>{t('scheduled.subtitle', { harness: HARNESS_SHORT_NAMES[harness] })}</p></div>{showHeaderAction ? <button type="button" className="button button--primary" onClick={openCreate}><Plus size={14} /> {t('scheduled.newSchedule')}</button> : null}</header>
+      <div className="page-body-scroll scroll-area"><div className="page-container schedule-page">
       <div className="schedule-ledger-summary" aria-label={t('scheduled.summaryAria')}>
         <span><i className="is-active" /> <strong>{counts.active}</strong> {t('scheduled.summary.active')}</span>
         <span><i className="is-paused" /> <strong>{counts.paused}</strong> {t('scheduled.summary.paused')}</span>
@@ -620,6 +621,6 @@ export function ScheduledPage({
         </button>
       })}</div> : <EmptyState icon={<CalendarClock size={24} />} title={filter === 'all' ? t('scheduled.empty.all') : filter === 'attention' ? t('scheduled.empty.attention') : filter === 'active' ? t('scheduled.empty.active') : t('scheduled.empty.paused')} action={schedules.length ? undefined : <button type="button" className="button button--primary" onClick={openCreate}><Plus size={13} /> {t('scheduled.createSchedule')}</button>}> {schedules.length ? t('scheduled.empty.filterHint') : t('scheduled.empty.createHint', { harness: HARNESS_SHORT_NAMES[harness] })}</EmptyState>}
       {editorModal}
-    </div></div>
+    </div></div></div>
   )
 }

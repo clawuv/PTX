@@ -348,7 +348,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
               return (
                 <div className="project-group" key={project.id}>
                   <div
-                    className="project-row"
+                    className={`project-row${activeProjectId === project.id && activeView === 'session' ? ' is-selected' : ''}`}
                     onContextMenu={(event) => { event.preventDefault(); setProjectMenu(project.id) }}
                   >
                     <button className="project-row__main" type="button" title={project.name} onClick={() => setCollapsedProjects((current) => { const next = new Set(current); if (next.has(project.id)) next.delete(project.id); else next.add(project.id); return next })}>

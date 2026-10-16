@@ -985,6 +985,10 @@ export default function App() {
         onSetAllProvidersEnabled={provider.setAllEnabled}
         onSetAllProvidersDisabled={provider.setAllDisabled}
         onSetModelEnabled={provider.setModelEnabled}
+        projects={projects}
+        onAddProject={() => void addProject()}
+        onOpenProject={selectProject}
+        onRemoveProject={(project) => void removeProject(project)}
         onResetBrowser={async () => {
           if (!bridge) throw new Error(t('app.browser.desktopOnly'))
           if (!(await bridge.settings.resetBrowserData())) {

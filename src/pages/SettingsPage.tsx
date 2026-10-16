@@ -4,7 +4,7 @@ import { errorMessage } from '@/lib/errors'
 import { useI18n } from '@/lib/i18n'
 import { detectRendererPlatform } from '@/lib/platform-shortcuts'
 import { Modal } from '@/components/ui'
-import type { AppMeta, AppSettings, AgentModelCatalog, PtxApi } from '@/types/api'
+import type { AppMeta, AppSettings, AgentModelCatalog, ProjectRecord, PtxApi } from '@/types/api'
 import { AboutSettings } from './settings/AboutSettings'
 import { AgentSettings } from './settings/AgentSettings'
 import { AppearanceSettings } from './settings/AppearanceSettings'
@@ -14,6 +14,7 @@ import { GeneralSettings } from './settings/GeneralSettings'
 import { PrivacySettings } from './settings/PrivacySettings'
 import { PetsSettings } from './settings/PetsSettings'
 import { ProvidersSettings } from './settings/ProviderSettings'
+import { ProjectsPage } from './ProjectsPage'
 import { SETTINGS_SECTION_GROUPS } from './settings/sections'
 import { TerminalSettings } from './settings/TerminalSettings'
 import { VoiceSettings } from './settings/VoiceSettings'
@@ -34,6 +35,11 @@ interface SettingsPageProps {
   onSetAllProvidersEnabled(): Promise<void>
   onSetAllProvidersDisabled(): Promise<void>
   onSetModelEnabled(modelKey: string, enabled: boolean): Promise<void>
+  /** Project management renders inside Settings > Workspace. */
+  projects: ProjectRecord[]
+  onAddProject(): void
+  onOpenProject(project: ProjectRecord): void
+  onRemoveProject(project: ProjectRecord): void
   initialSection?: SettingsSection
   /** Re-applies initialSection for repeated navigation requests to the same section. */
   initialSectionRequestId?: number
@@ -42,7 +48,7 @@ interface SettingsPageProps {
   onSectionChange?(section: SettingsSection): void
 }
 
-export function SettingsPage({ settings, meta, providerCatalog, voice, pets, onClose, onUpdate, onResetBrowser, onOpenDocs, onRefreshProviders, onRefreshHarnesses, onSetProviderEnabled, onSetAllProvidersEnabled, onSetAllProvidersDisabled, onSetModelEnabled, initialSection = 'general', initialSectionRequestId = 0, section: controlledSection, onSectionChange }: SettingsPageProps) {
+export function SettingsPage({ settings, meta, providerCatalog, voice, pets, onClose, onUpdate, onResetBrowser, onOpenDocs, onRefreshProviders, onRefreshHarnesses, onSetProviderEnabled, onSetAllProvidersEnabled, onSetAllProvidersDisabled, onSetModelEnabled, projects, onAddProject, onOpenProject, onRemoveProject, initialSection = 'general', initialSectionRequestId = 0, section: controlledSection, onSectionChange }: SettingsPageProps) {
   const [internalSection, setInternalSection] = useState<SettingsSection>(initialSection)
   const [confirmReset, setConfirmReset] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -75,6 +81,7 @@ export function SettingsPage({ settings, meta, providerCatalog, voice, pets, onC
     switch (section) {
       case 'general': return <GeneralSettings settings={settings} onUpdate={onUpdate} platform={platform} />
       case 'appearance': return <AppearanceSettings settings={settings} onUpdate={onUpdate} />
+      case 'projects': return <ProjectsPage projects={projects} onAdd={onAddProject} onOpen={onOpenProject} onRemove={onRemoveProject} showHeaderAction={false} />
       case 'agent': return <AgentSettings settings={settings} meta={meta} onUpdate={onUpdate} onRefreshHarnesses={onRefreshHarnesses} />
       case 'providers': return <ProvidersSettings harness={settings.activeHarness} catalog={providerCatalog} onRefresh={onRefreshProviders} onSetEnabled={onSetProviderEnabled} onSetAllEnabled={onSetAllProvidersEnabled} onSetAllDisabled={onSetAllProvidersDisabled} onSetModelEnabled={onSetModelEnabled} onOpenDocs={onOpenDocs} />
       case 'voice': return <VoiceSettings settings={settings} onUpdate={onUpdate} voice={voice} platform={platform} />

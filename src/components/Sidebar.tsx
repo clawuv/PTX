@@ -1,7 +1,6 @@
 import {
   Archive,
   ArrowLeft,
-  Bell,
   CalendarClock,
   Check,
   CheckCircle2,
@@ -201,9 +200,8 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
   const [renameValue, setRenameValue] = useState('')
   const [removeTarget, setRemoveTarget] = useState<ProjectRecord | null>(null)
   const [confirmUpdate, setConfirmUpdate] = useState(false)
-  const { unassignedSessions, sessionsByProject } = useMemo(() => indexSidebarSessions(projects, sessions), [projects, sessions])
+  const { sessionsByProject } = useMemo(() => indexSidebarSessions(projects, sessions), [projects, sessions])
   const [collapsedProjects, setCollapsedProjects] = useState<ReadonlySet<string>>(() => new Set())
-  const [recentCollapsed, setRecentCollapsed] = useState(false)
   const [projectsSectionCollapsed, setProjectsSectionCollapsed] = useState(false)
   const needsAttention = (session: SessionRecord) => {
     const signature = sessionAttentionSignature(session)
@@ -294,7 +292,6 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
         </div>
         <div className="sidebar__title-actions no-drag">
           <IconButton label={t('sidebar.search')} onClick={() => { setSearchOpen((open) => !open); window.setTimeout(() => document.getElementById('session-search')?.focus(), 0) }} className={searchOpen ? 'is-active' : ''}><Search size={16} /></IconButton>
-          <IconButton label={t('nav.activity')} className={activeView === 'activity' ? 'is-active' : ''} onClick={() => onNavigate('activity')}><Bell size={16} /></IconButton>
         </div>
         </div>
       )}
@@ -328,7 +325,6 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
 
           <nav className="sidebar__primary" aria-label={t('sidebar.primaryNav')}>
             <button type="button" title={t('sidebar.newSessionTitle', { shortcut: newSessionShortcut })} onClick={() => onNewSession()}><NotebookPen size={15} /><span>{t('sidebar.newSession')}</span><kbd>{newSessionShortcut}</kbd></button>
-            <button type="button" title={t('nav.projects')} className={activeView === 'projects' ? 'is-active' : ''} onClick={() => onNavigate('projects')}><Folder size={15} /><span>{t('nav.projects')}</span></button>
             <button type="button" title={t('nav.scheduled')} className={activeView === 'scheduled' ? 'is-active' : ''} onClick={() => onNavigate('scheduled')}><CalendarClock size={15} /><span>{t('nav.scheduled')}</span>{schedulesAttention > 0 ? <i className="nav-attention-badge" aria-label={t('scheduled.attentionBadge', { count: schedulesAttention })}>{schedulesAttention > 9 ? '9+' : schedulesAttention}</i> : null}</button>
             <button type="button" title={t('nav.capabilities')} className={activeView === 'plugins' ? 'is-active' : ''} onClick={() => onNavigate('plugins')}><PackageOpen size={15} /><span>{t('nav.capabilities')}</span></button>
           </nav>
@@ -373,16 +369,6 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
 
             </>
             )}
-
-            {unassignedSessions.length ? (
-            <div className="sidebar__section-heading sidebar__section-heading--recent">
-              <button type="button" className="section-heading__label" aria-expanded={!recentCollapsed} onClick={() => setRecentCollapsed((value) => !value)}>
-                <span>{t('sidebar.recent')}</span>
-                <ChevronDown className={`section-heading__chevron ${recentCollapsed ? 'is-collapsed' : ''}`} aria-hidden="true" />
-              </button>
-            </div>
-            ) : null}
-            {recentCollapsed ? null : boundedSidebarSessions(unassignedSessions.filter((session) => !normalized || `${session.title} ${session.preview ?? ''}`.toLowerCase().includes(normalized))).map((session) => renderSessionRow(session, activeSessionId === session.id && activeView === 'session'))}
           </div>
         </>
       )}

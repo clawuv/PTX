@@ -44,3 +44,25 @@ For this explicitly limited prerelease, after the separate checks above, the loc
 The manually dispatched `testing-platforms.yml` workflow builds Windows x64 on Windows Server 2022 and Linux x64 on Ubuntu 22.04. It checks out the immutable v1.0.0 application commit `744a69bef6b019938db94a953efac98c383d22b0`, independently of the workflow revision. It runs the toolchain check, production audit, type checks, native QA packaging, structural verification, and packaged application startup smoke. It does not claim that the known failing full CI suite passes.
 
 Download successful workflow artifacts, verify each update manifest's file sizes and SHA-512 hashes, and upload the installers, update manifests, blockmaps, and platform-specific SHA-256 lists to the existing prerelease. Preserve the original macOS artifacts and tag. Windows installers are unsigned; unsigned AppX/MSIX files are not a normal end-user installation path, so publish the EXE/ZIP instead. Linux provides AppImage, DEB, RPM, and pacman packages. The release notes must distinguish startup verification from a complete installation or future-version upgrade test.
+
+## Publish the next testing version with GitHub Actions
+
+Use **Actions → Publish testing release → Run workflow**. Enter an existing tag such as `v1.0.1`. The tag must point to a commit on `main`, and match the versions in `package.json` and both lockfile version fields. Use a new version; the workflow refuses to replace a published release. The application commit must include the reusable workflow's release verifier and tests.
+
+Example preparation after committing the desired fixes:
+
+```sh
+npm version 1.0.1 --no-git-tag-version
+git add package.json package-lock.json
+git commit -m "release: prepare v1.0.1 testing build"
+git push origin main
+git tag -a v1.0.1 -m "Ptx v1.0.1 testing release"
+git push origin v1.0.1
+gh workflow run testing-platforms.yml --ref main -f tag=v1.0.1
+```
+
+The workflow validates the tag, pins its commit, checks types/lint/dependencies and update/release tests, builds macOS arm64, Windows x64 and Linux x64 natively, then checks packaged startup. Only after every platform succeeds does it verify the update feeds, generate `SHA256SUMS.txt`, upload a draft, and publish it as a prerelease. Failed uploads leave a draft that can be retried against the same commit. No signing secrets are needed; repository Actions must be permitted to write release contents.
+
+This is an explicitly unsigned QA path, not the full production acceptance suite. The signed release workflow remains available by manual dispatch; automatic signed releases on tag push require repository variable `RELEASE_SIGNED_ENABLED=true` and all signing/notarization credentials. Leave it unset for unsigned testing releases.
+
+The button to the right of Settings checks the installed build's GitHub update source and shows the result. A discovered update requires confirmation before download/install; unsigned macOS builds open the download page for manual installation. Development builds show the unavailable tooltip. Updating from 1.0.0 requires a higher version such as 1.0.1, rather than replacing the 1.0.0 assets.

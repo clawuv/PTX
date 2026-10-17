@@ -125,3 +125,22 @@ describe('sidebar session selection across projects', () => {
     expect(titles).toEqual(expect.arrayContaining([sessionA.title, sessionB.title]))
   })
 })
+
+ it('keeps missing harnesses visible and opens runtime settings without switching', async () => {
+  const navigate = vi.fn()
+  const section = vi.fn()
+  const select = vi.fn()
+  await act(async () => root.render(<Sidebar projects={[]} sessions={[]} activeView="session" activeHarness="omp"
+    harnesses={{ omp: { path: '/bin/omp', version: '1' }, pi: { path: null, version: null } }}
+    onSelectHarness={select} onSelectSettingsSection={section} onNavigate={navigate}
+    onSelectProject={noop} onSelectSession={noop} onNewSession={noop} onAddProject={noop} onRemoveProject={noop}
+    onOpenPalette={noop} onRenameSession={async () => undefined} onArchiveSession={async () => undefined} />))
+  const buttons = container.querySelectorAll('.brand-switcher__segment')
+  expect(buttons).toHaveLength(2)
+  const pi = Array.from(buttons).find(button => button.textContent === 'Pi')
+  expect(pi).toBeDefined()
+  await press(pi!)
+  expect(navigate).toHaveBeenCalledWith('settings')
+  expect(section).toHaveBeenCalledWith('agent')
+  expect(select).not.toHaveBeenCalled()
+})

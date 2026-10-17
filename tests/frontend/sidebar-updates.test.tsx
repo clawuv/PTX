@@ -62,7 +62,7 @@ describe('sidebar update control', () => {
     expect(container.querySelector('.sidebar__help')).toBeNull()
     await press(update!)
     expect(onUpdateAction).toHaveBeenCalledOnce()
-    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull()
   })
 
   it.each(['checking', 'unsupported'] as const)('keeps the update button visible but disabled when %s', async (phase) => {
@@ -98,7 +98,7 @@ describe('sidebar update control', () => {
 
     // Retrying re-checks straight away instead of asking to download and restart.
     await press(update!)
-    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull()
     expect(onUpdateAction).toHaveBeenCalledOnce()
   })
 
@@ -139,4 +139,20 @@ describe('unsigned test update control', () => {
     await press(yes!)
     expect(action).toHaveBeenCalledOnce()
   })
+})
+
+ it('shows the result of a manual check and does not install without confirmation', async () => {
+  const action = vi.fn()
+  await renderSidebar({ phase: 'idle' }, action)
+  await press(container.querySelector('.sidebar-update')!)
+  expect(action).toHaveBeenCalledOnce()
+  await renderSidebar({ phase: 'checking' }, action)
+  expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('Checking for updates')
+  await renderSidebar({ phase: 'not-available' }, action)
+  expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('Ptx is up to date')
+  await renderSidebar({ phase: 'error', message: 'Network unavailable' }, action)
+  expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('Network unavailable')
+  await renderSidebar({ phase: 'available', version: '1.0.1' }, action)
+  expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('1.0.1')
+  expect(action).toHaveBeenCalledOnce()
 })

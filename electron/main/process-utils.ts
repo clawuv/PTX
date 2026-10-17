@@ -387,6 +387,8 @@ function sharedHarnessCandidateDirs(
   return compact([
     ...environmentDirs,
     posix.join(home, '.local', 'bin'),
+    posix.join(home, '.npm-global', 'bin'),
+    posix.join(home, '.npm', 'bin'),
     posix.join(home, '.bun', 'bin'),
     posix.join(home, '.volta', 'bin'),
     posix.join(dataHome, 'pnpm'),

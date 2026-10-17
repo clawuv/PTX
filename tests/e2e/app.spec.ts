@@ -1105,6 +1105,30 @@ test.describe('Pi Work desktop smoke', () => {
     await expect.poll(() => existsSync(join(fixtureRoot, 'omp-runtime-args.json'))).toBe(true)
   })
 
+  test('shows update check results from main-process events beside Settings', async () => {
+    const update = page.locator('.sidebar-update')
+    const settings = page.locator('.sidebar__settings-entry')
+    const updateBounds = await update.boundingBox()
+    const settingsBounds = await settings.boundingBox()
+    expect(updateBounds!.x).toBeGreaterThanOrEqual(settingsBounds!.x + settingsBounds!.width)
+    await app!.evaluate(({ BrowserWindow }) => {
+      BrowserWindow.getAllWindows()[0]?.webContents.send('updates:changed', { phase: 'idle' })
+    })
+    await update.click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    await app!.evaluate(({ BrowserWindow }) => {
+      BrowserWindow.getAllWindows()[0]?.webContents.send('updates:changed', { phase: 'not-available' })
+    })
+    await expect(dialog).toContainText('Ptx is up to date')
+    await app!.evaluate(({ BrowserWindow }) => {
+      BrowserWindow.getAllWindows()[0]?.webContents.send('updates:changed', { phase: 'available', version: '1.0.1', manualInstall: true })
+    })
+    await expect(dialog).toContainText('1.0.1')
+    await dialog.getByRole('button', { name: 'Open update downloads' }).click()
+    await expect(page.getByRole('dialog')).toContainText('requires manual installation')
+  })
+
   test('opens Harness settings from the no-harness recovery prompt', async () => {
     await expect(page.getByRole('heading', { name: 'No Pi family harness detected' })).toBeVisible()
     await expect(page.getByText('Install one to get started.', { exact: false })).toBeVisible()
@@ -1112,6 +1136,11 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(page.getByRole('heading', { name: 'Harness', exact: true, level: 1 })).toBeVisible()
     const refresh = page.getByRole('button', { name: 'Refresh harnesses' })
     await expect(refresh).toBeVisible()
+    await expect(page.getByLabel('Pi executable override')).toBeVisible()
+    await page.getByRole('button', { name: 'Back to session' }).click()
+    await expect(page.locator('.brand-switcher__segment')).toHaveCount(2)
+    await page.locator('.brand-switcher').getByRole('button', { name: 'Pi Work — switch harness' }).click()
+    await expect(page.getByRole('heading', { name: 'Harness', exact: true, level: 1 })).toBeVisible()
     await expect(page.getByLabel('Pi executable override')).toBeVisible()
     await refresh.click()
     await expect(refresh).toBeEnabled()

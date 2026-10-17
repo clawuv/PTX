@@ -39,6 +39,7 @@ env:
 
 jobs:
   validate:
+    if: github.event_name == 'workflow_dispatch' || vars.RELEASE_SIGNED_ENABLED == 'true'
     runs-on: ubuntu-22.04
     # Every downstream job checks out this commit SHA instead of the tag, so a
     # tag moved mid-run cannot make two jobs build different commits.

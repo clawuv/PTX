@@ -1,27 +1,74 @@
-name: Build v1.0.0 testing platforms
+name: Publish testing release
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag matching package.json (for example v1.0.1)
+        required: true
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: testing-release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ inputs.tag }}
+
 jobs:
+  validate:
+    runs-on: ubuntu-22.04
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Resolve an immutable release tag on main
+        id: source
+        shell: bash
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || exit 1
+          sha=$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")
+          git merge-base --is-ancestor "$sha" origin/main
+          git checkout --detach "$sha"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm run toolchain:bootstrap
+      - run: npm ci
+      - run: node scripts/release/validate-release-tag.mjs --tag "$RELEASE_TAG"
+      - run: npm run audit:production
+      - run: npm run typecheck
+      - run: npm run check
+      - name: Test update and release contracts
+        run: npx vitest run tests/backend/updates.test.ts tests/frontend/sidebar-updates.test.tsx tests/release-scripts.test.ts tests/packaged-smoke.test.ts tests/testing-release-assets.test.ts
+
   package:
+    needs: validate
     strategy:
       fail-fast: false
       matrix:
         include:
+          - runner: macos-14
+            target: mac
+            arch: arm64
           - runner: ubuntu-22.04
             target: linux
+            arch: x64
           - runner: windows-2022
             target: win
+            arch: x64
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          # Match the already published macOS build; never move the release tag.
-          ref: 744a69bef6b019938db94a953efac98c383d22b0
+          ref: ${{ needs.validate.outputs.sha }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version-file: .nvmrc
@@ -32,24 +79,73 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y rpm libarchive-tools xvfb libgtk-3-0 libnss3 libasound2 libgbm1
       - run: npm ci
       - run: npm run release:preflight:toolchain
-      - run: npm run audit:production
-      - run: npm run typecheck
       - name: Build and verify unsigned testing installers
-        run: node scripts/release/package.mjs --qa --platform ${{ matrix.target }} --arch x64 --skip-verify
+        run: node scripts/release/package.mjs --qa --platform ${{ matrix.target }} --arch ${{ matrix.arch }} --skip-verify
       - name: Launch the actual packaged application
-        run: node scripts/release/smoke-packaged-app.mjs --platform ${{ matrix.target }} --arch x64
+        run: node scripts/release/smoke-packaged-app.mjs --platform ${{ matrix.target }} --arch ${{ matrix.arch }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ptx-v1.0.0-${{ matrix.target }}-x64
+          name: testing-${{ matrix.target }}-${{ matrix.arch }}
           if-no-files-found: error
           path: |
-            release/${{ matrix.target }}/x64/*.AppImage
-            release/${{ matrix.target }}/x64/*.deb
-            release/${{ matrix.target }}/x64/*.rpm
-            release/${{ matrix.target }}/x64/*.pacman
-            release/${{ matrix.target }}/x64/*.exe
-            release/${{ matrix.target }}/x64/*.zip
-            release/${{ matrix.target }}/x64/*.appx
-            release/${{ matrix.target }}/x64/*.msix
-            release/${{ matrix.target }}/x64/*.yml
-            release/${{ matrix.target }}/x64/*.blockmap
+            release/${{ matrix.target }}/${{ matrix.arch }}/*.dmg
+            release/${{ matrix.target }}/${{ matrix.arch }}/*.AppImage
+            release/${{ matrix.target }}/${{ matrix.arch }}/*.deb
+            release/${{ matrix.target }}/${{ matrix.arch }}/*.rpm
+            release/${{ matrix.target }}/${{ matrix.arch }}/*.pacman
+            release/${{ matrix.target }}/${{ matrix.arch }}/*.exe
+            release/${{ matrix.target }}/${{ matrix.arch }}/*.zip
+            release/${{ matrix.target }}/${{ matrix.arch }}/latest*.yml
+            release/${{ matrix.target }}/${{ matrix.arch }}/*.blockmap
+
+  publish:
+    needs: [validate, package]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+      - run: npm run toolchain:bootstrap
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          pattern: testing-*
+          path: release-assets
+          merge-multiple: true
+      - name: Verify all update feeds and generate checksums
+        run: node scripts/release/verify-testing-assets.mjs release-assets
+      - name: Publish an immutable prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ needs.validate.outputs.sha }}
+        shell: bash
+        run: |
+          git fetch --depth=1 origin "refs/tags/$RELEASE_TAG"
+          [[ "$(git rev-parse 'FETCH_HEAD^{commit}')" == "$RELEASE_SHA" ]] || { echo 'Release tag changed during build.'; exit 1; }
+          cat > /tmp/release-notes.md <<EOF_NOTES
+          macOS Apple Silicon、Windows x64、Linux x64 测试版。
+
+          源码：$RELEASE_SHA
+          构建及验证：https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+
+          已通过类型检查、代码规范、依赖审计、更新/发布专项测试、原生打包和应用启动检查。完整产品测试不属于此 QA 工作流，不代表正式发布门槛通过。
+
+          macOS 未签名、未公证，更新需手动安装；Windows 未签名。后续版本的升级安装不由启动检查证明。Linux 原生包请使用对应包管理器更新。
+
+          SHA256SUMS.txt 提供附件校验值。请按系统选择 DMG、EXE 或 Linux 安装包。
+          EOF_NOTES
+          gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --jq '.[] | [.tag_name, .draft, .target_commitish] | @tsv' > /tmp/releases.tsv
+          existing=$(awk -F '\t' -v tag="$RELEASE_TAG" '$1 == tag { print $0 }' /tmp/releases.tsv)
+          if [[ -n "$existing" ]]; then
+            [[ "$(printf '%s' "$existing" | cut -f2)" == true ]] || { echo 'Published releases are immutable; use a new version.'; exit 1; }
+            [[ "$(printf '%s' "$existing" | cut -f3)" == "$RELEASE_SHA" ]] || { echo 'Draft source does not match.'; exit 1; }
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --target "$RELEASE_SHA" --draft --prerelease --latest=false --title "Ptx $RELEASE_TAG 测试版" --notes-file /tmp/release-notes.md
+          fi
+          gh release upload "$RELEASE_TAG" release-assets/* --clobber
+          gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false --notes-file /tmp/release-notes.md

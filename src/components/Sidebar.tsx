@@ -14,6 +14,7 @@ import {
   PackageOpen,
   Plus,
   Search,
+  RefreshCw,
   Settings,
   SquarePen,
   Trash2,
@@ -203,6 +204,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
   const [renameValue, setRenameValue] = useState('')
   const [removeTarget, setRemoveTarget] = useState<ProjectRecord | null>(null)
   const [confirmUpdate, setConfirmUpdate] = useState(false)
+  const [showUpdateStatus, setShowUpdateStatus] = useState(false)
   const { sessionsByProject } = useMemo(() => indexSidebarSessions(projects, sessions), [projects, sessions])
   const [collapsedProjects, setCollapsedProjects] = useState<ReadonlySet<string>>(() => new Set())
   const [projectsSectionCollapsed, setProjectsSectionCollapsed] = useState(false)
@@ -255,7 +257,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
       {settingsMode ? null : (
         <div className="sidebar__titlebar">
           <div className="brand-switcher no-drag" role="group" aria-label={t('sidebar.harnessMenu')}>
-            {HARNESS_SELECTOR_ORDER.filter((harness) => harness === activeHarness || Boolean(harnesses?.[harness]?.path)).map((harness) => (
+            {HARNESS_SELECTOR_ORDER.map((harness) => (
               <button
                 type="button"
                 key={harness}
@@ -263,7 +265,12 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
                 aria-pressed={harness === activeHarness}
                 aria-label={t('sidebar.switchHarness', { name: HARNESS_PRODUCT_NAMES[harness] })}
                 title={HARNESS_PRODUCT_NAMES[harness]}
-                onClick={() => { if (harness !== activeHarness) onSelectHarness?.(harness) }}
+                onClick={() => {
+                  if (harnesses && !harnesses[harness].path) {
+                    onNavigate('settings')
+                    onSelectSettingsSection?.('agent')
+                  } else if (harness !== activeHarness) onSelectHarness?.(harness)
+                }}
               >
                 <HarnessMark harness={harness} size={15} />
                 <span>{HARNESS_SHORT_NAMES[harness]}</span>
@@ -364,10 +371,10 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
               title={updateCopy.title}
               aria-label={updateCopy.title}
               disabled={updateBusy || updateState.phase === 'unsupported' || !onUpdateAction}
-              onClick={() => { if (updateState.phase === 'available' || updateState.phase === 'downloaded') setConfirmUpdate(true); else void onUpdateAction?.() }}
+              onClick={() => { if (updateState.phase === 'available' || updateState.phase === 'downloaded') setConfirmUpdate(true); else { setShowUpdateStatus(true); void onUpdateAction?.() } }}
               style={{ '--update-progress': `${updateState.percent ?? 0}%` } as CSSProperties}
             >
-              <span className="sidebar-update__icon"><Download size={12} /></span>
+              <span className="sidebar-update__icon">{updateState.phase === 'available' || updateState.phase === 'downloaded' || updateState.phase === 'downloading' ? <Download size={12} /> : <RefreshCw size={12} />}</span>
               <span className="sr-only">{updateCopy.label}</span>
             </button>
         <button type="button" title={t('nav.settings')} className={`sidebar__settings-entry${settingsMode ? ' is-active' : ''}`} onClick={() => onNavigate(settingsMode ? 'session' : 'settings')}><Settings size={15} /><span>{activeProjectName}</span><kbd>{settingsShortcut}</kbd></button>
@@ -375,6 +382,13 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
       )}
       {renameTarget ? <Modal title={t('sidebar.renameTitle')} onClose={() => setRenameTarget(null)} footer={<><button type="button" className="button" onClick={() => setRenameTarget(null)}>{t('sidebar.cancel')}</button><button type="button" className="button button--primary" disabled={!renameValue.trim()} onClick={() => { const target = renameTarget; const title = renameValue.trim(); setRenameTarget(null); void onRenameSession(target, title) }}>{t('sidebar.rename')}</button></>}><label className="field"><span>{t('sidebar.sessionName')}</span><input autoFocus value={renameValue} maxLength={200} onChange={(event) => setRenameValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && renameValue.trim()) { event.preventDefault(); const target = renameTarget; const title = renameValue.trim(); setRenameTarget(null); void onRenameSession(target, title) } }}/></label></Modal> : null}
       {removeTarget ? <Modal title={t('sidebar.removeProject')} onClose={() => setRemoveTarget(null)} footer={<><button type="button" className="button" onClick={() => setRemoveTarget(null)}>{t('sidebar.cancel')}</button><button type="button" className="button button--danger" onClick={() => { const target = removeTarget; setRemoveTarget(null); onRemoveProject(target) }}>{t('sidebar.remove')}</button></>}><p>{t('sidebar.removeConfirm', { name: removeTarget.name, harness: HARNESS_PRODUCT_NAMES[activeHarness] })}</p></Modal> : null}
+      {showUpdateStatus ? <Modal title={t('sidebar.update.releaseTitle')} onClose={() => setShowUpdateStatus(false)} footer={
+        updateState.phase === 'available' || updateState.phase === 'downloaded'
+          ? <button type="button" className="button button--primary" onClick={() => { setShowUpdateStatus(false); setConfirmUpdate(true) }}>{updateCopy.label}</button>
+          : updateState.phase === 'error'
+            ? <button type="button" className="button" onClick={() => { void onUpdateAction?.() }}>{t('sidebar.update.tryAgain')}</button>
+            : undefined
+      }><p role="status" aria-live="polite">{updateAnnouncement(updateState, t) || updateCopy.label}</p></Modal> : null}
       {confirmUpdate ? <Modal title={updateConfirm.title} onClose={() => setConfirmUpdate(false)} footer={<><button type="button" className="button" onClick={() => setConfirmUpdate(false)}>{t('sidebar.update.confirmNo')}</button><button type="button" className="button button--primary" onClick={() => { setConfirmUpdate(false); void onUpdateAction?.() }}>{t('sidebar.update.confirmYes')}</button></>}><p>{updateConfirm.body}</p></Modal> : null}
     </aside>
   )

@@ -23,6 +23,21 @@ const dirs: string[] = []
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }) })
 const temp = () => { const dir = mkdtempSync(join(tmpdir(), 'prime-work-process-')); dirs.push(dir); return dir }
 describe('runProcess resource bounds', () => {
+  it('discovers and runs npm-global Pi without a terminal PATH', async () => {
+    const home = temp()
+    const bin = join(home, '.npm-global', 'bin')
+    mkdirSync(bin, { recursive: true })
+    const executable = join(bin, 'pi')
+    symlinkSync(process.execPath, join(bin, 'node'))
+    writeFileSync(executable, '#!/usr/bin/env node\nprocess.stdout.write("0.84.1\\n")\n')
+    chmodSync(executable, 0o755)
+    const env = { HOME: home, PATH: '/usr/bin:/bin' }
+    expect(harnessExecutableCandidates(HARNESSES.pi, env, 'darwin', undefined, home)).toContain(executable)
+    const result = await runProcess(executable, ['--version'], { env })
+    expect(result.code).toBe(0)
+    expect(result.stdout).toBe('0.84.1\n')
+  })
+
   it('runs a pnpm CLI under a Finder-style minimal PATH', async () => {
     const home = temp()
     const shimDirectory = join(home, 'Library', 'pnpm', 'bin')

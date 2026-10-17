@@ -145,7 +145,7 @@ async function copySessionUuid(id: string): Promise<void> {
   if (!copied) throw new Error('Copy is unavailable')
 }
 
-function SidebarView({ projects, sessions, activeProjectId, activeSessionId, activeView, activeHarness = 'omp', harnesses, clearedAttention = {}, onSelectHarness, onSelectSession, onNavigate, onNewSession, onAddProject, onRemoveProject, onOpenPalette, onRenameSession, onArchiveSession, settingsMode = false, searchOpen = false, activeSettingsSection = 'general', onSelectSettingsSection, platform = 'darwin', schedulesAttention = 0 }: SidebarProps) {
+function SidebarView({ projects, sessions, activeProjectId, activeSessionId, activeView, activeHarness = 'omp', harnesses, clearedAttention = {}, onSelectHarness, onSelectSession, onNavigate, onNewSession, onAddProject, onRemoveProject, onRenameSession, onArchiveSession, settingsMode = false, searchOpen = false, activeSettingsSection = 'general', onSelectSettingsSection, platform = 'darwin', schedulesAttention = 0 }: SidebarProps) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   useEffect(() => {
@@ -269,7 +269,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
                 <ChevronDown className={`section-heading__chevron ${projectsSectionCollapsed ? 'is-collapsed' : ''}`} aria-hidden="true" />
               </button>
               <span className="section-heading__actions">
-                <IconButton size="small" label={t('sidebar.moreActions')} onClick={onOpenPalette}><MoreHorizontal size={13} /></IconButton>
+                <IconButton size="small" className="section-heading__more" label={t('sidebar.projectSettings')} onClick={() => { onNavigate('settings'); onSelectSettingsSection?.('projects') }}><MoreHorizontal size={13} /></IconButton>
                 <IconButton size="small" label={t('sidebar.addProject')} onClick={onAddProject}><Plus size={13} /></IconButton>
               </span>
             </div>

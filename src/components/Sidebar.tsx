@@ -9,8 +9,8 @@ import {
   Folder,
   LoaderCircle,
   MessageCircleQuestion,
+  MessageSquarePlus,
   MoreHorizontal,
-  NotebookPen,
   PackageOpen,
   Plus,
   Search,
@@ -256,7 +256,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
           ) : null}
 
           <nav className="sidebar__primary" aria-label={t('sidebar.primaryNav')}>
-            <button type="button" className={activeView === 'session' && activeSessionId === undefined ? 'is-active' : ''} title={t('sidebar.newSessionTitle', { shortcut: newSessionShortcut })} onClick={() => onNewSession()}><NotebookPen size={15} /><span>{t('sidebar.newSession')}</span><kbd>{newSessionShortcut}</kbd></button>
+            <button type="button" className={activeView === 'session' && activeSessionId === undefined ? 'is-active' : ''} title={t('sidebar.newSessionTitle', { shortcut: newSessionShortcut })} onClick={() => onNewSession()}><MessageSquarePlus size={15} /><span>{t('sidebar.newSession')}</span><kbd>{newSessionShortcut}</kbd></button>
             <button type="button" title={t('nav.tasks')} className={activeView === 'tasks' ? 'is-active' : ''} onClick={() => onNavigate('tasks')}><CheckCircle2 size={15} /><span>{t('nav.tasks')}</span></button>
             <button type="button" title={t('nav.scheduled')} className={activeView === 'scheduled' ? 'is-active' : ''} onClick={() => onNavigate('scheduled')}><CalendarClock size={15} /><span>{t('nav.scheduled')}</span>{schedulesAttention > 0 ? <i className="nav-attention-badge" aria-label={t('scheduled.attentionBadge', { count: schedulesAttention })}>{schedulesAttention > 9 ? '9+' : schedulesAttention}</i> : null}</button>
             <button type="button" title={t('nav.capabilities')} className={activeView === 'plugins' ? 'is-active' : ''} onClick={() => onNavigate('plugins')}><PackageOpen size={15} /><span>{t('nav.capabilities')}</span></button>
@@ -292,7 +292,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
                       <Folder size={15} />
                       <span>{project.name}</span>
                     </button>
-                    <IconButton size="small" className="project-row__new-session row-action" label={t('sidebar.newSessionIn', { project: project.name })} onClick={() => { setProjectMenu(null); onNewSession(project) }}><NotebookPen size={13} /></IconButton>
+                    <IconButton size="small" className="project-row__new-session row-action" label={t('sidebar.newSessionIn', { project: project.name })} onClick={() => { setProjectMenu(null); onNewSession(project) }}><MessageSquarePlus size={13} /></IconButton>
                     {projectMenu === project.id ? <div className="project-row__menu" role="menu" aria-label={t('sidebar.projectOptions', { name: project.name })}><button type="button" role="menuitem" onClick={() => { setProjectMenu(null); setRemoveTarget(project) }}><Trash2 size={12} /> {t('sidebar.removeProject')}</button></div> : null}
                   </div>
                   {collapsed ? null : (

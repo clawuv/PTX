@@ -1,4 +1,4 @@
-import { Bell, CalendarClock, Folder, LayoutPanelLeft, NotebookPen, PackageOpen, Search, Settings, Terminal, } from 'lucide-react'
+import { Bell, CalendarClock, Folder, LayoutPanelLeft, MessageSquarePlus, PackageOpen, Search, Settings, Terminal, } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { WorkspaceView } from '@/types/api'
@@ -15,7 +15,7 @@ export function CommandPalette({ open, onClose, onNavigate, onNewSession, onTogg
   const inputRef=useRef<HTMLInputElement>(null)
   const paletteRef=useFocusTrap<HTMLDivElement>(open,onClose)
   const commands:Command[]=[
-    {id:'new',label:t('palette.newSession'),detail:t('palette.newSessionDetail'),shortcut:shortcutLabel(platform, ['Primary', 'N']),icon:<NotebookPen size={14}/>,run:onNewSession},
+    {id:'new',label:t('palette.newSession'),detail:t('palette.newSessionDetail'),shortcut:shortcutLabel(platform, ['Primary', 'N']),icon:<MessageSquarePlus size={14}/>,run:onNewSession},
     {id:'projects',label:t('palette.openProjects'),detail:t('palette.projectsDetail'),icon:<Folder size={14}/>,run:()=>onNavigate('projects')},
     {id:'activity',label:t('palette.openActivity'),detail:t('palette.activityDetail'),icon:<Bell size={14}/>,run:()=>onNavigate('activity')},
     {id:'scheduled',label:t('palette.openScheduled'),detail:t('palette.scheduledDetail'),icon:<CalendarClock size={14}/>,run:()=>onNavigate('scheduled')},

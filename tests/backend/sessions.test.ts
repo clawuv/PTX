@@ -899,3 +899,40 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
     expect((await service.list())[0]?.archived).toBe(false)
   })
 })
+
+describe('runtime-owned pending sessions', () => {
+  it('lists and opens an empty session, then replaces it with its real transcript without duplication', async () => {
+    const { root, project, service } = setup()
+    const file = join(realpathSync(root), 'pending.jsonl')
+    const runtime = { runtimeId: 'mobile-runtime', isStreaming: false }
+    service.bindRuntimeHooks({ get: (path) => path === file ? runtime : undefined, stop: async () => {}, rename: async () => true })
+    const changed = vi.fn()
+    const unsubscribe = service.onDidChange(changed)
+    await service.registerPendingSession({ ...metadata(file, project, 'mobile'), harness: service.harness, title: '飞书会话' }, runtime.runtimeId)
+    await waitUntil(() => changed.mock.calls.length > 0)
+    unsubscribe()
+    expect(existsSync(file)).toBe(false)
+    expect(await service.list()).toMatchObject([{ id: 'mobile', title: '飞书会话' }])
+    expect(await service.read(file)).toEqual([])
+    await expect(service.requireSessionPath(file)).rejects.toThrow()
+    await expect(service.read(join(root, 'unregistered.jsonl'))).rejects.toThrow()
+    writeSession(file, project, 'mobile')
+    expect(await service.list(undefined, true, true)).toHaveLength(1)
+    expect(await service.read(file)).toMatchObject([{ role: 'user' }])
+    expect(service.hasPendingSession(file)).toBe(false)
+  })
+
+  it('removes unsaved sessions on runtime exit and refuses paths outside its root', async () => {
+    const { root, project, service } = setup()
+    const file = join(realpathSync(root), 'pending.jsonl')
+    const runtime = { runtimeId: 'mobile-runtime', isStreaming: false }
+    service.bindRuntimeHooks({ get: () => runtime, stop: async () => {}, rename: async () => true })
+    const record = { ...metadata(file, project, 'mobile'), harness: service.harness }
+    await expect(service.registerPendingSession({ ...record, filePath: join(project, 'outside.jsonl') }, runtime.runtimeId)).rejects.toThrow('not authorized')
+    await expect(service.registerPendingSession(record, 'wrong-runtime')).rejects.toThrow('not authorized')
+    await service.registerPendingSession(record, runtime.runtimeId)
+    service.runtimeExited(runtime.runtimeId)
+    expect(await service.list()).toEqual([])
+    await expect(service.read(file)).rejects.toThrow()
+  })
+})

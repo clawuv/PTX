@@ -47,6 +47,17 @@ function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
 }
 
 const api: PtxApi = {
+  feishu: {
+    beginBinding: () => invoke('feishu:binding-begin'),
+    bindingStatus: () => invoke('feishu:binding-status'),
+    cancelBinding: () => invoke('feishu:binding-cancel'),
+    finishBinding: (target) => invoke('feishu:binding-finish', target),
+    status: () => invoke('feishu:status'),
+    save: (config, secret) => invoke('feishu:save', config, secret),
+    connect: () => invoke('feishu:connect'),
+    disconnect: () => invoke('feishu:disconnect'),
+    forget: () => invoke('feishu:forget'),
+  },
   tasks: {
     list: () => invoke('tasks:list'),
     create: (input) => invoke('tasks:create', input),

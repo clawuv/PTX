@@ -1,3 +1,4 @@
+import type { FeishuApi } from './feishu'
 import type { TasksApi } from './tasks'
 
 /**
@@ -733,6 +734,7 @@ export interface AgentBrowserPointerEvent {
 }
 
 export interface PtxApi {
+  feishu: FeishuApi
   tasks: TasksApi
   app: {
     getMeta(): Promise<AppMeta>

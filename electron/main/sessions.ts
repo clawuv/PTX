@@ -1,7 +1,7 @@
-import { watch, type Dirent, type Stats } from 'node:fs'
+import { existsSync, watch, type Dirent, type Stats } from 'node:fs'
 import { readdir, realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join, resolve, sep } from 'node:path'
+import { basename, dirname, join, resolve, sep } from 'node:path'
 import type { HarnessId, SessionChangeEvent, SessionRecord, TranscriptMessage } from '../../src/types/api'
 import { comparePaths, createAdmissionQueue, createSingleFlight, type AdmissionQueue } from './lib/async'
 import { SessionMetadataCatalog, type SessionCatalogIo, type SessionNameTimestamp } from './sessions/catalog'
@@ -10,7 +10,7 @@ import { readTranscript } from './sessions/transcript'
 import type { JsonStateStore } from './store'
 import { isPathWithin, requireBoolean, requireExistingDirectory, requireString } from './validation'
 
-interface RuntimeSessionState { isStreaming: boolean; isCompacting?: boolean }
+interface RuntimeSessionState { runtimeId?: string; isStreaming: boolean; isCompacting?: boolean }
 
 interface RuntimeSessionSnapshot extends RuntimeSessionState { sessionFile?: string }
 
@@ -69,6 +69,7 @@ export class SessionService {
   readonly harness: HarnessId
   readonly sessionRoot: string
   private readonly recursiveWatch: boolean
+  private pendingSessions = new Map<string, { record: SessionRecord; runtimeId: string }>()
   private runtimeForSession: (filePath: string) => RuntimeSessionState | undefined = () => undefined
   private listRuntimeSessions: (() => readonly RuntimeSessionSnapshot[]) | null = null
   private stopRuntimeForSession: (filePath: string) => Promise<void> = async () => undefined
@@ -133,6 +134,32 @@ export class SessionService {
     this.renameRuntimeSession = hooks.rename
   }
 
+  /** Main-owned runtime records only; never exposes a filesystem write capability. */
+  async registerPendingSession(record: SessionRecord, runtimeId: string): Promise<void> {
+    const root = await realpath(this.sessionRoot)
+    const path = join(await realpath(dirname(record.filePath)), basename(record.filePath))
+    if (record.harness !== this.harness || !this.isSessionPathAuthorized(root, path)
+      || this.runtimeForSession(path)?.runtimeId !== runtimeId) throw new Error('Pending session runtime is not authorized')
+    this.pendingSessions.set(path, { record: { ...record, filePath: path }, runtimeId })
+    this.queueSessionChange(null)
+  }
+
+  hasPendingSession(filePath: unknown): boolean {
+    if (typeof filePath !== 'string') return false
+    const path = resolve(filePath)
+    const pending = this.pendingSessions.get(path)
+    if (!pending || existsSync(path)) return false
+    return this.runtimeForSession(path)?.runtimeId === pending.runtimeId
+  }
+
+  runtimeExited(runtimeId: string): void {
+    for (const [path, pending] of this.pendingSessions) {
+      if (pending.runtimeId !== runtimeId) continue
+      this.pendingSessions.delete(path)
+      this.queueSessionChange(null)
+    }
+  }
+
   onDidChange(listener: (event: SessionChangeEvent) => void): () => void {
     this.changeListeners.add(listener)
     this.startWatcher()
@@ -170,6 +197,14 @@ export class SessionService {
       const { sessionName: _sessionName, ...record } = metadata
       records.push({ ...record, harness: this.harness, archived: isArchived })
     }
+    const persisted = new Set(records.map((record) => record.filePath))
+    for (const [path, pending] of this.pendingSessions) {
+      if (persisted.has(path) || existsSync(path) || !this.hasPendingSession(path)) {
+        this.pendingSessions.delete(path)
+        continue
+      }
+      if (!project || resolve(pending.record.projectPath) === project) records.push(pending.record)
+    }
     return records.sort((a, b) => Date.parse(b.lastUserMessageAt ?? b.createdAt) - Date.parse(a.lastUserMessageAt ?? a.createdAt) || comparePaths(a.filePath, b.filePath))
   }
 
@@ -191,6 +226,7 @@ export class SessionService {
 
   async read(filePath: unknown): Promise<TranscriptMessage[]> {
     const requested = requireString(filePath, 'filePath', { min: 1, max: 4096 })
+    if (this.hasPendingSession(requested)) return []
     const safePath = await this.requireSessionPath(requested)
     // Coalesced callers share one immutable result; the IPC boundary clones it
     // for the renderer, so a pre-IPC structuredClone would be a second copy.
@@ -201,15 +237,30 @@ export class SessionService {
   }
 
   async rename(filePath: unknown, title: unknown): Promise<boolean> {
-    const safePath = await this.requireSessionPath(filePath)
+    const safePath = this.hasPendingSession(filePath) ? resolve(String(filePath)) : await this.requireSessionPath(filePath)
     const safeTitle = requireString(title, 'title', { min: 1, max: 200, trim: true })
     if (safeTitle.startsWith('-') || /[\r\n]/.test(safeTitle)) throw new TypeError('title contains invalid characters')
-    return this.renameRuntimeSession(safePath, safeTitle)
+    const renamed = await this.renameRuntimeSession(safePath, safeTitle)
+    const pending = this.pendingSessions.get(safePath)
+    if (renamed && pending) {
+      pending.record = { ...pending.record, title: safeTitle }
+      this.queueSessionChange(null)
+    }
+    return renamed
   }
 
   async archive(filePath: unknown, archivedValue: unknown = true): Promise<boolean> {
-    const safePath = await this.requireSessionPath(filePath)
     const archived = requireBoolean(archivedValue, 'archived')
+    if (this.hasPendingSession(filePath)) {
+      if (archived) {
+        const path = resolve(String(filePath))
+        await this.stopRuntimeForSession(path)
+        this.pendingSessions.delete(path)
+        this.queueSessionChange(null)
+      }
+      return true
+    }
+    const safePath = await this.requireSessionPath(filePath)
     if (archived) await this.stopRuntimeForSession(safePath)
     await this.store.update((state) => {
       state.archivedSessions = state.archivedSessions.filter((path) => resolve(path) !== resolve(safePath))

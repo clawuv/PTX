@@ -1,3 +1,4 @@
+import { FeishuSettings } from './settings/FeishuSettings'
 import { ArrowLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { errorMessage } from '@/lib/errors'
@@ -79,6 +80,7 @@ export function SettingsPage({ settings, meta, providerCatalog, voice, pets, onC
 
   const content = (() => {
     switch (section) {
+      case 'mobile': return <FeishuSettings />
       case 'general': return <GeneralSettings settings={settings} onUpdate={onUpdate} platform={platform} />
       case 'appearance': return <AppearanceSettings settings={settings} onUpdate={onUpdate} />
       case 'projects': return <ProjectsPage projects={projects} onAdd={onAddProject} onOpen={onOpenProject} onRemove={onRemoveProject} showHeaderAction={false} />

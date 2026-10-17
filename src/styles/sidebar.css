@@ -127,3 +127,5 @@
 .sidebar__primary > button.is-active > svg, .sidebar__settings-nav button.is-active svg { color: inherit; }
 
 .nav-attention-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 10.5px; font-style: normal; font-weight: 700; line-height: 1; }
+
+.sidebar__mobile--connected { color: var(--accent); }

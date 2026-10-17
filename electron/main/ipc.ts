@@ -1,3 +1,4 @@
+import type { FeishuService } from './feishu/service'
 import type { TaskService } from './tasks/service'
 import { type IpcMainEvent, type IpcMainInvokeEvent, ipcMain, shell, type WebContents } from 'electron'
 import type { ApplicationMenuCommand, ApplicationMenuName, AppMeta, HarnessId, SessionChangeEvent, ThemeMode } from '../../src/types/api'
@@ -38,6 +39,7 @@ interface Services {
   settings: SettingsService
   updates: UpdateService
   cuaDriver: CuaDriverService
+  feishu: FeishuService
   tasks: TaskService
   schedules: AutomationService
   browser: AgentBrowserService
@@ -171,10 +173,12 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
   /**
    * Routes a session file to the harness whose validated session root contains
    * it, using each service's own canonicalizing path authorization (never
-   * substring checks). Paths outside both roots are rejected.
+   * substring checks). Main-registered live drafts can be read before disk persistence.
+   * Paths outside both roots are rejected.
    */
   const sessionsForPath = async (filePath: unknown): Promise<{ harness: HarnessId; service: SessionService }> => {
     for (const harness of ['omp', 'pi'] as const) {
+      if (harnesses[harness].sessions.hasPendingSession(filePath)) return { harness, service: harnesses[harness].sessions }
       try { await harnesses[harness].sessions.requireSessionPath(filePath) }
       catch { continue }
       return { harness, service: harnesses[harness].sessions }
@@ -462,6 +466,15 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
   handle('browser:set-preview-context', (_event, webContentsId, sessionFile) => services.browser.setPreviewContext(webContentsId, sessionFile))
   handle('browser:navigate-tab', (_event, tabId, action, url) => services.browser.navigateTab(tabId, action, url))
 
+  handle('feishu:binding-begin', () => services.feishu.binding.begin())
+  handle('feishu:binding-status', () => services.feishu.binding.status())
+  handle('feishu:binding-cancel', () => services.feishu.binding.cancel())
+  handle('feishu:binding-finish', (_event, target) => services.feishu.finishBinding(target))
+  handle('feishu:status', () => services.feishu.status())
+  handle('feishu:save', (_event, config, secret) => services.feishu.save(config, secret))
+  handle('feishu:connect', () => services.feishu.connect())
+  handle('feishu:disconnect', () => services.feishu.disconnect())
+  handle('feishu:forget', () => services.feishu.forget())
   handle('tasks:list', () => services.tasks.list())
   handle('tasks:create', (_event, input) => services.tasks.create(input))
   handle('tasks:start', (_event, id) => services.tasks.start(id))

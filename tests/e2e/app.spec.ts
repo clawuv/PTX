@@ -1,9 +1,9 @@
-import { test, expect, _electron as electron, type ElectronApplication, type Page } from '@playwright/test'
+import { spawnSync } from 'node:child_process'
 import { appendFileSync, chmodSync, copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { spawnSync } from 'node:child_process'
-import { CURRENT_DESKTOP_STATE_FILENAME, LEGACY_DESKTOP_STATE_FILENAME } from '../../electron/main/store'
+import { type ElectronApplication, _electron as electron, expect, type Page, test } from '@playwright/test'
+import { CURRENT_DESKTOP_STATE_FILENAME } from '../../electron/main/store'
 
 let app: ElectronApplication | undefined
 let page: Page
@@ -28,13 +28,20 @@ const attachDiagnostics = (target: Page) => {
 async function closeHermeticApp(target: ElectronApplication | undefined): Promise<void> {
   if (!target) return
   let child: ReturnType<ElectronApplication['process']>
-  try { child = target.process() } catch { return }
-  const closeEvent = target.waitForEvent('close', { timeout: 15_000 }).then(() => undefined, () => undefined)
-  const gracefulClose = target.close().then(() => true, () => false)
-  const closedGracefully = await Promise.race([
-    gracefulClose,
-    new Promise<false>((resolve) => setTimeout(() => resolve(false), 10_000)),
-  ])
+  try {
+    child = target.process()
+  } catch {
+    return
+  }
+  const closeEvent = target.waitForEvent('close', { timeout: 15_000 }).then(
+    () => undefined,
+    () => undefined,
+  )
+  const gracefulClose = target.close().then(
+    () => true,
+    () => false,
+  )
+  const closedGracefully = await Promise.race([gracefulClose, new Promise<false>((resolve) => setTimeout(() => resolve(false), 10_000))])
   if (closedGracefully) return
   if (child.exitCode === null) child.kill('SIGKILL')
   await closeEvent
@@ -74,7 +81,16 @@ function processIsAlive(pid: number): boolean {
   }
 }
 
-function createHermeticFixture(activeSession = false): { userData: string; home: string; project: string; executable: string; ompExecutable: string; piExecutable: string; cuaExecutable: string; sessionFile: string } {
+function createHermeticFixture(_activeSession = false): {
+  userData: string
+  home: string
+  project: string
+  executable: string
+  ompExecutable: string
+  piExecutable: string
+  cuaExecutable: string
+  sessionFile: string
+} {
   fixtureRoot = mkdtempSync(join(tmpdir(), 'prime-work-e2e-'))
   const userData = join(fixtureRoot, 'user-data')
   const home = join(fixtureRoot, 'home')
@@ -86,25 +102,30 @@ function createHermeticFixture(activeSession = false): { userData: string; home:
   mkdirSync(project, { recursive: true })
   mkdirSync(secondary, { recursive: true })
   mkdirSync(sessions, { recursive: true })
-  writeFileSync(join(home, '.pi', 'agent', 'models.json'), JSON.stringify({
-    providers: {
-      fixture: {
-        name: 'Fixture',
-        baseUrl: 'http://127.0.0.1:1/v1',
-        api: 'openai-completions',
-        apiKey: 'fixture-key',
-        models: [{
-          id: 'fixture-model',
-          name: 'Fixture Model',
-          reasoning: true,
-          thinkingLevelMap: { medium: 'medium' },
-          input: ['text', 'image'],
-          contextWindow: 100000,
-          maxTokens: 8192,
-        }],
+  writeFileSync(
+    join(home, '.pi', 'agent', 'models.json'),
+    JSON.stringify({
+      providers: {
+        fixture: {
+          name: 'Fixture',
+          baseUrl: 'http://127.0.0.1:1/v1',
+          api: 'openai-completions',
+          apiKey: 'fixture-key',
+          models: [
+            {
+              id: 'fixture-model',
+              name: 'Fixture Model',
+              reasoning: true,
+              thinkingLevelMap: { medium: 'medium' },
+              input: ['text', 'image'],
+              contextWindow: 100000,
+              maxTokens: 8192,
+            },
+          ],
+        },
       },
-    },
-  }))
+    }),
+  )
   const canonicalProject = realpathSync(project)
   const canonicalSecondary = realpathSync(secondary)
   const initializeRepository = (cwd: string, file: string) => {
@@ -127,56 +148,118 @@ function createHermeticFixture(activeSession = false): { userData: string; home:
   const ompSessions = join(home, '.omp', 'agent', 'sessions', '-omp-project')
   mkdirSync(ompSessions, { recursive: true })
   const ompTitleUnpadded = JSON.stringify({ type: 'title', v: 1, title: 'OMP hermetic fixture', updatedAt: '2026-02-01T00:00:00.000Z', pad: '' })
-  const ompTitleSlot = JSON.stringify({ type: 'title', v: 1, title: 'OMP hermetic fixture', updatedAt: '2026-02-01T00:00:00.000Z', pad: ' '.repeat(256 - 1 - Buffer.byteLength(ompTitleUnpadded, 'utf8')) })
+  const ompTitleSlot = JSON.stringify({
+    type: 'title',
+    v: 1,
+    title: 'OMP hermetic fixture',
+    updatedAt: '2026-02-01T00:00:00.000Z',
+    pad: ' '.repeat(256 - 1 - Buffer.byteLength(ompTitleUnpadded, 'utf8')),
+  })
   const ompSessionFile = join(ompSessions, '2026-02-01T00-00-00-000Z_019fdf24-aaaa-7000-8000-000000000001.jsonl')
-  writeFileSync(ompSessionFile, [
-    ompTitleSlot,
-    JSON.stringify({ type: 'session', version: 3, id: '019fdf24-aaaa-7000-8000-000000000001', timestamp: '2026-02-01T00:00:00.000Z', cwd: canonicalProject }),
-    JSON.stringify({ type: 'message', id: 'omp-user', parentId: null, timestamp: '2026-02-01T00:00:01.000Z', message: { role: 'user', content: [{ type: 'text', text: `OMP hermetic fixture\n${ISSUE_131_LONG_TOKEN}` }], timestamp: 1774915201000 } }),
-    JSON.stringify({ type: 'message', id: 'omp-assistant', parentId: 'omp-user', timestamp: '2026-02-01T00:00:02.000Z', message: { role: 'assistant', content: [{ type: 'text', text: 'OMP fixture reply.' }] } }),
-    '',
-  ].join('\n'))
+  writeFileSync(
+    ompSessionFile,
+    [
+      ompTitleSlot,
+      JSON.stringify({ type: 'session', version: 3, id: '019fdf24-aaaa-7000-8000-000000000001', timestamp: '2026-02-01T00:00:00.000Z', cwd: canonicalProject }),
+      JSON.stringify({
+        type: 'message',
+        id: 'omp-user',
+        parentId: null,
+        timestamp: '2026-02-01T00:00:01.000Z',
+        message: { role: 'user', content: [{ type: 'text', text: `OMP hermetic fixture\n${ISSUE_131_LONG_TOKEN}` }], timestamp: 1774915201000 },
+      }),
+      JSON.stringify({
+        type: 'message',
+        id: 'omp-assistant',
+        parentId: 'omp-user',
+        timestamp: '2026-02-01T00:00:02.000Z',
+        message: { role: 'assistant', content: [{ type: 'text', text: 'OMP fixture reply.' }] },
+      }),
+      '',
+    ].join('\n'),
+  )
   const piSessions = join(home, '.pi', 'agent', 'sessions', '--pi-project--')
   mkdirSync(piSessions, { recursive: true })
   const piSessionFile = join(piSessions, '2026-03-01T00-00-00-000Z_019fdf24-bbbb-7000-8000-000000000002.jsonl')
-  writeFileSync(piSessionFile, [
-    JSON.stringify({ type: 'session', version: 3, id: '019fdf24-bbbb-7000-8000-000000000002', timestamp: '2026-03-01T00:00:00.000Z', cwd: canonicalProject }),
-    JSON.stringify({ type: 'session_info', id: 'pi-info', parentId: null, timestamp: '2026-03-01T00:00:00.500Z', name: 'Pi hermetic fixture' }),
-    JSON.stringify({ type: 'message', id: 'pi-user', parentId: 'pi-info', timestamp: '2026-03-01T00:00:01.000Z', message: { role: 'user', content: [{ type: 'text', text: 'Pi hermetic fixture' }], timestamp: 1777341601000 } }),
-    JSON.stringify({ type: 'message', id: 'pi-assistant', parentId: 'pi-user', timestamp: '2026-03-01T00:00:02.000Z', message: { role: 'assistant', content: [{ type: 'text', text: 'Pi fixture reply.' }] } }),
-    '',
-  ].join('\n'))
+  writeFileSync(
+    piSessionFile,
+    [
+      JSON.stringify({ type: 'session', version: 3, id: '019fdf24-bbbb-7000-8000-000000000002', timestamp: '2026-03-01T00:00:00.000Z', cwd: canonicalProject }),
+      JSON.stringify({ type: 'session_info', id: 'pi-info', parentId: null, timestamp: '2026-03-01T00:00:00.500Z', name: 'Pi hermetic fixture' }),
+      JSON.stringify({
+        type: 'message',
+        id: 'pi-user',
+        parentId: 'pi-info',
+        timestamp: '2026-03-01T00:00:01.000Z',
+        message: { role: 'user', content: [{ type: 'text', text: 'Pi hermetic fixture' }], timestamp: 1777341601000 },
+      }),
+      JSON.stringify({
+        type: 'message',
+        id: 'pi-assistant',
+        parentId: 'pi-user',
+        timestamp: '2026-03-01T00:00:02.000Z',
+        message: { role: 'assistant', content: [{ type: 'text', text: 'Pi fixture reply.' }] },
+      }),
+      '',
+    ].join('\n'),
+  )
   const sessionFile = join(sessions, 'fixture.jsonl')
-  writeFileSync(sessionFile, [
-    JSON.stringify({ type: 'session', id: 'fixture-session', cwd: canonicalSecondary, timestamp: '2026-01-01T00:00:00.000Z' }),
-    JSON.stringify({ type: 'message', id: 'fixture-message', parentId: null, message: { role: 'user', content: [
-      { type: 'text', text: 'Hermetic desktop fixture' },
-      { type: 'image', mimeType: 'image/png', data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' },
-    ], timestamp: '2026-01-01T00:00:00.000Z' } }),
-    JSON.stringify({
-      type: 'custom_message', id: 'fixture-agent-message', parentId: 'fixture-message', customType: 'agent_message', display: true,
-      content: '[from child:fixture-reviewer]\nAgent-to-agent message received.\n\nEnvelope metadata that should stay hidden.',
-      details: { message: 'Fixture review complete. The readable agent response is available here.', from: { sessionName: 'fixture-reviewer', runtimeKind: 'subagent' } },
-      timestamp: '2026-01-01T00:00:01.000Z',
-    }),
-    JSON.stringify({
-      type: 'custom_message', id: 'fixture-goal-summary', parentId: 'fixture-agent-message', customType: 'goal_context', display: true,
-      content: '<goal_context>Fixture control envelope that should stay hidden.</goal_context>',
-      details: { kind: 'created', goalId: 'fixture-goal', objective: 'Verify the readable blue goal summary.', status: 'active', continuationsUsed: 0 },
-      timestamp: '2026-01-01T00:00:02.000Z',
-    }),
-    '',
-  ].join('\n'))
-  writeFileSync(join(sessions, 'primary.jsonl'), [
-    JSON.stringify({ type: 'session', id: 'primary-session', cwd: canonicalProject, timestamp: '2025-01-01T00:00:00.000Z' }),
-    JSON.stringify({ type: 'message', id: 'primary-message', parentId: null, message: { role: 'user', content: 'Primary workspace fixture', timestamp: '2025-01-01T00:00:00.000Z' } }),
-    '',
-  ].join('\n'))
-  writeFileSync(join(sessions, 'collaboration-peer.jsonl'), [
-    JSON.stringify({ type: 'session', id: '019fdf24-cccc-7000-8000-000000000003', cwd: canonicalSecondary, timestamp: '2024-01-01T00:00:00.000Z' }),
-    JSON.stringify({ type: 'message', id: 'collaboration-peer-message', parentId: null, message: { role: 'user', content: 'Ownership peer fixture', timestamp: '2024-01-01T00:00:00.000Z' } }),
-    '',
-  ].join('\n'))
+  writeFileSync(
+    sessionFile,
+    [
+      JSON.stringify({ type: 'session', id: 'fixture-session', cwd: canonicalSecondary, timestamp: '2026-01-01T00:00:00.000Z' }),
+      JSON.stringify({
+        type: 'message',
+        id: 'fixture-message',
+        parentId: null,
+        message: {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Hermetic desktop fixture' },
+            { type: 'image', mimeType: 'image/png', data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' },
+          ],
+          timestamp: '2026-01-01T00:00:00.000Z',
+        },
+      }),
+      JSON.stringify({
+        type: 'custom_message',
+        id: 'fixture-agent-message',
+        parentId: 'fixture-message',
+        customType: 'agent_message',
+        display: true,
+        content: '[from child:fixture-reviewer]\nAgent-to-agent message received.\n\nEnvelope metadata that should stay hidden.',
+        details: { message: 'Fixture review complete. The readable agent response is available here.', from: { sessionName: 'fixture-reviewer', runtimeKind: 'subagent' } },
+        timestamp: '2026-01-01T00:00:01.000Z',
+      }),
+      JSON.stringify({
+        type: 'custom_message',
+        id: 'fixture-goal-summary',
+        parentId: 'fixture-agent-message',
+        customType: 'goal_context',
+        display: true,
+        content: '<goal_context>Fixture control envelope that should stay hidden.</goal_context>',
+        details: { kind: 'created', goalId: 'fixture-goal', objective: 'Verify the readable blue goal summary.', status: 'active', continuationsUsed: 0 },
+        timestamp: '2026-01-01T00:00:02.000Z',
+      }),
+      '',
+    ].join('\n'),
+  )
+  writeFileSync(
+    join(sessions, 'primary.jsonl'),
+    [
+      JSON.stringify({ type: 'session', id: 'primary-session', cwd: canonicalProject, timestamp: '2025-01-01T00:00:00.000Z' }),
+      JSON.stringify({ type: 'message', id: 'primary-message', parentId: null, message: { role: 'user', content: 'Primary workspace fixture', timestamp: '2025-01-01T00:00:00.000Z' } }),
+      '',
+    ].join('\n'),
+  )
+  writeFileSync(
+    join(sessions, 'collaboration-peer.jsonl'),
+    [
+      JSON.stringify({ type: 'session', id: '019fdf24-cccc-7000-8000-000000000003', cwd: canonicalSecondary, timestamp: '2024-01-01T00:00:00.000Z' }),
+      JSON.stringify({ type: 'message', id: 'collaboration-peer-message', parentId: null, message: { role: 'user', content: 'Ownership peer fixture', timestamp: '2024-01-01T00:00:00.000Z' } }),
+      '',
+    ].join('\n'),
+  )
   const identity = (path: string) => {
     const info = lstatSync(path, { bigint: true })
     return {
@@ -185,21 +268,34 @@ function createHermeticFixture(activeSession = false): { userData: string; home:
       birthtimeNs: info.birthtimeNs > 0n ? info.birthtimeNs.toString() : undefined,
     }
   }
-  writeFileSync(join(userData, CURRENT_DESKTOP_STATE_FILENAME), JSON.stringify({
-    version: 4,
-    projects: [{
-      id: 'multi-folder-project', harness: 'pi', name: 'Multi-folder fixture', path: canonicalProject,
-      folders: [canonicalProject, canonicalSecondary], primaryFolder: canonicalProject,
-      pinned: false, createdAt: '2025-01-01T00:00:00.000Z', lastOpenedAt: '2026-01-01T00:00:00.000Z',
-      folderIdentities: { [canonicalProject]: identity(canonicalProject), [canonicalSecondary]: identity(canonicalSecondary) },
-    }],
-    settings: { activeHarness: 'pi', browserHome: 'about:blank', telemetry: true, locale: 'en' },
-    archivedSessions: [],
-    dismissedProjectPaths: [],
-  }))
+  writeFileSync(
+    join(userData, CURRENT_DESKTOP_STATE_FILENAME),
+    JSON.stringify({
+      version: 4,
+      projects: [
+        {
+          id: 'multi-folder-project',
+          harness: 'pi',
+          name: 'Multi-folder fixture',
+          path: canonicalProject,
+          folders: [canonicalProject, canonicalSecondary],
+          primaryFolder: canonicalProject,
+          pinned: false,
+          createdAt: '2025-01-01T00:00:00.000Z',
+          lastOpenedAt: '2026-01-01T00:00:00.000Z',
+          folderIdentities: { [canonicalProject]: identity(canonicalProject), [canonicalSecondary]: identity(canonicalSecondary) },
+        },
+      ],
+      settings: { activeHarness: 'pi', browserHome: 'about:blank', telemetry: true, locale: 'en' },
+      archivedSessions: [],
+      dismissedProjectPaths: [],
+    }),
+  )
 
   const executable = join(fixtureRoot, 'pi-agent-fixture.cjs')
-  writeFileSync(executable, `#!/usr/bin/env node
+  writeFileSync(
+    executable,
+    `#!/usr/bin/env node
 const fs = require('node:fs')
 const readline = require('node:readline')
 const args = process.argv.slice(2)
@@ -333,10 +429,13 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
     send({ type: 'response', id: command.id, command: command.type, success: true, data: {} })
   }
 })
-`)
+`,
+  )
   chmodSync(executable, 0o755)
   const ompExecutable = join(fixtureRoot, 'omp-fixture.cjs')
-  writeFileSync(ompExecutable, `#!/usr/bin/env node
+  writeFileSync(
+    ompExecutable,
+    `#!/usr/bin/env node
 const fs = require('node:fs')
 const readline = require('node:readline')
 const args = process.argv.slice(2)
@@ -396,13 +495,17 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
     send({ id: command.id, type: 'response', command: command.type, success: true, data: {} })
   }
 })
-`)
+`,
+  )
   chmodSync(ompExecutable, 0o755)
   const cuaExecutable = join(fixtureRoot, 'cua-driver-fixture.cjs')
-  writeFileSync(cuaExecutable, `#!/usr/bin/env node
+  writeFileSync(
+    cuaExecutable,
+    `#!/usr/bin/env node
 if (process.argv.includes('--version')) { process.stdout.write('cua-driver 0.19.0\\n'); process.exit(0) }
 process.exit(2)
-`)
+`,
+  )
   chmodSync(cuaExecutable, 0o755)
   const platformExecutable = (file: string): string => {
     if (process.platform !== 'win32') return file
@@ -415,10 +518,19 @@ process.exit(2)
     return join(root, 'pi.cmd')
   }
   const piExecutable = platformExecutable(executable)
-  return { userData, home, project, executable: piExecutable, ompExecutable: platformExecutable(ompExecutable), piExecutable, cuaExecutable: platformExecutable(cuaExecutable), sessionFile: realpathSync(sessionFile) }
+  return {
+    userData,
+    home,
+    project,
+    executable: piExecutable,
+    ompExecutable: platformExecutable(ompExecutable),
+    piExecutable,
+    cuaExecutable: platformExecutable(cuaExecutable),
+    sessionFile: realpathSync(sessionFile),
+  }
 }
 
-function hermeticEnvironment(home: string, executable: string, ompExecutable: string, piExecutable: string, cuaExecutable: string, restrictPath = false): NodeJS.ProcessEnv {
+function hermeticEnvironment(home: string, _executable: string, ompExecutable: string, piExecutable: string, cuaExecutable: string, restrictPath = false): NodeJS.ProcessEnv {
   let path = process.env.PATH
   if (restrictPath) {
     const bin = join(fixtureRoot, 'bin')
@@ -443,18 +555,17 @@ function hermeticEnvironment(home: string, executable: string, ompExecutable: st
     PI_BINARY: piExecutable,
     CUA_DRIVER_PATH: cuaExecutable,
   }
-  for (const key of ['USER', 'LOGNAME', '__CF_USER_TEXT_ENCODING', 'DISPLAY', 'XAUTHORITY', 'APPDATA', 'LOCALAPPDATA', 'ProgramFiles', 'PUBLIC', 'WINDIR', 'ComSpec']) if (process.env[key]) env[key] = process.env[key]
+  for (const key of ['USER', 'LOGNAME', '__CF_USER_TEXT_ENCODING', 'DISPLAY', 'XAUTHORITY', 'APPDATA', 'LOCALAPPDATA', 'ProgramFiles', 'PUBLIC', 'WINDIR', 'ComSpec'])
+    if (process.env[key]) env[key] = process.env[key]
   return env
 }
-
 
 test.describe('Pi Work desktop smoke', () => {
   // biome-ignore lint/correctness/noEmptyPattern: Playwright derives fixture usage from this destructuring pattern
   test.beforeEach(async ({}, testInfo) => {
     actionableErrors = []
     app = undefined
-    const activeSession = testInfo.title === 'defers a reply to a session that is active outside Pi Work'
-      || testInfo.title === 'reflects an external JSONL append without reselecting the live session'
+    const activeSession = testInfo.title === 'defers a reply to a session that is active outside Pi Work' || testInfo.title === 'reflects an external JSONL append without reselecting the live session'
     const liveInstall = testInfo.title === 'adds and connects to a harness installed while the app is open'
     const noHarnesses = testInfo.title === 'opens Harness settings from the no-harness recovery prompt'
     let startupError: unknown
@@ -523,7 +634,9 @@ test.describe('Pi Work desktop smoke', () => {
     expect(records[0].sessionFile).toBeTruthy()
     await expect(page.getByRole('heading', { name: 'Current working tree', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Mark accepted', exact: true })).toBeEnabled()
-    await page.locator('.page.scroll-area').evaluate((node) => { node.scrollTop = 0 })
+    await page.locator('.page.scroll-area').evaluate((node) => {
+      node.scrollTop = 0
+    })
     await page.screenshot({ path: '/tmp/ptx-task-workflow.png' })
     await page.getByRole('button', { name: 'Mark accepted', exact: true }).click()
     await expect(page.locator('.task-detail .task-status')).toHaveText('Accepted')
@@ -561,14 +674,15 @@ test.describe('Pi Work desktop smoke', () => {
     await composer.press('Control+Enter')
     await expect(page.locator('.message--user').filter({ hasText: 'change direction now' })).toBeVisible()
     const marker = join(fixtureRoot, 'steer-args.json')
-    await expect.poll(() => {
-      if (!existsSync(marker)) return ''
-      return JSON.parse(readFileSync(marker, 'utf8')).message
-    }).toBe('change direction now')
+    await expect
+      .poll(() => {
+        if (!existsSync(marker)) return ''
+        return JSON.parse(readFileSync(marker, 'utf8')).message
+      })
+      .toBe('change direction now')
     expect(JSON.parse(readFileSync(marker, 'utf8'))).toMatchObject({ type: 'steer', message: 'change direction now' })
     await expect(composer).toHaveValue('')
   })
-
 
   test('keeps the context-usage meter out of the composer', async () => {
     await page.locator('.session-row-wrap').filter({ hasText: 'Hermetic desktop fixture' }).locator('.session-row').click()
@@ -612,7 +726,9 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(modelTrigger.locator('span')).toHaveCSS('display', 'block')
     await expect(reasoning).toHaveCount(0)
 
-    await page.locator('.conversation-column').evaluate((node) => { node.style.flex = '0 0 300px' })
+    await page.locator('.conversation-column').evaluate((node) => {
+      node.style.flex = '0 0 300px'
+    })
     await expect(modelTrigger.locator('span')).toHaveCSS('display', 'block')
     await expect(modelTrigger.locator('svg').first()).not.toHaveCSS('display', 'none')
     await expect(reasoning).toHaveCount(0)
@@ -632,9 +748,13 @@ test.describe('Pi Work desktop smoke', () => {
     const modelBounds = await modelMenu.boundingBox()
     expect(modelBounds!.x).toBeGreaterThanOrEqual(0)
     await page.screenshot({ path: 'test-results/model-picker-menu.png' })
-    await page.evaluate(() => { document.documentElement.dataset.theme = 'dark' })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = 'dark'
+    })
     await page.screenshot({ path: 'test-results/model-picker-menu-dark.png' })
-    await page.evaluate(() => { document.documentElement.dataset.theme = 'light' })
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = 'light'
+    })
     await page.keyboard.press('Escape')
 
     // The environment details moved into the composer's summary popover.
@@ -671,8 +791,12 @@ test.describe('Pi Work desktop smoke', () => {
     expect(typeof credentialStatus.storage.available).toBe('boolean')
     if (!credentialStatus.storage.available) expect(credentialStatus.storage.message).toMatch(/secure|credential|keyring|kwallet/i)
     const invalidSelfHostedTest = await page.evaluate(async () => {
-      try { await window.ptx.voice.testSelfHosted({ url: '', model: '' }); return '' }
-      catch (error) { return String(error) }
+      try {
+        await window.ptx.voice.testSelfHosted({ url: '', model: '' })
+        return ''
+      } catch (error) {
+        return String(error)
+      }
     })
     expect(invalidSelfHostedTest).toMatch(/too short|Invalid URL/)
     await expect.poll(() => app!.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().every((window) => !window.isVisible()))).toBe(true)
@@ -691,7 +815,9 @@ test.describe('Pi Work desktop smoke', () => {
     const trigger = page.locator('.brand-switcher')
     const offsets: Record<string, number> = {}
     for (const platform of ['darwin', 'linux', 'win32']) {
-      await shell.evaluate((node, value) => { node.setAttribute('data-platform', value) }, platform)
+      await shell.evaluate((node, value) => {
+        node.setAttribute('data-platform', value)
+      }, platform)
       offsets[platform] = await trigger.evaluate((node) => node.getBoundingClientRect().left - node.closest('.sidebar')!.getBoundingClientRect().left)
       expect(offsets[platform]).toBeGreaterThanOrEqual(8)
       expect(offsets[platform]).toBeLessThanOrEqual(16)
@@ -863,7 +989,10 @@ test.describe('Pi Work desktop smoke', () => {
     app = await electron.launch({
       args: ['.', `--user-data-dir=${currentFixture.userData}`],
       cwd: process.cwd(),
-      env: hermeticEnvironment(currentFixture.home, currentFixture.executable, currentFixture.ompExecutable, currentFixture.piExecutable, currentFixture.cuaExecutable, false) as Record<string, string>,
+      env: hermeticEnvironment(currentFixture.home, currentFixture.executable, currentFixture.ompExecutable, currentFixture.piExecutable, currentFixture.cuaExecutable, false) as Record<
+        string,
+        string
+      >,
       timeout: 20_000,
     })
     app.context().on('page', attachDiagnostics)
@@ -949,14 +1078,18 @@ test.describe('Pi Work desktop smoke', () => {
     await page.getByRole('button', { name: 'OMP Work — switch harness' }).click()
     await page.locator('.sidebar__footer button[title="Settings"]').click()
     await page.getByRole('button', { name: 'Providers', exact: true }).click()
-    const voiceModelsBefore = await page.evaluate(async () => JSON.parse((await window.ptx.voice.executeTool({ name: 'list_models', arguments: {} }, 'omp')).output) as { models: Array<{ name: string }> })
+    const voiceModelsBefore = await page.evaluate(
+      async () => JSON.parse((await window.ptx.voice.executeTool({ name: 'list_models', arguments: {} }, 'omp')).output) as { models: Array<{ name: string }> },
+    )
     expect(voiceModelsBefore.models.map((model) => model.name).sort()).toEqual(['Claude Fixture', 'GPT Fixture'])
     const anthropic = page.getByRole('checkbox', { name: 'Show anthropic provider' })
     await expect(anthropic).toBeChecked()
     await page.getByTitle('Hide provider in OMP').filter({ has: anthropic }).click()
     await expect(anthropic).not.toBeChecked()
     await expect.poll(() => JSON.parse(readFileSync(join(fixtureRoot, 'user-data', CURRENT_DESKTOP_STATE_FILENAME), 'utf8')).settings.ompDisabledProviders).toEqual(['anthropic'])
-    const voiceModelsAfter = await page.evaluate(async () => JSON.parse((await window.ptx.voice.executeTool({ name: 'list_models', arguments: {} }, 'omp')).output) as { models: Array<{ name: string }> })
+    const voiceModelsAfter = await page.evaluate(
+      async () => JSON.parse((await window.ptx.voice.executeTool({ name: 'list_models', arguments: {} }, 'omp')).output) as { models: Array<{ name: string }> },
+    )
     expect(voiceModelsAfter.models.map((model) => model.name)).toEqual(['GPT Fixture'])
 
     await page.locator('.session-row__title').filter({ hasText: 'OMP hermetic fixture' }).click()
@@ -1105,6 +1238,23 @@ test.describe('Pi Work desktop smoke', () => {
     await expect.poll(() => existsSync(join(fixtureRoot, 'omp-runtime-args.json'))).toBe(true)
   })
 
+  test('opens Feishu settings from the phone button without connecting automatically', async () => {
+    await app!.evaluate(({ ipcMain }) => {
+      for (const channel of ['feishu:binding-begin', 'feishu:binding-status', 'feishu:binding-cancel']) {
+        ipcMain.removeHandler(channel)
+        ipcMain.handle(channel, () => ({ phase: 'loading' }))
+      }
+    })
+    await page.locator('.sidebar__mobile').click()
+    await expect(page.getByRole('dialog', { name: '扫码绑定飞书' })).toBeVisible()
+    await page.getByRole('dialog').getByRole('button', { name: '取消', exact: true }).click()
+    await expect(page.getByRole('heading', { name: '手机 · 飞书' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '连接飞书', exact: true })).toBeDisabled()
+    await expect(page.getByRole('button', { name: '扫描绑定', exact: true })).toBeVisible()
+    await expect(page.getByLabel('App ID', { exact: true })).toHaveCount(0)
+    await page.screenshot({ path: '/tmp/ptx-feishu-settings.png' })
+  })
+
   test('shows a blue update icon beside search only after discovering an update', async () => {
     const update = page.locator('.title-toolbar .app-update')
     await expect(update).toHaveCount(0)
@@ -1150,17 +1300,28 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(titles.nth(0)).toHaveText('Hermetic desktop fixture')
     await expect(titles.nth(1)).toHaveText('Primary workspace fixture')
     const primaryFile = join(fixtureSessionFile, '..', 'primary.jsonl')
-    appendFileSync(primaryFile, `${JSON.stringify({
-      type: 'message', id: 'primary-background-assistant', parentId: 'primary-message', timestamp: '2027-01-01T00:00:00.000Z',
-      message: { role: 'assistant', content: 'Background work failed.', stopReason: 'error' },
-    })}\n`)
+    appendFileSync(
+      primaryFile,
+      `${JSON.stringify({
+        type: 'message',
+        id: 'primary-background-assistant',
+        parentId: 'primary-message',
+        timestamp: '2027-01-01T00:00:00.000Z',
+        message: { role: 'assistant', content: 'Background work failed.', stopReason: 'error' },
+      })}\n`,
+    )
 
     const primaryRow = page.locator('.session-row-wrap').filter({ hasText: 'Primary workspace fixture' })
     await expect(primaryRow).toHaveClass(/has-attention/)
     const activityCount = page.locator('.sidebar__primary button[title="Activity"] .nav-count')
     await expect(activityCount).toHaveText('1')
     await expect(titles.nth(0)).toHaveText('Hermetic desktop fixture')
-    const attentionColor = await primaryRow.evaluate((node) => getComputedStyle(node).backgroundColor.match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [])
+    const attentionColor = await primaryRow.evaluate(
+      (node) =>
+        getComputedStyle(node)
+          .backgroundColor.match(/\d+(?:\.\d+)?/g)
+          ?.map(Number) ?? [],
+    )
     expect(attentionColor.length).toBeGreaterThanOrEqual(3)
     expect(attentionColor[2]).toBeGreaterThan(attentionColor[1])
 
@@ -1173,10 +1334,16 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(failureMark).toHaveAttribute('title', 'Failed — notification cleared')
     await expect.poll(() => failureMark.locator('> span').evaluate((node) => getComputedStyle(node).backgroundColor)).not.toBe(activeFailureColor)
     await expect(activityCount).toHaveCount(0)
-    appendFileSync(primaryFile, `${JSON.stringify({
-      type: 'message', id: 'primary-new-user', parentId: 'primary-background-assistant', timestamp: '2028-01-01T00:00:00.000Z',
-      message: { role: 'user', content: 'Move this thread now.' },
-    })}\n`)
+    appendFileSync(
+      primaryFile,
+      `${JSON.stringify({
+        type: 'message',
+        id: 'primary-new-user',
+        parentId: 'primary-background-assistant',
+        timestamp: '2028-01-01T00:00:00.000Z',
+        message: { role: 'user', content: 'Move this thread now.' },
+      })}\n`,
+    )
     await expect(titles.nth(0)).toHaveText('Primary workspace fixture')
   })
 
@@ -1194,10 +1361,14 @@ test.describe('Pi Work desktop smoke', () => {
     await clearPrimary.click()
     await expect(primaryActivity).toHaveCount(0)
     await expect(fixtureActivity).toBeVisible()
-    await expect.poll(() => page.evaluate(() => {
-      const cleared = JSON.parse(window.localStorage.getItem('prime-work.cleared-activity') ?? '{}') as Record<string, string>
-      return cleared['primary-session']
-    })).toBeTruthy()
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const cleared = JSON.parse(window.localStorage.getItem('prime-work.cleared-activity') ?? '{}') as Record<string, string>
+          return cleared['primary-session']
+        }),
+      )
+      .toBeTruthy()
 
     await page.reload()
     await expect(page.locator('.app-shell')).toHaveAttribute('data-ready', 'true')
@@ -1209,10 +1380,16 @@ test.describe('Pi Work desktop smoke', () => {
 
   test('removes archived chats from Activity and clears their notifications', async () => {
     const primaryFile = join(fixtureSessionFile, '..', 'primary.jsonl')
-    appendFileSync(primaryFile, `${JSON.stringify({
-      type: 'message', id: 'primary-archive-failure', parentId: 'primary-message', timestamp: '2027-01-01T00:00:00.000Z',
-      message: { role: 'assistant', content: 'Archive this failed work.', stopReason: 'error' },
-    })}\n`)
+    appendFileSync(
+      primaryFile,
+      `${JSON.stringify({
+        type: 'message',
+        id: 'primary-archive-failure',
+        parentId: 'primary-message',
+        timestamp: '2027-01-01T00:00:00.000Z',
+        message: { role: 'assistant', content: 'Archive this failed work.', stopReason: 'error' },
+      })}\n`,
+    )
 
     const primaryRow = page.locator('.session-row-wrap').filter({ hasText: 'Primary workspace fixture' })
     await expect(primaryRow).toHaveClass(/has-attention/)
@@ -1223,10 +1400,14 @@ test.describe('Pi Work desktop smoke', () => {
     await primaryRow.getByTitle('Confirm archive Primary workspace fixture').click()
     await expect(primaryRow).toHaveCount(0)
     await expect(activityCount).toHaveCount(0)
-    await expect.poll(() => page.evaluate(() => {
-      const cleared = JSON.parse(window.localStorage.getItem('prime-work.cleared-session-attention') ?? '{}') as Record<string, string>
-      return cleared['primary-session']
-    })).toBeTruthy()
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const cleared = JSON.parse(window.localStorage.getItem('prime-work.cleared-session-attention') ?? '{}') as Record<string, string>
+          return cleared['primary-session']
+        }),
+      )
+      .toBeTruthy()
 
     await page.getByRole('button', { name: 'Activity', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Activity' })).toBeVisible()
@@ -1240,14 +1421,18 @@ test.describe('Pi Work desktop smoke', () => {
     await page.getByRole('tab', { name: 'Browser' }).click()
     const preview = page.locator('.browser-preview webview[partition="persist:prime-work-browser"]')
     await expect(preview).toHaveCount(1)
-    await expect.poll(() => preview.evaluate(async (node) => {
-      const webview = node as HTMLElement & {
-        executeJavaScript(script: string): Promise<unknown>
-        getWebContentsId(): number
-      }
-      await webview.executeJavaScript('window.__fixtureGameTimer = setInterval(() => {}, 10)')
-      return webview.getWebContentsId()
-    })).toBeGreaterThan(0)
+    await expect
+      .poll(() =>
+        preview.evaluate(async (node) => {
+          const webview = node as HTMLElement & {
+            executeJavaScript(script: string): Promise<unknown>
+            getWebContentsId(): number
+          }
+          await webview.executeJavaScript('window.__fixtureGameTimer = setInterval(() => {}, 10)')
+          return webview.getWebContentsId()
+        }),
+      )
+      .toBeGreaterThan(0)
     const guestId = await preview.evaluate((node) => (node as HTMLElement & { getWebContentsId(): number }).getWebContentsId())
     expect(await app!.evaluate(({ webContents }, id) => Boolean(webContents.fromId(id)), guestId)).toBe(true)
 
@@ -1255,10 +1440,14 @@ test.describe('Pi Work desktop smoke', () => {
     await sessionRow.getByTitle('Confirm archive Hermetic desktop fixture').click()
 
     await expect(sessionRow).toHaveCount(0)
-    await expect.poll(() => app!.evaluate(({ webContents }, id) => {
-      const guest = webContents.fromId(id)
-      return guest === undefined || guest.isDestroyed()
-    }, guestId)).toBe(true)
+    await expect
+      .poll(() =>
+        app!.evaluate(({ webContents }, id) => {
+          const guest = webContents.fromId(id)
+          return guest === undefined || guest.isDestroyed()
+        }, guestId),
+      )
+      .toBe(true)
     await expect.poll(() => preview.evaluate((node) => (node as HTMLElement & { getWebContentsId(): number }).getWebContentsId())).not.toBe(guestId)
   })
 
@@ -1283,11 +1472,22 @@ test.describe('Pi Work desktop smoke', () => {
 
       await expect(sessionRow).toHaveCount(0)
       await expect(page.locator('.terminal-drawer')).toHaveCount(0)
-      await expect.poll(() => {
-        try { process.kill(serverPid, 0); return false } catch { return true }
-      }).toBe(true)
+      await expect
+        .poll(() => {
+          try {
+            process.kill(serverPid, 0)
+            return false
+          } catch {
+            return true
+          }
+        })
+        .toBe(true)
     } finally {
-      try { process.kill(serverPid, 'SIGKILL') } catch { /* archive cleanup succeeded */ }
+      try {
+        process.kill(serverPid, 'SIGKILL')
+      } catch {
+        /* archive cleanup succeeded */
+      }
     }
   })
 
@@ -1295,7 +1495,9 @@ test.describe('Pi Work desktop smoke', () => {
     const initialMeta = await page.evaluate(() => window.ptx.app.getMeta())
     expect(initialMeta.version).toBeTruthy()
 
-    await page.evaluate(() => { window.location.hash = 'cfr-11-safe-fragment' })
+    await page.evaluate(() => {
+      window.location.hash = 'cfr-11-safe-fragment'
+    })
     await expect(page).toHaveURL(/#cfr-11-safe-fragment$/)
     const fragmentMeta = await page.evaluate(() => window.ptx.app.getMeta())
     expect(fragmentMeta).toEqual(initialMeta)
@@ -1333,7 +1535,6 @@ test.describe('Pi Work desktop smoke', () => {
     expect(deniedAccess.result).toMatch(/IPC sender is not authorized/i)
   })
 
-
   test('reflects an external JSONL append without reselecting the live session', async () => {
     await expect(page.locator('.transcript').getByText('Hermetic desktop fixture', { exact: true })).toBeVisible()
     const selectedSession = page.locator('.session-row-wrap.is-selected')
@@ -1343,22 +1544,25 @@ test.describe('Pi Work desktop smoke', () => {
     const reasoning = `External live reasoning ${nonce}`
     const answer = `External live answer ${nonce}`
     const timestamp = new Date().toISOString()
-    appendFileSync(fixtureSessionFile, `${JSON.stringify({
-      type: 'message',
-      id: `fixture-external-${nonce}`,
-      parentId: 'fixture-goal-summary',
-      timestamp,
-      message: {
-        role: 'assistant',
+    appendFileSync(
+      fixtureSessionFile,
+      `${JSON.stringify({
+        type: 'message',
+        id: `fixture-external-${nonce}`,
+        parentId: 'fixture-goal-summary',
         timestamp,
-        content: [
-          { type: 'thinking', thinking: reasoning },
-          { type: 'toolCall', id: `fixture-tool-${nonce}`, name: 'fixture_external_tool', arguments: { nonce } },
-          { type: 'text', text: answer },
-        ],
-      },
-    })}
-`)
+        message: {
+          role: 'assistant',
+          timestamp,
+          content: [
+            { type: 'thinking', thinking: reasoning },
+            { type: 'toolCall', id: `fixture-tool-${nonce}`, name: 'fixture_external_tool', arguments: { nonce } },
+            { type: 'text', text: answer },
+          ],
+        },
+      })}
+`,
+    )
 
     await expect(page.locator('.transcript').getByText(reasoning, { exact: true })).toHaveCount(1)
     await expect(page.locator('.transcript').getByText(answer, { exact: true })).toHaveCount(1)
@@ -1375,10 +1579,12 @@ test.describe('Pi Work desktop smoke', () => {
     const projectRow = page.locator('.project-row').first()
     const projectSession = projectRow.getByRole('button', { name: /^New session in / })
     await expect.poll(() => projectSession.evaluate((node) => getComputedStyle(node).opacity)).toBe('0')
-    await expect.poll(async () => {
-      await projectRow.hover()
-      return projectSession.evaluate((node) => getComputedStyle(node).opacity)
-    }).toBe('1')
+    await expect
+      .poll(async () => {
+        await projectRow.hover()
+        return projectSession.evaluate((node) => getComputedStyle(node).opacity)
+      })
+      .toBe('1')
     await projectSession.click()
 
     await expect(projectRow).not.toHaveClass(/is-selected/)
@@ -1388,10 +1594,12 @@ test.describe('Pi Work desktop smoke', () => {
 
   test('keeps wrapped editing native and aligned through classic scrollbar overflow', async () => {
     const composer = page.getByRole('combobox', { name: 'Message Pi' })
-    await page.addStyleTag({ content: `
+    await page.addStyleTag({
+      content: `
       .composer-input > textarea { overflow-y: scroll !important; }
       .composer-input > textarea::-webkit-scrollbar { width: 28px; }
-    ` })
+    `,
+    })
 
     await composer.fill('@Ownership')
     const reference = page.getByRole('option', { name: /@Ownership peer fixture/ })
@@ -1449,7 +1657,11 @@ test.describe('Pi Work desktop smoke', () => {
       const target = window as Window & { __copiedSessionId?: string }
       Object.defineProperty(navigator, 'clipboard', {
         configurable: true,
-        value: { writeText: async (text: string) => { target.__copiedSessionId = text } },
+        value: {
+          writeText: async (text: string) => {
+            target.__copiedSessionId = text
+          },
+        },
       })
     })
     const selected = page.locator('.session-row-wrap.is-selected .session-row')
@@ -1479,10 +1691,16 @@ test.describe('Pi Work desktop smoke', () => {
     expect(sent.message).toContain('Coordinate with @Ownership peer fixture about ownership')
     expect(sent.message).toContain('pi session UUID 019fdf24-cccc-7000-8000-000000000003')
     expect(sent.message).toContain('===== BEGIN PTX SESSION REFERENCES =====')
-    appendFileSync(fixtureSessionFile, `${JSON.stringify({
-      type: 'message', id: 'fixture-session-reference', parentId: 'fixture-goal-summary', timestamp: new Date().toISOString(),
-      message: { role: 'user', content: sent.message, timestamp: new Date().toISOString() },
-    })}\n`)
+    appendFileSync(
+      fixtureSessionFile,
+      `${JSON.stringify({
+        type: 'message',
+        id: 'fixture-session-reference',
+        parentId: 'fixture-goal-summary',
+        timestamp: new Date().toISOString(),
+        message: { role: 'user', content: sent.message, timestamp: new Date().toISOString() },
+      })}\n`,
+    )
     await page.locator('.session-row-wrap').filter({ hasText: 'Ownership peer fixture' }).locator('.session-row').click()
     await page.locator('.session-row-wrap').filter({ hasText: 'Hermetic desktop fixture' }).locator('.session-row').click()
     const userMessage = page.locator('.message--user').filter({ hasText: 'Coordinate with @Ownership peer fixture about ownership' })
@@ -1541,7 +1759,11 @@ test.describe('Pi Work desktop smoke', () => {
       const target = window as Window & { __copiedMessage?: string }
       Object.defineProperty(navigator, 'clipboard', {
         configurable: true,
-        value: { writeText: async (text: string) => { target.__copiedMessage = text } },
+        value: {
+          writeText: async (text: string) => {
+            target.__copiedMessage = text
+          },
+        },
       })
     })
 
@@ -1657,7 +1879,7 @@ test.describe('Pi Work desktop smoke', () => {
     await addDialog.getByLabel(/Arguments/).fill('--local')
     await addDialog.getByRole('button', { name: 'Save local server' }).click()
     const mcpPath = join(fixtureRoot, 'home', '.pi', 'agent', 'mcp.json')
-    await expect.poll(() => existsSync(mcpPath) ? JSON.parse(readFileSync(mcpPath, 'utf8')).mcpServers.docs : null).toEqual({ command: 'mcp-docs', args: ['--local'], enabled: true })
+    await expect.poll(() => (existsSync(mcpPath) ? JSON.parse(readFileSync(mcpPath, 'utf8')).mcpServers.docs : null)).toEqual({ command: 'mcp-docs', args: ['--local'], enabled: true })
 
     await addDialog.getByRole('button', { name: 'Close' }).click()
 
@@ -1666,9 +1888,7 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(confirmation).toContainText('Are you sure?')
     await confirmation.getByRole('button', { name: 'Yes, disable' }).click()
     await expect(page.getByRole('button', { name: 'Enable Pi MCP Adapter' })).toHaveAttribute('aria-pressed', 'false')
-    await expect.poll(() => JSON.parse(readFileSync(settingsPath, 'utf8')).packages).toEqual([
-      { source: 'npm:pi-mcp-adapter', extensions: [], skills: [], prompts: [], themes: [] },
-    ])
+    await expect.poll(() => JSON.parse(readFileSync(settingsPath, 'utf8')).packages).toEqual([{ source: 'npm:pi-mcp-adapter', extensions: [], skills: [], prompts: [], themes: [] }])
 
     await page.getByRole('button', { name: 'Enable Pi MCP Adapter' }).click()
     await expect(page.getByRole('button', { name: 'Disable Pi MCP Adapter' })).toHaveAttribute('aria-pressed', 'true')
@@ -1693,25 +1913,26 @@ test.describe('Pi Work desktop smoke', () => {
   test('applies themed native select colors and restores system appearance', async () => {
     await page.keyboard.press('Meta+,')
     await page.getByRole('button', { name: 'Appearance', exact: true }).click()
-    const nativeSelectTheme = () => page.evaluate(() => {
-      const select = document.createElement('select')
-      const option = document.createElement('option')
-      option.textContent = 'Theme probe'
-      select.append(option)
-      document.body.append(select)
-      const root = getComputedStyle(document.documentElement)
-      const selectStyle = getComputedStyle(select)
-      const optionStyle = getComputedStyle(option)
-      const result = {
-        scheme: selectStyle.colorScheme,
-        optionColor: optionStyle.color,
-        optionBackground: optionStyle.backgroundColor,
-        themeColor: root.getPropertyValue('--text').trim(),
-        themeBackground: root.getPropertyValue('--surface-raised').trim(),
-      }
-      select.remove()
-      return result
-    })
+    const nativeSelectTheme = () =>
+      page.evaluate(() => {
+        const select = document.createElement('select')
+        const option = document.createElement('option')
+        option.textContent = 'Theme probe'
+        select.append(option)
+        document.body.append(select)
+        const root = getComputedStyle(document.documentElement)
+        const selectStyle = getComputedStyle(select)
+        const optionStyle = getComputedStyle(option)
+        const result = {
+          scheme: selectStyle.colorScheme,
+          optionColor: optionStyle.color,
+          optionBackground: optionStyle.backgroundColor,
+          themeColor: root.getPropertyValue('--text').trim(),
+          themeBackground: root.getPropertyValue('--surface-raised').trim(),
+        }
+        select.remove()
+        return result
+      })
     await page.getByRole('button', { name: /Light/ }).click()
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
     expect(await nativeSelectTheme()).toMatchObject({
@@ -1767,7 +1988,10 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('supports keyboard navigation for composer suggestions', async () => {
-    await page.getByRole('button', { name: /^New session/ }).first().click()
+    await page
+      .getByRole('button', { name: /^New session/ })
+      .first()
+      .click()
     const composer = page.getByRole('combobox', { name: 'Message Pi' })
     await composer.fill('/')
     const options = page.locator('.composer-menu').getByRole('option')
@@ -1778,11 +2002,12 @@ test.describe('Pi Work desktop smoke', () => {
     await page.keyboard.press('Enter')
     await expect(composer).toHaveValue('/plan ')
     await expect(composer).toHaveAttribute('aria-expanded', 'false')
-    await page.getByRole('button', { name: /^New session/ }).first().click()
+    await page
+      .getByRole('button', { name: /^New session/ })
+      .first()
+      .click()
     await expect(page.getByRole('combobox', { name: 'Message Pi' })).toHaveValue('')
   })
-
-
 
   test('round-trips a grouped Pi ask_user questionnaire', async () => {
     await page.evaluate(() => window.ptx.settings.update({ askUserEnabled: true }))
@@ -1876,7 +2101,7 @@ test.describe('Pi Work desktop smoke', () => {
       'omp-fixture-question-2': JSON.stringify({ answer: 'Safety', answerSource: 'option' }),
     })
     const runtimeArgs = JSON.parse(readFileSync(join(fixtureRoot, 'omp-runtime-args.json'), 'utf8')) as string[]
-    const injectedExtensions = runtimeArgs.flatMap((value, index) => value === '--extension' ? [runtimeArgs[index + 1]] : [])
+    const injectedExtensions = runtimeArgs.flatMap((value, index) => (value === '--extension' ? [runtimeArgs[index + 1]] : []))
     expect(injectedExtensions).toContain(join(process.cwd(), 'assets', 'extensions', 'omp-work-ask-user.ts'))
     await expect(page.locator('.app-shell')).toHaveAttribute('data-ready', 'true')
     await expect(page.getByText(/OMP RPC exited|Request failed/)).toHaveCount(0)
@@ -1910,7 +2135,7 @@ test.describe('Pi Work desktop smoke', () => {
       'pi-fixture-question-2': JSON.stringify({ answer: 'Safety', answerSource: 'option', context: 'Pi app verification' }),
     })
     const runtime = JSON.parse(readFileSync(join(fixtureRoot, 'pi-runtime-args.json'), 'utf8')) as { args: string[]; cwd: string }
-    const injectedExtensions = runtime.args.flatMap((value, index) => value === '--extension' ? [runtime.args[index + 1]] : [])
+    const injectedExtensions = runtime.args.flatMap((value, index) => (value === '--extension' ? [runtime.args[index + 1]] : []))
     expect(injectedExtensions).toContain(join(process.cwd(), 'assets', 'extensions', 'omp-work-ask-user.ts'))
     expect(runtime.args).not.toContain('--cwd')
     if (!currentFixture) throw new Error('Missing hermetic fixture')
@@ -1934,7 +2159,7 @@ test.describe('Pi Work desktop smoke', () => {
     const inlineError = page.getByRole('alert').filter({ hasText: /setting could not be saved/i })
     await expect(inlineError).toBeVisible()
     await expect(shell).toHaveAttribute('aria-invalid', 'true')
-    await expect(shell).toHaveAttribute('aria-describedby', await inlineError.getAttribute('id') ?? '')
+    await expect(shell).toHaveAttribute('aria-describedby', (await inlineError.getAttribute('id')) ?? '')
     await expect(page.locator('.toast')).toContainText(/shell is not executable/i)
     await expect(shell).toHaveValue(rejectedDraft)
     await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
@@ -1946,7 +2171,10 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('keeps the sidebar docked and overlays only the inspector at the compact desktop breakpoint', async () => {
-    await page.getByRole('button', { name: /^New session/ }).first().click()
+    await page
+      .getByRole('button', { name: /^New session/ })
+      .first()
+      .click()
     await page.setViewportSize({ width: 960, height: 700 })
     await expect.poll(() => page.locator('.sidebar').evaluate((node) => getComputedStyle(node).position)).toBe('relative')
     await expect(page.locator('.sidebar')).toBeVisible()
@@ -2001,14 +2229,21 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('attaches an isolated browser guest without navigation errors', async () => {
-    await page.getByRole('button', { name: /^New session/ }).first().click()
+    await page
+      .getByRole('button', { name: /^New session/ })
+      .first()
+      .click()
     await page.getByRole('tab', { name: 'Browser' }).click()
     const guest = page.locator('webview[partition="persist:prime-work-browser"]')
     await expect(guest).toHaveCount(1)
-    await expect.poll(() => guest.evaluate(async (node) => {
-      const webview = node as HTMLElement & { executeJavaScript(script: string): Promise<unknown> }
-      return webview.executeJavaScript('typeof window.ptx')
-    })).toBe('undefined')
+    await expect
+      .poll(() =>
+        guest.evaluate(async (node) => {
+          const webview = node as HTMLElement & { executeJavaScript(script: string): Promise<unknown> }
+          return webview.executeJavaScript('typeof window.ptx')
+        }),
+      )
+      .toBe('undefined')
     await page.waitForTimeout(2_500)
     expect(actionableErrors.filter((error) => /ERR_ABORTED|GUEST_VIEW_MANAGER_CALL/i.test(error))).toEqual([])
     await page.getByRole('tab', { name: 'Browser' }).focus()
@@ -2027,10 +2262,16 @@ test.describe('Pi Work desktop smoke', () => {
 
     await page.locator('.session-row').filter({ hasText: 'Hermetic desktop fixture' }).click()
     await expect(page.locator('.file-changes')).toContainText('secondary-change.txt')
-    await page.getByRole('button', { name: /Stage$/ }).last().click()
+    await page
+      .getByRole('button', { name: /Stage$/ })
+      .last()
+      .click()
     await page.getByRole('button', { name: 'Staged', exact: true }).click()
     await expect(page.locator('.file-changes')).toContainText('secondary-change.txt')
-    await page.getByRole('button', { name: /Unstage$/ }).last().click()
+    await page
+      .getByRole('button', { name: /Unstage$/ })
+      .last()
+      .click()
   })
   test('writes a per-turn changes summary into the transcript and undoes it', async () => {
     await page.locator('.session-row-wrap').filter({ hasText: 'Hermetic desktop fixture' }).locator('.session-row').click()
@@ -2079,7 +2320,10 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('resizes the inspector horizontally and terminal vertically', async () => {
-    await page.getByRole('button', { name: /^New session/ }).first().click()
+    await page
+      .getByRole('button', { name: /^New session/ })
+      .first()
+      .click()
     await page.getByRole('tab', { name: 'Summary' }).click()
 
     const inspector = page.locator('.inspector')
@@ -2181,9 +2425,7 @@ test.describe('Pi Work desktop smoke', () => {
     await page.getByLabel(/Toggle terminal/).click()
     await expect(page.locator('.terminal-drawer .xterm')).toBeVisible()
     await expect(page.locator('.terminal-live-dot.is-connected')).toBeVisible()
-    const firstTerminalLine = () => page.locator('.terminal-surface:not([hidden]) .xterm-rows').evaluate((rows) =>
-      [...rows.children].map((row) => row.textContent?.trim() ?? '').find(Boolean) ?? '',
-    )
+    const firstTerminalLine = () => page.locator('.terminal-surface:not([hidden]) .xterm-rows').evaluate((rows) => [...rows.children].map((row) => row.textContent?.trim() ?? '').find(Boolean) ?? '')
     await expect.poll(firstTerminalLine).toMatch(/\S/)
     expect(await firstTerminalLine()).not.toBe('%')
     await expect(page.getByRole('tablist', { name: 'Terminal tabs' }).getByRole('tab')).toHaveCount(1)
@@ -2324,10 +2566,14 @@ test.describe('Pi Work desktop smoke', () => {
       window.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Q', modifiers: ['meta'] })
       window.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Q', modifiers: ['meta'] })
     })
-    await expect.poll(() => app!.evaluate(({ BrowserWindow }) => {
-      const window = BrowserWindow.getAllWindows()[0]
-      return { count: BrowserWindow.getAllWindows().length, visible: window?.isVisible(), destroyed: window?.isDestroyed() }
-    })).toEqual({ count: 1, visible: false, destroyed: false })
+    await expect
+      .poll(() =>
+        app!.evaluate(({ BrowserWindow }) => {
+          const window = BrowserWindow.getAllWindows()[0]
+          return { count: BrowserWindow.getAllWindows().length, visible: window?.isVisible(), destroyed: window?.isDestroyed() }
+        }),
+      )
+      .toEqual({ count: 1, visible: false, destroyed: false })
     expect(app!.process().exitCode).toBeNull()
 
     await app!.evaluate(() => {
@@ -2353,10 +2599,12 @@ test.describe('Pi Work desktop smoke', () => {
       }) as typeof Menu.buildFromTemplate
     }, trayBuildsPath)
     await page.evaluate(() => window.ptx.settings.update({ keepRunningInBackground: true }))
-    await expect.poll(() => existsSync(trayBuildsPath) ? readFileSync(trayBuildsPath, 'utf8').trim().split('\n').length : 0).toBe(1)
+    await expect.poll(() => (existsSync(trayBuildsPath) ? readFileSync(trayBuildsPath, 'utf8').trim().split('\n').length : 0)).toBe(1)
 
     const closed = app!.waitForEvent('close', { timeout: 45_000 })
-    await app!.evaluate(({ app: electronApp }) => { electronApp.quit() })
+    await app!.evaluate(({ app: electronApp }) => {
+      electronApp.quit()
+    })
     await closed
 
     expect(readFileSync(trayBuildsPath, 'utf8').trim().split('\n')).toHaveLength(1)
@@ -2376,18 +2624,22 @@ test.describe('Pi Work desktop smoke', () => {
       detail: 'An agent run is still in progress and will be stopped.',
       buttons: ['Cancel', 'Close Ptx'],
     }
-    await app!.evaluate(({ BrowserWindow }) => { BrowserWindow.getAllWindows()[0]?.close() })
+    await app!.evaluate(({ BrowserWindow }) => {
+      BrowserWindow.getAllWindows()[0]?.close()
+    })
     await expect.poll(() => closePrompts(app!)).toEqual([runningPrompt])
     await expect(page.locator('.app-shell')).toBeVisible()
 
     // Quit routes through the same confirmation instead of bypassing it.
-    await app!.evaluate(({ app: electronApp }) => { electronApp.quit() })
+    await app!.evaluate(({ app: electronApp }) => {
+      electronApp.quit()
+    })
     await expect.poll(() => closePrompts(app!)).toEqual([runningPrompt, runningPrompt])
     await expect(page.locator('.app-shell')).toBeVisible()
 
     const closed = app!.waitForEvent('close', { timeout: 45_000 })
     await app!.evaluate(({ app: electronApp }) => {
-      (globalThis as { __closeResponse?: number }).__closeResponse = 1
+      ;(globalThis as { __closeResponse?: number }).__closeResponse = 1
       electronApp.quit()
     })
     await closed
@@ -2424,13 +2676,21 @@ test.describe('Pi Work desktop smoke', () => {
     expect(processIsAlive(runtimePid)).toBe(true)
     await stubCloseDialog(app!)
 
-    await app!.evaluate(({ BrowserWindow }) => { BrowserWindow.getAllWindows()[0]?.show() })
+    await app!.evaluate(({ BrowserWindow }) => {
+      BrowserWindow.getAllWindows()[0]?.show()
+    })
     await expect.poll(() => app!.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible())).toBe(true)
-    await app!.evaluate(({ BrowserWindow }) => { BrowserWindow.getAllWindows()[0]?.close() })
-    await expect.poll(() => app!.evaluate(({ BrowserWindow }) => {
-      const window = BrowserWindow.getAllWindows()[0]
-      return { count: BrowserWindow.getAllWindows().length, visible: window?.isVisible(), destroyed: window?.isDestroyed() }
-    })).toEqual({ count: 1, visible: false, destroyed: false })
+    await app!.evaluate(({ BrowserWindow }) => {
+      BrowserWindow.getAllWindows()[0]?.close()
+    })
+    await expect
+      .poll(() =>
+        app!.evaluate(({ BrowserWindow }) => {
+          const window = BrowserWindow.getAllWindows()[0]
+          return { count: BrowserWindow.getAllWindows().length, visible: window?.isVisible(), destroyed: window?.isDestroyed() }
+        }),
+      )
+      .toEqual({ count: 1, visible: false, destroyed: false })
     expect(await closePrompts(app!)).toEqual([])
     expect(app!.process().exitCode).toBeNull()
     expect(processIsAlive(runtimePid)).toBe(true)

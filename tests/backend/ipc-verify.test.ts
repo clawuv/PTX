@@ -101,6 +101,19 @@ describe('registerIpc verify gate', () => {
     registration.dispose()
   })
 
+  it('protects all Feishu configuration and connection operations with the renderer trust gate', async () => {
+    const event = fakeEvent()
+    const status = vi.fn(() => ({ enabled: false }))
+    stubs.feishu = { status, save: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), forget: vi.fn() }
+    for (const channel of ['status', 'save', 'connect', 'disconnect', 'forget', 'binding-begin', 'binding-status', 'binding-cancel', 'binding-finish']) {
+      expect(() => handlers.get('feishu:' + channel)!(event)).toThrow('not authorized')
+    }
+    registration.authorize(event.sender as never)
+    expect(await handlers.get('feishu:status')!(event)).toEqual({ enabled: false })
+    expect(status).toHaveBeenCalledOnce()
+    registration.dispose()
+  })
+
   it('exposes fixed read-only pet discovery channels to an authorized renderer', async () => {
     const event = fakeEvent()
     registration.authorize(event.sender as never)

@@ -1,3 +1,5 @@
+import { FeishuService } from './feishu/service'
+import { FeishuStore } from './feishu/store'
 import { TaskService } from './tasks/service'
 import { app, BrowserWindow, dialog, Menu, nativeTheme, Notification, protocol, safeStorage, session, shell, webContents } from 'electron'
 import type { BrowserWindowConstructorOptions, Input, WebContents } from 'electron'
@@ -56,6 +58,7 @@ let downloads: BrowserDownloadGuard | null = null
 let updateService: UpdateService | null = null
 let store: JsonStateStore | null = null
 let automation: AutomationService | null = null
+let feishuService: FeishuService | null = null
 let agentScheduleBridges: AgentScheduleBridge[] = []
 let agentBrowser: AgentBrowserService | null = null
 let agentBrowserBridge: AgentBrowserBridge | null = null
@@ -846,6 +849,14 @@ async function bootstrap(): Promise<void> {
     pi: { projects: piProjects, sessions: piSessions, agents: piManager, catalog: piCatalog, plugins: piPlugins },
   })
   const tasks = new TaskService(join(userDataPath, 'development-tasks.json'), harnesses, git)
+  const feishu = new FeishuService(new FeishuStore(join(userDataPath, 'feishu.enc'), {
+    available: () => voiceSecretStorageStatus(process.platform, safeStorage.isEncryptionAvailable(),
+      process.platform === 'linux' ? safeStorage.getSelectedStorageBackend() : undefined).available,
+    encrypt: (value) => safeStorage.encryptString(value),
+    decrypt: (value) => safeStorage.decryptString(value),
+  }), harnesses, { pi: piProjects, omp: ompProjects })
+  feishuService = feishu
+
   const ompScheduledRuns = new ScheduledRunExecutor(
     ompProjects,
     ompSessions,
@@ -1028,13 +1039,17 @@ async function bootstrap(): Promise<void> {
   }
   trustedRendererUrl = resolveRendererUrl()
   ipc = registerIpc({
-    meta, refreshHarnesses, terminals, git, settings, updates, cuaDriver, schedules, tasks, browser: browserService, voice, pets, harnesses,
+    meta, refreshHarnesses, terminals, git, settings, updates, cuaDriver, schedules, tasks, feishu, browser: browserService, voice, pets, harnesses,
     popupApplicationMenu, applyMenuCommand, setTitleBarTheme, windowControls,
     applyInterfaceZoom,
   }, trustedRendererUrl)
   // Both managers share the one renderer forwarding path: envelopes carry the
   // runtimeId and RuntimeInfo carries the harness, so the renderer can route.
   const forwardAgentEvent = (envelope: AgentEventEnvelope): void => {
+    if (envelope.event.type === 'runtime_exit') {
+      piSessions.runtimeExited(envelope.runtimeId)
+      ompSessions.runtimeExited(envelope.runtimeId)
+    }
     try { tasks.onAgentEvent(envelope) } catch (error) { console.error('Task lifecycle persistence failed', error) }
     const renderer = mainWindow?.webContents
     if (!shutdownStarted && renderer && !renderer.isDestroyed()
@@ -1085,6 +1100,7 @@ async function bootstrap(): Promise<void> {
     return
   }
   updates.start()
+  void feishu.start()
 }
 
 /**
@@ -1179,6 +1195,8 @@ app.on('before-quit', (event) => {
   registration?.dispose()
   backgroundMode?.dispose()
   updateService?.dispose()
+  feishuService?.binding.cancel()
+  feishuService?.stop()
   ompAgents?.beginShutdown()
   piAgents?.beginShutdown()
   beginProcessShutdown()

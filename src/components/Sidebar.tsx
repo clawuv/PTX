@@ -1,3 +1,4 @@
+import { MobileConnectionButton } from './MobileConnectionButton'
 import {
   Archive,
   ArrowLeft,
@@ -14,7 +15,6 @@ import {
   Plus,
   Search,
   Settings,
-  Smartphone,
   SquarePen,
   Trash2,
 } from 'lucide-react'
@@ -313,7 +313,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
       {settingsMode ? null : (
         <div className="sidebar__footer">
         <button type="button" title={t('nav.settings')} className={`sidebar__settings-entry${settingsMode ? ' is-active' : ''}`} onClick={() => onNavigate(settingsMode ? 'session' : 'settings')}><Settings size={15} /><span>{activeProjectName}</span><kbd>{settingsShortcut}</kbd></button>
-        <button type="button" className="sidebar__mobile" disabled title={t('sidebar.mobileSoon')} aria-label={t('sidebar.mobileSoon')}><Smartphone size={16}/></button>
+        <MobileConnectionButton onClick={() => { onNavigate('settings'); onSelectSettingsSection?.('mobile') }} />
         </div>
       )}
       {renameTarget ? <Modal title={t('sidebar.renameTitle')} onClose={() => setRenameTarget(null)} footer={<><button type="button" className="button" onClick={() => setRenameTarget(null)}>{t('sidebar.cancel')}</button><button type="button" className="button button--primary" disabled={!renameValue.trim()} onClick={() => { const target = renameTarget; const title = renameValue.trim(); setRenameTarget(null); void onRenameSession(target, title) }}>{t('sidebar.rename')}</button></>}><label className="field"><span>{t('sidebar.sessionName')}</span><input autoFocus value={renameValue} maxLength={200} onChange={(event) => setRenameValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && renameValue.trim()) { event.preventDefault(); const target = renameTarget; const title = renameValue.trim(); setRenameTarget(null); void onRenameSession(target, title) } }}/></label></Modal> : null}

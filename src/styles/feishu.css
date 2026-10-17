@@ -1,0 +1,90 @@
+.feishu-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  border: 0;
+  padding: 0;
+  margin: 14px 0;
+}
+.feishu-fields .field {
+  min-width: 0;
+  margin-top: 0;
+  gap: 3px;
+}
+.feishu-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.feishu-actions .feishu-forget {
+  color: var(--danger);
+}
+@media (max-width: 720px) {
+  .feishu-fields {
+    grid-template-columns: 1fr;
+  }
+}
+.feishu-fields select {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 0 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+}
+.feishu-fields input {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  font-size: 13px;
+}
+.feishu-fields input:focus-visible,
+.feishu-fields select:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.feishu-settings {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.feishu-settings .settings-note {
+  margin: 6px 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.feishu-settings ol {
+  padding-left: 20px;
+  color: var(--text-secondary);
+}
+.feishu-settings .settings-group + .settings-group {
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+
+.modal:has(.feishu-binding) {
+  width: min(100%, 334px);
+}
+.feishu-binding {
+  text-align: center;
+}
+.feishu-binding img {
+  display: block;
+  margin: 12px auto;
+  max-width: 100%;
+  border-radius: 8px;
+}
+.feishu-binding .feishu-fields {
+  grid-template-columns: 1fr;
+}
+
+.feishu-settings > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}

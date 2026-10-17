@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { ApplicationMenuCommand, ApplicationMenuName } from '@/types/api'
 import { useI18n, type MessageKey } from '@/lib/i18n'
 import { shortcutLabel } from '@/lib/platform-shortcuts'
+import { AppUpdateButton } from './AppUpdateButton'
+import type { AppUpdateState } from '@/types/api'
 import { IconButton } from './ui'
 import type { ReactNode } from 'react'
 
@@ -64,6 +66,8 @@ interface TitleToolbarProps {
   onToggleSidebar(): void
   onToggleSearch(): void
   searchOpen: boolean
+  updateState?: AppUpdateState
+  onUpdateAction?(): void | Promise<void>
   platform?: NodeJS.Platform
   /** macOS: session actions rendered into the strip's right end, inside the drag region so they stay clickable. */
   sessionActions?: ReactNode
@@ -75,7 +79,7 @@ interface TitleToolbarProps {
 }
 
 /** The replica chrome: a full-width title strip with the sidebar toggle, history arrows, menus, and window controls. */
-export function TitleToolbar({ onToggleSidebar, onToggleSearch, searchOpen, platform = 'darwin', sessionActions, onBack, onForward, canBack = false, canForward = false }: TitleToolbarProps) {
+export function TitleToolbar({ onToggleSidebar, onToggleSearch, searchOpen, updateState = { phase: 'unsupported' }, onUpdateAction, platform = 'darwin', sessionActions, onBack, onForward, canBack = false, canForward = false }: TitleToolbarProps) {
   const { t } = useI18n()
   const sidebarShortcut = shortcutLabel(platform, ['Primary', 'B'])
   const drawWindowControls = platform === 'win32' || platform === 'linux'
@@ -111,6 +115,7 @@ export function TitleToolbar({ onToggleSidebar, onToggleSearch, searchOpen, plat
       <div className="title-toolbar__nav no-drag">
         <IconButton label={t('shellui.toggleSidebar', { shortcut: sidebarShortcut })} onClick={onToggleSidebar}><PanelLeft size={16} /></IconButton>
         <IconButton label={t('sidebar.search')} onClick={onToggleSearch} aria-expanded={searchOpen} className="title-toolbar__search"><Search size={16} /></IconButton>
+        <AppUpdateButton updateState={updateState} onUpdateAction={onUpdateAction} />
         {platform === 'darwin' || platform === 'win32' ? (
           <span className="titlebar-arrows">
             <button type="button" className="titlebar-arrow" disabled={!canBack} aria-label={t('shellui.navigateBack')} title={t('shellui.navigateBack')} onClick={onBack}>

@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   ChevronDown,
   Copy,
-  Download,
   Folder,
   LoaderCircle,
   MessageCircleQuestion,
@@ -14,17 +13,17 @@ import {
   PackageOpen,
   Plus,
   Search,
-  RefreshCw,
   Settings,
+  Smartphone,
   SquarePen,
   Trash2,
 } from 'lucide-react'
-import { memo, useEffect, useMemo, useState, type CSSProperties, type ReactElement } from 'react'
+import { memo, useEffect, useMemo, useState, type ReactElement } from 'react'
 import { createPortal } from 'react-dom'
-import type { AppMeta, AppUpdateState, HarnessId, ProjectRecord, SessionRecord, WorkspaceView } from '@/types/api'
+import type { AppMeta, HarnessId, ProjectRecord, SessionRecord, WorkspaceView } from '@/types/api'
 import { formatRelative } from '@/lib/data'
 import { HARNESS_PRODUCT_NAMES, HARNESS_SELECTOR_ORDER, HARNESS_SHORT_NAMES } from '@/lib/harness'
-import { useI18n, type MessageKey, type MessageValues } from '@/lib/i18n'
+import { useI18n, type MessageKey } from '@/lib/i18n'
 import { shortcutLabel } from '@/lib/platform-shortcuts'
 import { sessionAttentionSignature, signatureCleared } from '@/app/session-attention'
 import type { SettingsSection } from '@/pages/settings/contracts'
@@ -40,8 +39,6 @@ export interface SidebarProps {
   activeHarness?: HarnessId
   harnesses?: AppMeta['harnesses'] | null
   clearedAttention?: Record<string, string>
-  updateState?: AppUpdateState
-  onUpdateAction?(): void | Promise<void>
   onSelectHarness?(harness: HarnessId): void
   onSelectProject(project: ProjectRecord): void
   onSelectSession(session: SessionRecord): void
@@ -62,7 +59,6 @@ export interface SidebarProps {
   schedulesAttention?: number
 }
 
-type Translate = (key: MessageKey, values?: MessageValues) => string
 
 const statusLabel: Record<SessionRecord['status'], MessageKey> = {
   idle: 'sidebar.status.idle', running: 'sidebar.status.running', waiting: 'sidebar.status.waiting', complete: 'sidebar.status.complete', failed: 'sidebar.status.failed', unknown: 'sidebar.status.unknown',
@@ -129,48 +125,6 @@ function HarnessMark({ harness, size }: { harness: HarnessId; size: number }) {
   return <Mark size={size} />
 }
 
-function updateControlCopy(state: AppUpdateState, t: Translate): { label: string; title: string } {
-  const version = state.version ? ` ${state.version}` : ''
-  if (state.manualInstall && (state.phase === 'available' || state.phase === 'downloaded')) return { label: t('sidebar.update.manualDownload'), title: t('sidebar.update.manualDownload') }
-  switch (state.phase) {
-    case 'checking': return { label: t('sidebar.update.checking'), title: t('sidebar.update.checkingTitle') }
-    case 'available': return { label: t('sidebar.update.download', { version }), title: t('sidebar.update.downloadTitle', { version }) }
-    case 'downloading': return {
-      label: state.percent === undefined ? t('sidebar.update.downloading', { version }) : t('sidebar.update.downloadingPercent', { version, percent: state.percent }),
-      title: t('sidebar.update.downloadingTitle', { version }),
-    }
-    case 'downloaded': return { label: t('sidebar.update.restartFor', { version }), title: t('sidebar.update.restartTitle', { version }) }
-    case 'not-available': return { label: t('sidebar.update.upToDate'), title: t('sidebar.update.checkAgain') }
-    case 'error': return { label: t('sidebar.update.retry', { version }), title: state.message ?? t('sidebar.update.errorTitle') }
-    case 'unsupported': return { label: t('sidebar.update.automatic'), title: state.message ?? t('sidebar.update.unsupportedTitle') }
-    default: return { label: t('sidebar.update.releaseUpdates'), title: t('sidebar.update.releaseTitle') }
-  }
-}
-
-/** Announced without the percentage so progress ticks do not spam assistive tech. */
-function updateAnnouncement(state: AppUpdateState, t: Translate): string {
-  const version = state.version ? ` ${state.version}` : ''
-  switch (state.phase) {
-    case 'available': return t('sidebar.update.availableAnnouncement', { version })
-    case 'downloading': return t('sidebar.update.downloadingAnnouncement', { version })
-    case 'downloaded': return t('sidebar.update.readyAnnouncement', { version })
-    case 'error': return t('sidebar.update.failedAnnouncement', { message: state.message ?? t('sidebar.update.tryAgain') })
-    default: return ''
-  }
-}
-
-function updateConfirmCopy(state: AppUpdateState, t: Translate): { title: string; body: string } {
-  if (state.manualInstall) return { title: t('sidebar.update.manualDownload'), body: t('sidebar.update.manualBody') }
-  if (state.phase === 'downloaded') return {
-    title: t('sidebar.update.confirmRestartTitle'),
-    body: t('sidebar.update.confirmRestartBody'),
-  }
-  return {
-    title: t('sidebar.update.confirmDownloadTitle'),
-    body: t('sidebar.update.confirmDownloadBody'),
-  }
-}
-
 async function copySessionUuid(id: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
     try {
@@ -191,7 +145,7 @@ async function copySessionUuid(id: string): Promise<void> {
   if (!copied) throw new Error('Copy is unavailable')
 }
 
-function SidebarView({ projects, sessions, activeProjectId, activeSessionId, activeView, activeHarness = 'omp', harnesses, clearedAttention = {}, updateState = { phase: 'unsupported' }, onUpdateAction, onSelectHarness, onSelectSession, onNavigate, onNewSession, onAddProject, onRemoveProject, onOpenPalette, onRenameSession, onArchiveSession, settingsMode = false, searchOpen = false, activeSettingsSection = 'general', onSelectSettingsSection, platform = 'darwin', schedulesAttention = 0 }: SidebarProps) {
+function SidebarView({ projects, sessions, activeProjectId, activeSessionId, activeView, activeHarness = 'omp', harnesses, clearedAttention = {}, onSelectHarness, onSelectSession, onNavigate, onNewSession, onAddProject, onRemoveProject, onOpenPalette, onRenameSession, onArchiveSession, settingsMode = false, searchOpen = false, activeSettingsSection = 'general', onSelectSettingsSection, platform = 'darwin', schedulesAttention = 0 }: SidebarProps) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   useEffect(() => {
@@ -203,8 +157,6 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
   const [renameTarget, setRenameTarget] = useState<SessionRecord | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [removeTarget, setRemoveTarget] = useState<ProjectRecord | null>(null)
-  const [confirmUpdate, setConfirmUpdate] = useState(false)
-  const [showUpdateStatus, setShowUpdateStatus] = useState(false)
   const { sessionsByProject } = useMemo(() => indexSidebarSessions(projects, sessions), [projects, sessions])
   const [collapsedProjects, setCollapsedProjects] = useState<ReadonlySet<string>>(() => new Set())
   const [projectsSectionCollapsed, setProjectsSectionCollapsed] = useState(false)
@@ -214,10 +166,6 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
   }
   const newSessionShortcut = shortcutLabel(platform, ['Primary', 'N'])
   const settingsShortcut = shortcutLabel(platform, ['Primary', ','])
-  const updateCopy = updateControlCopy(updateState, t)
-  const updateConfirm = updateConfirmCopy(updateState, t)
-  const updateBusy = updateState.phase === 'checking' || updateState.phase === 'downloading'
-  const updateIndeterminate = updateState.phase === 'downloading' && updateState.percent === undefined
   useEffect(() => {
     if (!projectMenu) return
     const dismiss = (event: PointerEvent) => { if (!(event.target instanceof Element) || !event.target.closest('.project-group')) setProjectMenu(null) }
@@ -364,32 +312,13 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
 
       {settingsMode ? null : (
         <div className="sidebar__footer">
-            <span className="sr-only" role="status" aria-live="polite">{updateAnnouncement(updateState, t)}</span>
-            <button
-              type="button"
-              className={`sidebar-update sidebar-update--${updateState.phase} ${updateIndeterminate ? 'sidebar-update--indeterminate' : ''}`}
-              title={updateCopy.title}
-              aria-label={updateCopy.title}
-              disabled={updateBusy || updateState.phase === 'unsupported' || !onUpdateAction}
-              onClick={() => { if (updateState.phase === 'available' || updateState.phase === 'downloaded') setConfirmUpdate(true); else { setShowUpdateStatus(true); void onUpdateAction?.() } }}
-              style={{ '--update-progress': `${updateState.percent ?? 0}%` } as CSSProperties}
-            >
-              <span className="sidebar-update__icon">{updateState.phase === 'available' || updateState.phase === 'downloaded' || updateState.phase === 'downloading' ? <Download size={12} /> : <RefreshCw size={12} />}</span>
-              <span className="sr-only">{updateCopy.label}</span>
-            </button>
         <button type="button" title={t('nav.settings')} className={`sidebar__settings-entry${settingsMode ? ' is-active' : ''}`} onClick={() => onNavigate(settingsMode ? 'session' : 'settings')}><Settings size={15} /><span>{activeProjectName}</span><kbd>{settingsShortcut}</kbd></button>
+        <button type="button" className="sidebar__mobile" disabled title={t('sidebar.mobileSoon')} aria-label={t('sidebar.mobileSoon')}><Smartphone size={16}/></button>
         </div>
       )}
       {renameTarget ? <Modal title={t('sidebar.renameTitle')} onClose={() => setRenameTarget(null)} footer={<><button type="button" className="button" onClick={() => setRenameTarget(null)}>{t('sidebar.cancel')}</button><button type="button" className="button button--primary" disabled={!renameValue.trim()} onClick={() => { const target = renameTarget; const title = renameValue.trim(); setRenameTarget(null); void onRenameSession(target, title) }}>{t('sidebar.rename')}</button></>}><label className="field"><span>{t('sidebar.sessionName')}</span><input autoFocus value={renameValue} maxLength={200} onChange={(event) => setRenameValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && renameValue.trim()) { event.preventDefault(); const target = renameTarget; const title = renameValue.trim(); setRenameTarget(null); void onRenameSession(target, title) } }}/></label></Modal> : null}
       {removeTarget ? <Modal title={t('sidebar.removeProject')} onClose={() => setRemoveTarget(null)} footer={<><button type="button" className="button" onClick={() => setRemoveTarget(null)}>{t('sidebar.cancel')}</button><button type="button" className="button button--danger" onClick={() => { const target = removeTarget; setRemoveTarget(null); onRemoveProject(target) }}>{t('sidebar.remove')}</button></>}><p>{t('sidebar.removeConfirm', { name: removeTarget.name, harness: HARNESS_PRODUCT_NAMES[activeHarness] })}</p></Modal> : null}
-      {showUpdateStatus ? <Modal title={t('sidebar.update.releaseTitle')} onClose={() => setShowUpdateStatus(false)} footer={
-        updateState.phase === 'available' || updateState.phase === 'downloaded'
-          ? <button type="button" className="button button--primary" onClick={() => { setShowUpdateStatus(false); setConfirmUpdate(true) }}>{updateCopy.label}</button>
-          : updateState.phase === 'error'
-            ? <button type="button" className="button" onClick={() => { void onUpdateAction?.() }}>{t('sidebar.update.tryAgain')}</button>
-            : undefined
-      }><p role="status" aria-live="polite">{updateAnnouncement(updateState, t) || updateCopy.label}</p></Modal> : null}
-      {confirmUpdate ? <Modal title={updateConfirm.title} onClose={() => setConfirmUpdate(false)} footer={<><button type="button" className="button" onClick={() => setConfirmUpdate(false)}>{t('sidebar.update.confirmNo')}</button><button type="button" className="button button--primary" onClick={() => { setConfirmUpdate(false); void onUpdateAction?.() }}>{t('sidebar.update.confirmYes')}</button></>}><p>{updateConfirm.body}</p></Modal> : null}
+
     </aside>
   )
 }
@@ -403,8 +332,6 @@ export function areSidebarPropsEqual(previous: SidebarProps, next: SidebarProps)
     && previous.activeHarness === next.activeHarness
     && previous.harnesses === next.harnesses
     && previous.clearedAttention === next.clearedAttention
-    && previous.updateState === next.updateState
-    && previous.onUpdateAction === next.onUpdateAction
     && previous.onSelectHarness === next.onSelectHarness
     && previous.onSelectProject === next.onSelectProject
     && previous.onSelectSession === next.onSelectSession

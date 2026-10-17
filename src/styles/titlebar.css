@@ -66,6 +66,7 @@
 .title-toolbar__nav {
   display: flex;
   align-items: center;
+  gap: 2px;
   -webkit-app-region: no-drag;
 }
 .title-toolbar__nav > *,
@@ -73,9 +74,9 @@
   -webkit-app-region: no-drag;
 }
 .title-toolbar__nav .icon-button {
-  width: 16px;
-  height: 16px;
-  min-width: 16px;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
   padding: 0;
   border-radius: 0;
   color: var(--navigation-ink);
@@ -87,10 +88,12 @@
 .titlebar-arrows {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-left: 20px;
+  gap: 2px;
+  margin-left: 0;
 }
 .titlebar-arrow {
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -104,20 +107,18 @@
   opacity: .4;
   background: transparent;
 }
-/* macOS: arrows lead right after the traffic lights with comfortable spacing,
-   and the sidebar toggle sits at the right end of the cluster. Boxes match the
-   header's right-side toggles (28px) so the hover cells read as one family. */
+/* Compact history, sidebar and search controls after the traffic lights. */
 .app-shell[data-platform="darwin"] .titlebar-arrows {
-  gap: 4px;
-  margin-left: 4px;
+  gap: 2px;
+  margin-left: 0;
 }
 .app-shell[data-platform="darwin"] .title-toolbar__nav .icon-button {
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
   border-radius: 7px;
   order: 1;
-  margin-left: 4px;
+  margin-left: 0;
 }
 .app-shell[data-platform="darwin"] .title-toolbar__nav .icon-button:hover {
   background: var(--surface-hover);
@@ -132,8 +133,8 @@
   height: 15px;
 }
 .app-shell[data-platform="darwin"] .titlebar-arrow {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 8px;
   transition: background 130ms ease-out;
 }
@@ -743,9 +744,9 @@ button.summary-popover__row[aria-expanded="true"] {
   text-overflow: ellipsis;
 }
 
-.app-shell:not([data-platform="darwin"]) .title-toolbar__nav > .icon-button { order: 1; margin-left: 18px; }
+.app-shell:not([data-platform="darwin"]) .title-toolbar__nav > .icon-button { order: 1; margin-left: 0; }
 .app-shell:not([data-platform="darwin"]) .title-toolbar__nav > .icon-button svg { width: 13px; height: 13px; }
-.app-shell:not([data-platform="darwin"]) .titlebar-arrows { margin-left: 0; gap: 18px; }
+.app-shell:not([data-platform="darwin"]) .titlebar-arrows { margin-left: 0; gap: 2px; }
 .app-shell:not([data-platform="darwin"]) .titlebar-menus { margin-left: 18px; gap: 6px; }
 .app-shell:not([data-platform="darwin"]) .titlebar-arrow { width: 13px; height: 13px; }
 .app-shell[data-platform="win32"] .title-toolbar { border-bottom: 0; font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif; }

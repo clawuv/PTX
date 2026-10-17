@@ -36,7 +36,6 @@
   .session-workspace > .resize-handle--vertical { display: none; }
   .conversation-pane { min-width: 0; }
   .title-toolbar__identity { justify-content: center; }
-  .directory-list { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {

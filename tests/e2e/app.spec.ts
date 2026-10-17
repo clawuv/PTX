@@ -1105,27 +1105,25 @@ test.describe('Pi Work desktop smoke', () => {
     await expect.poll(() => existsSync(join(fixtureRoot, 'omp-runtime-args.json'))).toBe(true)
   })
 
-  test('shows update check results from main-process events beside Settings', async () => {
-    const update = page.locator('.sidebar-update')
-    const settings = page.locator('.sidebar__settings-entry')
-    const updateBounds = await update.boundingBox()
-    const settingsBounds = await settings.boundingBox()
-    expect(updateBounds!.x).toBeGreaterThanOrEqual(settingsBounds!.x + settingsBounds!.width)
-    await app!.evaluate(({ BrowserWindow }) => {
-      BrowserWindow.getAllWindows()[0]?.webContents.send('updates:changed', { phase: 'idle' })
-    })
-    await update.click()
-    const dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible()
-    await app!.evaluate(({ BrowserWindow }) => {
-      BrowserWindow.getAllWindows()[0]?.webContents.send('updates:changed', { phase: 'not-available' })
-    })
-    await expect(dialog).toContainText('Ptx is up to date')
+  test('shows a blue update icon beside search only after discovering an update', async () => {
+    const update = page.locator('.title-toolbar .app-update')
+    await expect(update).toHaveCount(0)
+    for (const phase of ['checking', 'not-available', 'error']) {
+      await app!.evaluate(({ BrowserWindow }, phase) => {
+        BrowserWindow.getAllWindows()[0]?.webContents.send('updates:changed', { phase })
+      }, phase)
+      await expect(update).toHaveCount(0)
+    }
     await app!.evaluate(({ BrowserWindow }) => {
       BrowserWindow.getAllWindows()[0]?.webContents.send('updates:changed', { phase: 'available', version: '1.0.1', manualInstall: true })
     })
-    await expect(dialog).toContainText('1.0.1')
-    await dialog.getByRole('button', { name: 'Open update downloads' }).click()
+    await expect(update).toBeVisible()
+    await expect(update.locator('.app-update__icon')).toHaveCSS('background-color', 'rgb(51, 156, 255)')
+    const updateBounds = await update.boundingBox()
+    const searchBounds = await page.locator('.title-toolbar__search').boundingBox()
+    expect(updateBounds!.x).toBeGreaterThanOrEqual(searchBounds!.x + searchBounds!.width)
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await update.click()
     await expect(page.getByRole('dialog')).toContainText('requires manual installation')
   })
 

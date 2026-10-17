@@ -3,19 +3,10 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Sidebar } from '../../src/components/Sidebar'
-import type { AppUpdateState, ProjectRecord, SessionRecord } from '../../src/types/api'
+import { AppUpdateButton } from '../../src/components/AppUpdateButton'
+import type { AppUpdateState } from '../../src/types/api'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
-
-const project: ProjectRecord = {
-  id: 'project', harness: 'omp', name: 'Project', path: '/project', folders: ['/project'], primaryFolder: '/project',
-  pinned: false, createdAt: '2026-01-01T00:00:00.000Z', lastOpenedAt: '2026-01-01T00:00:00.000Z', sessionCount: 1,
-}
-const session: SessionRecord = {
-  id: 'session', harness: 'omp', filePath: '/sessions/session.jsonl', projectPath: '/project', title: 'Session',
-  createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', status: 'idle', depth: 0,
-}
 
 let container: HTMLDivElement
 let root: Root
@@ -32,7 +23,6 @@ afterEach(async () => {
   vi.restoreAllMocks()
 })
 
-const noop = () => undefined
 
 async function press(element: Element) {
   await act(async () => {
@@ -44,37 +34,22 @@ async function press(element: Element) {
 async function renderSidebar(updateState: AppUpdateState, onUpdateAction: () => void) {
   await act(async () => {
     root.render(
-      <Sidebar
-        projects={[project]} sessions={[session]} activeView="session" updateState={updateState} onUpdateAction={onUpdateAction}
-        onSelectProject={noop} onSelectSession={noop} onNavigate={noop} onNewSession={noop} onAddProject={noop} onRemoveProject={noop}
-        onOpenPalette={noop} onRenameSession={async () => undefined} onArchiveSession={async () => undefined}
-      />,
+      <AppUpdateButton updateState={updateState} onUpdateAction={onUpdateAction} />,
     )
   })
 }
 
 describe('sidebar update control', () => {
-  it.each(['idle', 'not-available'] as const)('keeps checking available in the %s state without an install confirmation', async (phase) => {
-    const onUpdateAction = vi.fn()
-    await renderSidebar({ phase }, onUpdateAction)
-    const update = container.querySelector<HTMLButtonElement>('.sidebar-update')
-    expect(update?.disabled).toBe(false)
-    expect(container.querySelector('.sidebar__help')).toBeNull()
-    await press(update!)
-    expect(onUpdateAction).toHaveBeenCalledOnce()
-    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull()
-  })
-
-  it.each(['checking', 'unsupported'] as const)('keeps the update button visible but disabled when %s', async (phase) => {
+  it.each(['idle', 'checking', 'not-available', 'unsupported', 'error'] as const)('hides the update button when no update is known in %s', async (phase) => {
     await renderSidebar({ phase }, vi.fn())
-    expect(container.querySelector<HTMLButtonElement>('.sidebar-update')?.disabled).toBe(true)
+    expect(container.querySelector('.app-update')).toBeNull()
   })
 
   it('asks only about restarting when the update is already downloaded', async () => {
     const onUpdateAction = vi.fn()
     await renderSidebar({ phase: 'downloaded', version: '0.2.0' }, onUpdateAction)
 
-    await press(container.querySelector('.sidebar-update')!)
+    await press(container.querySelector('.app-update')!)
     const dialog = document.body.querySelector('[role="dialog"]')
     expect(dialog?.textContent).toContain('Restart Ptx to install the update?')
     expect(dialog?.textContent).toContain('close and restart')
@@ -89,9 +64,9 @@ describe('sidebar update control', () => {
     const onUpdateAction = vi.fn()
     await renderSidebar({ phase: 'error', version: '0.2.0', message: 'network went away' }, onUpdateAction)
 
-    const update = container.querySelector<HTMLButtonElement>('.sidebar-update')
+    const update = container.querySelector<HTMLButtonElement>('.app-update')
     expect(update).not.toBeNull()
-    expect(update?.classList.contains('sidebar-update--error')).toBe(true)
+    expect(update?.classList.contains('app-update--error')).toBe(true)
     expect(update?.textContent).toContain('Retry update 0.2.0')
     expect(update?.getAttribute('title')).toBe('network went away')
     expect(update?.disabled).toBe(false)
@@ -106,24 +81,24 @@ describe('sidebar update control', () => {
     const onUpdateAction = vi.fn()
     await renderSidebar({ phase: 'downloading', version: '0.2.0' }, onUpdateAction)
 
-    const update = container.querySelector('.sidebar-update')
+    const update = container.querySelector('.app-update')
     expect(update?.textContent).toContain('Downloading 0.2.0')
     expect(update?.textContent).not.toContain('%')
-    expect(update?.classList.contains('sidebar-update--indeterminate')).toBe(true)
+    expect(update?.classList.contains('app-update--indeterminate')).toBe(true)
 
     await renderSidebar({ phase: 'downloading', version: '0.2.0', percent: 12 }, onUpdateAction)
-    const progressing = container.querySelector('.sidebar-update')
+    const progressing = container.querySelector('.app-update')
     expect(progressing?.textContent).toContain('Downloading 0.2.0 · 12%')
-    expect(progressing?.classList.contains('sidebar-update--indeterminate')).toBe(false)
+    expect(progressing?.classList.contains('app-update--indeterminate')).toBe(false)
   })
 
   it('announces phase changes from a dedicated status element without the percentage', async () => {
     const onUpdateAction = vi.fn()
     await renderSidebar({ phase: 'downloading', version: '0.2.0', percent: 42 }, onUpdateAction)
 
-    const update = container.querySelector('.sidebar-update')
+    const update = container.querySelector('.app-update')
     expect(update?.getAttribute('aria-live')).toBeNull()
-    const status = container.querySelector('.sidebar__footer [role="status"]')
+    const status = container.querySelector('[role="status"]')
     expect(status?.getAttribute('aria-live')).toBe('polite')
     expect(status?.textContent).toBe('Downloading Ptx update 0.2.0')
   })
@@ -133,7 +108,7 @@ describe('unsigned test update control', () => {
   it('explains manual installation without promising an automatic restart', async () => {
     const action = vi.fn()
     await renderSidebar({ phase: 'available', version: '1.0.1', manualInstall: true }, action)
-    await press(container.querySelector('.sidebar-update')!)
+    await press(container.querySelector('.app-update')!)
     expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('requires manual installation')
     const yes = [...document.body.querySelectorAll<HTMLButtonElement>('.modal__footer button')].find((button) => button.textContent === 'Yes')
     await press(yes!)
@@ -141,18 +116,15 @@ describe('unsigned test update control', () => {
   })
 })
 
- it('shows the result of a manual check and does not install without confirmation', async () => {
+it('shows an automatically discovered update without starting installation', async () => {
   const action = vi.fn()
-  await renderSidebar({ phase: 'idle' }, action)
-  await press(container.querySelector('.sidebar-update')!)
-  expect(action).toHaveBeenCalledOnce()
   await renderSidebar({ phase: 'checking' }, action)
-  expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('Checking for updates')
-  await renderSidebar({ phase: 'not-available' }, action)
-  expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('Ptx is up to date')
-  await renderSidebar({ phase: 'error', message: 'Network unavailable' }, action)
-  expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('Network unavailable')
+  expect(container.querySelector('.app-update')).toBeNull()
   await renderSidebar({ phase: 'available', version: '1.0.1' }, action)
-  expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('1.0.1')
-  expect(action).toHaveBeenCalledOnce()
+  expect(container.querySelector('.app-update')).not.toBeNull()
+  expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+  expect(action).not.toHaveBeenCalled()
+  await press(container.querySelector('.app-update')!)
+  expect(document.body.querySelector('[role="dialog"]')).not.toBeNull()
+  expect(action).not.toHaveBeenCalled()
 })

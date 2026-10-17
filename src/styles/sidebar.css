@@ -119,22 +119,11 @@
 .sidebar__footer { flex: 0 0 auto; display: flex; align-items: center; gap: 9px; margin-top: auto; height: 40px; padding: 0 12px; border-top: 1px solid var(--chrome-divider); }
 .sidebar__footer > .sidebar__settings-entry { height: var(--sidebar-row-height); width: auto; flex: 1 1 auto; min-width: 0; padding: 0 10px 0 8px; gap: var(--sidebar-row-gap); font-size: var(--sidebar-row-font-size); color: var(--sidebar-menu-ink); }
 .sidebar__footer > .sidebar__settings-entry svg { width: 16px; height: 16px; color: var(--sidebar-icon-ink); }
-.sidebar-update { order: 2; width: 20px; height: 20px; min-height: 20px; display: grid; place-items: center; flex: 0 0 20px; margin-left: auto; padding: 0; border: 0; border-radius: 50%; color: var(--on-tint); background: var(--accent); }
-.sidebar-update__icon { display: grid; place-items: center; border: 0; background: transparent; }
-.sidebar-update:hover:not(:disabled) { filter: brightness(1.08); }
-.sidebar-update--downloading { background: conic-gradient(var(--accent) var(--update-progress), var(--accent-soft) 0); color: var(--on-tint); }
-
-/* Focused and blurred windows share one appearance: hover/selection uses the
-   base rules above in both states, so no window-focused overrides live here. */
-.sidebar-update--downloading .sidebar-update__icon { background: transparent; }
-.sidebar-update--error { color: var(--on-tint); background: var(--danger); }
-.sidebar-update--checking, .sidebar-update--available, .sidebar-update--indeterminate { animation: update-pulse 1.4s ease-in-out infinite; }
-.sidebar-update:disabled { cursor: default; opacity: .8; }
-@keyframes update-pulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 10%, transparent); } }
-.nav-attention-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 10.5px; font-style: normal; font-weight: 700; line-height: 1; }
-
+.sidebar__mobile { display: grid; place-items: center; width: 24px; height: 28px; flex: 0 0 24px; padding: 0; color: var(--sidebar-icon-ink); background: transparent; }
 .sidebar__settings-nav button, .sidebar__primary > button, .project-row__main, .session-row, .sidebar__footer > .sidebar__settings-entry { font-weight: 400; line-height: 20px; }
 .session-row-wrap.is-selected .session-row { color: var(--text); }
 .sidebar__settings-nav button:focus-visible, .sidebar__primary > button:focus-visible, .project-row__main:focus-visible, .session-row:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 
 .sidebar__primary > button.is-active > svg, .sidebar__settings-nav button.is-active svg { color: inherit; }
+
+.nav-attention-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 10.5px; font-style: normal; font-weight: 700; line-height: 1; }

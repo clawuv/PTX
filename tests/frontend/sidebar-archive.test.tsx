@@ -49,49 +49,6 @@ async function rightClick(element: Element) {
 }
 
 describe('sidebar project context menu', () => {
-  it('requires confirmation before downloading and restarting an available update', async () => {
-    const onUpdateAction = vi.fn()
-    await act(async () => {
-      root.render(
-        <Sidebar
-          projects={[project]} sessions={[session]} activeView="session" updateState={{ phase: 'available', version: '0.2.0' }} onUpdateAction={onUpdateAction}
-          onSelectProject={noop} onSelectSession={noop} onNavigate={noop} onNewSession={noop} onAddProject={noop} onRemoveProject={noop}
-          onOpenPalette={noop} onRenameSession={async () => undefined} onArchiveSession={async () => undefined}
-        />,
-      )
-    })
-
-    const update = container.querySelector('.sidebar__footer .sidebar-update')
-    const settings = container.querySelector('.sidebar__footer button[title="Settings"]')
-    expect(update).not.toBeNull()
-    expect(update?.nextElementSibling).toBe(settings)
-    expect(update?.textContent).toContain('Download 0.2.0')
-    expect(update?.querySelector('.lucide-download')).not.toBeNull()
-    await press(update!)
-    expect(onUpdateAction).not.toHaveBeenCalled()
-    expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('Download and Restart Ptx?')
-
-    const yes = [...document.body.querySelectorAll<HTMLButtonElement>('.modal__footer button')].find((button) => button.textContent === 'Yes')
-    expect(yes).toBeDefined()
-    await press(yes!)
-    expect(onUpdateAction).toHaveBeenCalledOnce()
-  })
-
-  it('keeps the software update control available when no update is pending', async () => {
-    await act(async () => {
-      root.render(
-        <Sidebar
-          projects={[project]} sessions={[session]} activeView="session" updateState={{ phase: 'not-available' }}
-          onSelectProject={noop} onSelectSession={noop} onNavigate={noop} onNewSession={noop} onAddProject={noop} onRemoveProject={noop}
-          onOpenPalette={noop} onRenameSession={async () => undefined} onArchiveSession={async () => undefined}
-        />,
-      )
-    })
-
-    expect(container.querySelector('.sidebar__footer .sidebar-update')).not.toBeNull()
-    expect(container.querySelector('.sidebar__footer button[title="Settings"]')).not.toBeNull()
-  })
-
   it('copies the exact session UUID from the session context menu', async () => {
     const writeText = vi.fn(async () => undefined)
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })

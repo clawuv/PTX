@@ -1,0 +1,8 @@
+.app-update { order: 2; width: 26px; height: 26px; display: grid; place-items: center; flex: 0 0 26px; padding: 0; border: 0; border-radius: 6px; color: var(--navigation-ink); background: transparent; }
+.app-update__icon { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; background: #339cff; color: #fff; }
+.app-update:hover:not(:disabled) { background: var(--surface-hover); }
+.app-update--available, .app-update--downloaded { color: var(--accent); }
+.app-update--downloading { background: conic-gradient(var(--accent-soft) var(--update-progress), transparent 0); color: var(--accent); }
+.app-update--error { color: var(--danger); }
+.app-update--checking .app-update__icon { animation: spin 1s linear infinite; }
+.app-update:disabled { cursor: default; opacity: .65; }

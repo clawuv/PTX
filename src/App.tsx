@@ -1016,7 +1016,7 @@ export default function App() {
         data-inspector-open={inspectorVisible ? 'true' : 'false'}
         style={{ '--sidebar-width': `${layout.sidebarWidth}px`, '--inspector-width': `${layout.inspectorWidth}px` } as CSSProperties}
       >
-        <TitleToolbar platform={platform} onToggleSidebar={toggleSidebar} searchOpen={sidebarVisible && view !== 'settings' && sidebarSearchOpen} onToggleSearch={() => {
+        <TitleToolbar updateState={appUpdates.state} onUpdateAction={appUpdates.act} platform={platform} onToggleSidebar={toggleSidebar} searchOpen={sidebarVisible && view !== 'settings' && sidebarSearchOpen} onToggleSearch={() => {
           setSidebarSearchOpen(!sidebarVisible || view === 'settings' || !sidebarSearchOpen)
           if (!sidebarVisible) toggleSidebar()
           if (view === 'settings') navigate('session')
@@ -1032,8 +1032,6 @@ export default function App() {
               activeView={view}
               activeHarness={activeHarness}
               harnesses={meta?.harnesses ?? null}
-              updateState={appUpdates.state}
-              onUpdateAction={appUpdates.act}
               schedulesAttention={schedulesAttention}
               onSelectHarness={selectHarness}
               settingsMode={view === 'settings'}

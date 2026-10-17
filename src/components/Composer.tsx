@@ -20,9 +20,9 @@ import { appendTerminalContextToPrompt } from '@/lib/terminal-context'
 import { appendSessionRouting, findSessionMentions } from '@/lib/session-mentions'
 import { clearComposerDraft, readComposerDraft, saveComposerDraft, takeComposerDraft } from '@/lib/composer-draft'
 import { messageActionForKey } from '@/lib/message-shortcuts'
-import { useI18n, type MessageKey } from '@/lib/i18n'
+import { useI18n } from '@/lib/i18n'
 import { useComposerImages } from '@/hooks/useComposerImages'
-import { IconButton, SelectMenu } from './ui'
+import { IconButton } from './ui'
 import { ModelPicker } from './ModelPicker'
 
 interface ComposerProps {
@@ -82,16 +82,6 @@ const commands = [
   { command: '/compact', detail: 'composer.command.compact' },
   { command: '/status', detail: 'composer.command.status' },
 ] as const
-
-const reasoningLabels: Record<AgentThinkingLevel, MessageKey> = {
-  off: 'composer.reasoning.off',
-  minimal: 'composer.reasoning.minimal',
-  low: 'composer.reasoning.low',
-  medium: 'composer.reasoning.medium',
-  high: 'composer.reasoning.high',
-  xhigh: 'composer.reasoning.xhigh',
-  max: 'composer.reasoning.max',
-}
 
 const MAX_IMAGE_PROMPT_BYTES = 2 * 1024 * 1024
 /** Auto-grow ceiling for the prompt textarea; kept in sync with the CSS max-height. */
@@ -715,14 +705,8 @@ export const Composer = memo(function Composer({
             ) : null}
           </div>
           <div className="composer__actions">
-            <ModelPicker value={model} modelsByProvider={modelsByProvider} providers={providers} onChange={onModelChange} onManageModels={onManageModels} />
-            <SelectMenu
-              label={t('composer.reasoning.label')}
-              compact
-              value={effort}
-              options={reasoningLevels.map((level) => ({ value: level, label: t(reasoningLabels[level]) }))}
-              onChange={(next) => onEffortChange(next as AgentThinkingLevel)}
-            />
+            <ModelPicker value={model} modelsByProvider={modelsByProvider} providers={providers} onChange={onModelChange} onManageModels={onManageModels}
+              effort={effort} reasoningLevels={reasoningLevels} onEffortChange={onEffortChange} />
             {busy ? (
               <button type="button" className="send-button send-button--stop" aria-label={t('composer.stop')} onClick={() => void onStop()}>
                 <Square size={12} fill="currentColor" aria-hidden="true" />

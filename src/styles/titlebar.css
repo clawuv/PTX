@@ -78,11 +78,11 @@
   min-width: 16px;
   padding: 0;
   border-radius: 0;
-  color: var(--text-tertiary);
+  color: var(--navigation-ink);
 }
 .title-toolbar__nav .icon-button:hover {
-  background: transparent;
-  color: var(--text-secondary);
+  background: var(--surface-hover);
+  color: var(--text);
 }
 .titlebar-arrows {
   display: flex;
@@ -96,11 +96,12 @@
   padding: 0;
   border: 0;
   border-radius: 5px;
-  color: var(--titlebar-arrow);
+  color: var(--navigation-ink);
   background: transparent;
 }
 .titlebar-arrow:disabled {
-  color: var(--titlebar-arrow-back);
+  color: var(--navigation-ink);
+  opacity: .4;
   background: transparent;
 }
 /* macOS: arrows lead right after the traffic lights with comfortable spacing,
@@ -299,6 +300,10 @@
 .app-shell[data-platform="darwin"] .workbench-titlebar-drag-region {
   display: block;
 }
+/* Native drag regions must not overlap the toolbar's clickable controls. */
+.app-shell[data-platform="darwin"][data-sidebar-open="false"] .workbench-titlebar-drag-region {
+  left: var(--sidebar-width, 240px);
+}
 .workbench-titlebar-actions {
   position: absolute;
   z-index: 12;
@@ -344,7 +349,7 @@
   }
 }
 .app-shell[data-platform="darwin"][data-sidebar-open="false"] .conversation-header {
-  left: 174px;
+  left: 218px;
   --header-inset: 0px;
 }
 .conversation-header__title-row {

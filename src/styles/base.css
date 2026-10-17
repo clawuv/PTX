@@ -1,7 +1,8 @@
 :root {
   color-scheme: light;
-  --canvas: #fcfcfb;
-  --sidebar: #fbfbf9;
+  --canvas: #fcfcfc;
+  --sidebar: #f6f6f6;
+  --navigation-ink: color-mix(in srgb, var(--text) 84%, var(--sidebar));
   --surface-subtle: #f8f8f7;
   --surface-hover: #ececea;
   --surface-selected: #e8e8e6;
@@ -98,8 +99,9 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   /* Codex-style dark palette: near-black chrome, one-step-raised inputs. */
-  --canvas: #151515;
-  --sidebar: #111111;
+  --canvas: #111111;
+  --sidebar: #0b0b0b;
+  --navigation-ink: color-mix(in srgb, var(--text) 88%, var(--sidebar));
   --surface-subtle: #1f1f1f;
   --surface-hover: #292929;
   --surface-selected: #262626;

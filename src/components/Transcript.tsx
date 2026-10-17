@@ -40,7 +40,7 @@ export function coalesceAssistantTurns(messages: TranscriptMessage[]): Transcrip
 interface TranscriptProps {
   messages: TranscriptMessage[]
   /** Active harness; brands the assistant marks and working copy. */
-  harness?: HarnessId
+  harness: HarnessId
   /** Display name of the active project; headlines the empty-session welcome. */
   projectName?: string
   loading?: boolean
@@ -108,7 +108,7 @@ function ActiveAssistantMessage({ message, harness, showReasoning, showTools }: 
 
 export function Transcript({
   messages,
-  harness = 'omp',
+  harness,
   projectName,
   loading,
   active = false,

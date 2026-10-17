@@ -83,6 +83,30 @@ const rowByTitle = (title: string) => {
 const selectedTitles = () => [...container.querySelectorAll('.session-row-wrap.is-selected .session-row__title')].map((node) => node.textContent)
 
 describe('sidebar session selection across projects', () => {
+  it('keeps the new-session highlight on New session instead of its project', async () => {
+    await act(async () => {
+      root.render(
+        <Sidebar
+          projects={[ptx]}
+          sessions={[]}
+          activeProjectId={ptx.id}
+          activeView="session"
+          onSelectProject={noop}
+          onSelectSession={noop}
+          onNavigate={noop}
+          onNewSession={noop}
+          onAddProject={noop}
+          onRemoveProject={noop}
+          onOpenPalette={noop}
+          onRenameSession={async () => undefined}
+          onArchiveSession={async () => undefined}
+        />,
+      )
+    })
+    expect(container.querySelector('.sidebar__primary > button.is-active')).not.toBeNull()
+    expect(container.querySelector('.project-row.is-selected')).toBeNull()
+  })
+
   it('keeps the restored session highlighted and moves the highlight to a session in another project', async () => {
     await act(async () => { root.render(<Harness initialSessionId={sessionA.id} />) })
     // A session restored at startup (no row click yet) must still show its selection.

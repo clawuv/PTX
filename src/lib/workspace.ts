@@ -1,4 +1,4 @@
-import type { GitStatus, ProjectRecord, RuntimeInfo, SessionRecord } from '@/types/api'
+import type { HarnessId, GitStatus, ProjectRecord, RuntimeInfo, SessionRecord } from '@/types/api'
 
 
 export interface OwnedGitStatus {
@@ -28,6 +28,19 @@ export function projectContainsPath(project: ProjectRecord, path?: string): bool
 
 export function findProjectForSession(projects: ProjectRecord[], session?: SessionRecord): ProjectRecord | undefined {
   return session ? projects.find((project) => projectContainsPath(project, session.projectPath)) : undefined
+}
+
+export function selectActiveProject(
+  projects: ProjectRecord[],
+  harness: HarnessId,
+  activeProjectId?: string,
+  session?: SessionRecord,
+): ProjectRecord | undefined {
+  const ownedProjects = projects.filter((project) => project.harness === harness)
+  const ownedSession = session?.harness === harness ? session : undefined
+  return findProjectForSession(ownedProjects, ownedSession)
+    ?? ownedProjects.find((project) => project.id === activeProjectId)
+    ?? ownedProjects[0]
 }
 
 export function workspaceCwd(project?: ProjectRecord, session?: SessionRecord): string | undefined {

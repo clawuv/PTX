@@ -2,7 +2,6 @@ import {
   Archive,
   ArrowLeft,
   CalendarClock,
-  Check,
   CheckCircle2,
   ChevronDown,
   Copy,
@@ -54,6 +53,7 @@ export interface SidebarProps {
   onArchiveSession(session: SessionRecord): Promise<void>
   /** Settings mode: the sidebar body is replaced by the settings section menu. */
   settingsMode?: boolean
+  searchOpen?: boolean
   activeSettingsSection?: SettingsSection
   onSelectSettingsSection?(section: SettingsSection): void
   platform?: NodeJS.Platform
@@ -188,11 +188,12 @@ async function copySessionUuid(id: string): Promise<void> {
   if (!copied) throw new Error('Copy is unavailable')
 }
 
-function SidebarView({ projects, sessions, activeProjectId, activeSessionId, activeView, activeHarness = 'omp', harnesses, clearedAttention = {}, updateState = { phase: 'unsupported' }, onUpdateAction, onSelectHarness, onSelectSession, onNavigate, onNewSession, onAddProject, onRemoveProject, onOpenPalette, onRenameSession, onArchiveSession, settingsMode = false, activeSettingsSection = 'general', onSelectSettingsSection, platform = 'darwin', schedulesAttention = 0 }: SidebarProps) {
+function SidebarView({ projects, sessions, activeProjectId, activeSessionId, activeView, activeHarness = 'omp', harnesses, clearedAttention = {}, updateState = { phase: 'unsupported' }, onUpdateAction, onSelectHarness, onSelectSession, onNavigate, onNewSession, onAddProject, onRemoveProject, onOpenPalette, onRenameSession, onArchiveSession, settingsMode = false, searchOpen = false, activeSettingsSection = 'general', onSelectSettingsSection, platform = 'darwin', schedulesAttention = 0 }: SidebarProps) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
-  const [harnessMenuOpen, setHarnessMenuOpen] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
+  useEffect(() => {
+    if (searchOpen && !settingsMode) document.getElementById('session-search')?.focus()
+  }, [searchOpen, settingsMode])
   const [projectMenu, setProjectMenu] = useState<string | null>(null)
   const [sessionMenu, setSessionMenu] = useState<string | null>(null)
   const [sessionMenuAt, setSessionMenuAt] = useState<{ x: number; y: number } | null>(null)
@@ -213,13 +214,6 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
   const updateConfirm = updateConfirmCopy(updateState, t)
   const updateBusy = updateState.phase === 'checking' || updateState.phase === 'downloading'
   const updateIndeterminate = updateState.phase === 'downloading' && updateState.percent === undefined
-  useEffect(() => {
-    if (!harnessMenuOpen) return
-    const dismiss = (event: PointerEvent) => { if (!(event.target instanceof Element) || !event.target.closest('.brand-switcher')) setHarnessMenuOpen(false) }
-    const dismissOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); setHarnessMenuOpen(false) } }
-    document.addEventListener('pointerdown', dismiss, true); document.addEventListener('keydown', dismissOnEscape, true)
-    return () => { document.removeEventListener('pointerdown', dismiss, true); document.removeEventListener('keydown', dismissOnEscape, true) }
-  }, [harnessMenuOpen])
   useEffect(() => {
     if (!projectMenu) return
     const dismiss = (event: PointerEvent) => { if (!(event.target instanceof Element) || !event.target.closest('.project-group')) setProjectMenu(null) }
@@ -257,42 +251,23 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
   return (
     <aside className="sidebar" aria-label={t('sidebar.nav')}>
       {settingsMode ? null : (
-        <div className="sidebar__titlebar drag-region">
-          <div className="sidebar__brand brand-switcher no-drag">
-          <button
-            type="button"
-            className="brand-switcher__trigger"
-            aria-haspopup="menu"
-            aria-expanded={harnessMenuOpen}
-            aria-label={t('sidebar.switchHarness', { name: HARNESS_PRODUCT_NAMES[activeHarness] })}
-            title={t('sidebar.switchHarness', { name: HARNESS_PRODUCT_NAMES[activeHarness] })}
-            onClick={() => setHarnessMenuOpen((open) => !open)}
-          >
-            <span className="brand-switcher__name"><strong>{HARNESS_SHORT_NAMES[activeHarness]}</strong></span>
-            <ChevronDown size={15} aria-hidden="true" />
-          </button>
-          {harnessMenuOpen ? (
-            <div className="brand-switcher__menu" role="menu" aria-label={t('sidebar.harnessMenu')}>
-              {HARNESS_SELECTOR_ORDER.filter((harness) => Boolean(harnesses?.[harness]?.path)).map((harness) => (
-                  <button
-                    type="button"
-                    key={harness}
-                    role="menuitemradio"
-                    aria-checked={harness === activeHarness}
-                    className={harness === activeHarness ? 'is-active' : ''}
-                    onClick={() => { setHarnessMenuOpen(false); if (harness !== activeHarness) onSelectHarness?.(harness) }}
-                  >
-                    <HarnessMark harness={harness} size={20} />
-                    <span className="brand-switcher__option"><strong>{HARNESS_PRODUCT_NAMES[harness]}</strong></span>
-                    {harness === activeHarness ? <Check size={13} aria-hidden="true" /> : null}
-                  </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-        <div className="sidebar__title-actions no-drag">
-          <IconButton label={t('sidebar.search')} onClick={() => { setSearchOpen((open) => !open); window.setTimeout(() => document.getElementById('session-search')?.focus(), 0) }} className={searchOpen ? 'is-active' : ''}><Search size={16} /></IconButton>
-        </div>
+        <div className="sidebar__titlebar">
+          <div className="brand-switcher no-drag" role="group" aria-label={t('sidebar.harnessMenu')}>
+            {HARNESS_SELECTOR_ORDER.filter((harness) => harness === activeHarness || Boolean(harnesses?.[harness]?.path)).map((harness) => (
+              <button
+                type="button"
+                key={harness}
+                className="brand-switcher__segment"
+                aria-pressed={harness === activeHarness}
+                aria-label={t('sidebar.switchHarness', { name: HARNESS_PRODUCT_NAMES[harness] })}
+                title={HARNESS_PRODUCT_NAMES[harness]}
+                onClick={() => { if (harness !== activeHarness) onSelectHarness?.(harness) }}
+              >
+                <HarnessMark harness={harness} size={15} />
+                <span>{HARNESS_SHORT_NAMES[harness]}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
       {settingsMode ? (
@@ -324,7 +299,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
           ) : null}
 
           <nav className="sidebar__primary" aria-label={t('sidebar.primaryNav')}>
-            <button type="button" title={t('sidebar.newSessionTitle', { shortcut: newSessionShortcut })} onClick={() => onNewSession()}><NotebookPen size={15} /><span>{t('sidebar.newSession')}</span><kbd>{newSessionShortcut}</kbd></button>
+            <button type="button" className={activeView === 'session' && activeSessionId === undefined ? 'is-active' : ''} title={t('sidebar.newSessionTitle', { shortcut: newSessionShortcut })} onClick={() => onNewSession()}><NotebookPen size={15} /><span>{t('sidebar.newSession')}</span><kbd>{newSessionShortcut}</kbd></button>
             <button type="button" title={t('nav.scheduled')} className={activeView === 'scheduled' ? 'is-active' : ''} onClick={() => onNavigate('scheduled')}><CalendarClock size={15} /><span>{t('nav.scheduled')}</span>{schedulesAttention > 0 ? <i className="nav-attention-badge" aria-label={t('scheduled.attentionBadge', { count: schedulesAttention })}>{schedulesAttention > 9 ? '9+' : schedulesAttention}</i> : null}</button>
             <button type="button" title={t('nav.capabilities')} className={activeView === 'plugins' ? 'is-active' : ''} onClick={() => onNavigate('plugins')}><PackageOpen size={15} /><span>{t('nav.capabilities')}</span></button>
           </nav>
@@ -352,7 +327,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
               return (
                 <div className="project-group" key={project.id}>
                   <div
-                    className={`project-row${activeProjectId === project.id && activeView === 'session' && !hasSelectedSession ? ' is-selected' : ''}`}
+                    className={`project-row${activeProjectId === project.id && activeView === 'session' && activeSessionId !== undefined && !hasSelectedSession ? ' is-selected' : ''}`}
                     onContextMenu={(event) => { event.preventDefault(); setProjectMenu(project.id) }}
                   >
                     <button className="project-row__main" type="button" title={project.name} onClick={() => setCollapsedProjects((current) => { const next = new Set(current); if (next.has(project.id)) next.delete(project.id); else next.add(project.id); return next })}>
@@ -424,6 +399,7 @@ export function areSidebarPropsEqual(previous: SidebarProps, next: SidebarProps)
   && previous.onRenameSession === next.onRenameSession
   && previous.onArchiveSession === next.onArchiveSession
   && previous.settingsMode === next.settingsMode
+  && previous.searchOpen === next.searchOpen
   && previous.activeSettingsSection === next.activeSettingsSection
   && previous.onSelectSettingsSection === next.onSelectSettingsSection
     && previous.platform === next.platform

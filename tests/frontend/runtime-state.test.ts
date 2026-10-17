@@ -5,6 +5,7 @@ import {
   gitStatusForWorkspace,
   newSessionProject,
   selectStartupWorkspace,
+  selectActiveProject,
 } from '../../src/lib/workspace'
 import type { ProjectRecord, RuntimeInfo, SessionRecord } from '../../src/types/api'
 
@@ -114,5 +115,24 @@ describe('single-flight prompt admission', () => {
     releaseStart()
     await expect(first).resolves.toBe(true)
     expect(admission.active).toBe(false)
+  })
+})
+
+
+describe('active project harness ownership', () => {
+  it('does not expose an old harness project while the next catalog is loading', () => {
+    const omp = project('omp', ['/omp'])
+    expect(selectActiveProject([omp], 'pi', omp.id, session('old', '/omp', '/old.jsonl'))).toBeUndefined()
+    const pi: ProjectRecord = { ...project('pi', ['/pi']), harness: 'pi' }
+    expect(selectActiveProject([pi], 'omp', pi.id)).toBeUndefined()
+    expect(selectActiveProject([omp, pi], 'pi', omp.id)).toBe(pi)
+  })
+
+  it('ignores stale sessions even when both harnesses share the same folder', () => {
+    const first = project('first', ['/shared'])
+    const selected = project('selected', ['/selected'])
+    const stale: SessionRecord = { ...session('stale', '/shared', '/old.jsonl'), harness: 'pi' }
+    expect(selectActiveProject([first, selected], 'omp', selected.id, stale)).toBe(selected)
+    expect(selectActiveProject([first, selected], 'omp', first.id, session('current', '/selected', '/current.jsonl'))).toBe(selected)
   })
 })

@@ -39,7 +39,7 @@ import { detectRendererPlatform } from '@/lib/platform-shortcuts'
 import { ProjectScriptBusyError, setupNeedsRun } from '@/lib/project-scripts'
 import { countSchedulesNeedingAttention } from '@/lib/schedule-attention'
 import { waitForVoiceSession } from '@/lib/voice'
-import { createSingleFlightAdmission, findProjectForSession, gitStatusForWorkspace, shouldRefreshGitOnSessionTransition, workspaceCwd } from '@/lib/workspace'
+import { createSingleFlightAdmission, selectActiveProject, gitStatusForWorkspace, shouldRefreshGitOnSessionTransition, workspaceCwd } from '@/lib/workspace'
 import type { SettingsSection } from '@/pages/settings/contracts'
 import type {
   AutomationScheduleRecord,
@@ -151,6 +151,7 @@ export default function App() {
   const [browserGeneration, setBrowserGeneration] = useState(0)
   const [browserNavigationRequest, setBrowserNavigationRequest] = useState<{ id: number; url: string }>()
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false)
   const [voiceOrbOpen, setVoiceOrbOpen] = useState(false)
   const [focusPetVoiceControl, setFocusPetVoiceControl] = useState(false)
   const [restorePetVoiceFocus, setRestorePetVoiceFocus] = useState(false)
@@ -291,8 +292,8 @@ export default function App() {
   })
   const activeSession = useMemo(() => sessions.find((session) => session.id === workspace.activeSessionId), [sessions, workspace.activeSessionId])
   const activeProject = useMemo(
-    () => findProjectForSession(projects, activeSession) ?? projects.find((project) => project.id === workspace.activeProjectId) ?? projects[0],
-    [projects, activeSession, workspace.activeProjectId],
+    () => selectActiveProject(projects, activeHarness, workspace.activeProjectId, activeSession),
+    [projects, activeHarness, activeSession, workspace.activeProjectId],
   )
   const activeCwd = workspaceCwd(activeProject, activeSession)
   const mentionableSessions = useMemo(
@@ -1009,7 +1010,11 @@ export default function App() {
         data-inspector-open={inspectorVisible ? 'true' : 'false'}
         style={{ '--sidebar-width': `${layout.sidebarWidth}px`, '--inspector-width': `${layout.inspectorWidth}px` } as CSSProperties}
       >
-        <TitleToolbar platform={platform} onToggleSidebar={toggleSidebar} onBack={navigateBack} onForward={navigateForward} canBack={canBack} canForward={canForward} />
+        <TitleToolbar platform={platform} onToggleSidebar={toggleSidebar} searchOpen={sidebarVisible && view !== 'settings' && sidebarSearchOpen} onToggleSearch={() => {
+          setSidebarSearchOpen(!sidebarVisible || view === 'settings' || !sidebarSearchOpen)
+          if (!sidebarVisible) toggleSidebar()
+          if (view === 'settings') navigate('session')
+        }} onBack={navigateBack} onForward={navigateForward} canBack={canBack} canForward={canForward} />
         <div className="app-shell__body">
           {sidebarVisible && initialized ? (
             <Sidebar
@@ -1026,6 +1031,7 @@ export default function App() {
               schedulesAttention={schedulesAttention}
               onSelectHarness={selectHarness}
               settingsMode={view === 'settings'}
+              searchOpen={sidebarSearchOpen}
               activeSettingsSection={activeSettingsSection}
               onSelectSettingsSection={setActiveSettingsSection}
               {...sidebarActions}
@@ -1089,6 +1095,7 @@ export default function App() {
                       <Suspense fallback={<LoadingPanel label="conversation" />}>
                         <Transcript
                           key={workspace.activeSessionId ?? 'new-session'}
+                          harness={activeHarness}
                           messages={workspace.messages}
                           projectName={activeProject?.name}
                           loading={workspace.loadingSession}

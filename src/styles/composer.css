@@ -92,25 +92,20 @@
 .composer-plan-mode.is-active { color: var(--accent); background: var(--accent-soft); }
 .composer-plan-mode > svg { flex: 0 0 auto; }
 .composer .fast-mode-toggle { gap: 5px; border-radius: 8px; }
-/* The reasoning menu drops from the composer's bottom edge; its popover shadow would
-   otherwise smear a dark wash over the footer controls below it. */
-.composer .select-menu__popover { box-shadow: none; }
 /* Token-usage ring: the arc fills with use, the center stays empty, and hover
    shows the exact numbers via the tooltip. */
 .is-spinning { animation: spin 900ms linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .permissions-chip { height: 26px; display: inline-flex; align-items: center; gap: 4px; padding: 0 7px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-secondary); background: var(--surface-subtle); font-size: 10.5px; }
-/* Hugs short names and caps long ones at 120px so the model chip can't crowd
-   the reasoning chip against the send button (it used to reserve 156px always). */
-.model-picker { position: relative; min-width: 0; flex: 0 1 auto; max-width: 120px; }
-.model-picker__trigger { width: 100%; max-width: 120px; cursor: pointer; }
+/* Let model names use their natural width and wrap in narrow composers. */
+.model-picker { position: relative; min-width: 0; flex: 0 1 auto; }
+.model-picker__trigger { width: 100%; min-height: 26px; height: auto; cursor: pointer; }
 .model-picker__trigger:hover:not(:disabled), .model-picker__trigger[aria-expanded="true"] { color: var(--text); background: var(--surface-hover); }
 .model-picker__trigger:disabled { opacity: .65; cursor: default; }
-.model-picker__trigger > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-picker__trigger > span { min-width: 0; white-space: normal; overflow-wrap: anywhere; text-align: left; }
 .model-picker__trigger > svg { flex: 0 0 auto; }
-/* A touch wider than the reasoning-level SelectMenu popover (140px) so longer
-   model names stay readable; the two composer dropdowns still read as one family. */
-.model-picker__popover { position: absolute; z-index: 70; right: 0; bottom: calc(100% + 6px); width: 160px; padding: 5px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-raised); box-shadow: var(--shadow-popover); }
+/* One popover hosts model selection and its supported reasoning levels. */
+.model-picker__popover { position: absolute; z-index: 70; right: 0; bottom: calc(100% + 6px); width: 240px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-raised); box-shadow: var(--shadow-popover); }
 /* Worktree list: rendered inline inside the composer summary popover. */
 .worktree-picker__heading { padding: 5px 7px 6px; color: var(--text-tertiary); font-size: 10px; font-weight: 650; letter-spacing: .03em; text-transform: uppercase; }
 .worktree-picker__options { max-height: 210px; overflow-y: auto; }
@@ -123,24 +118,22 @@
 .worktree-picker__empty, .model-picker__empty { display: block; padding: 8px; color: var(--text-tertiary); font-size: 10.5px; }
 /* Model-picker specifics: compact model menu with the same quiet chrome as the
    composer, while larger catalogs expose a search field instead of widening. */
-.model-picker__popover { right: auto; left: 0; width: min(160px, calc(100vw - 32px)); padding: 4px; }
-.model-picker__heading { min-height: 27px; display: flex; align-items: center; padding: 0 8px; color: var(--text-secondary); }
-.model-picker__heading small { overflow: hidden; font-size: 11px; font-weight: 540; text-overflow: ellipsis; white-space: nowrap; }
+.model-picker__popover { right: 0; left: auto; width: min(240px, calc(100vw - 32px)); }
 .model-picker__search { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 5px; margin: 1px 3px 4px; padding: 0 7px; border: 1px solid var(--border); border-radius: 6px; color: var(--text-tertiary); background: var(--surface-subtle); }
 .model-picker__search:focus-within { border-color: var(--focus); box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 14%, transparent); }
 .model-picker__search input { min-width: 0; height: 26px; padding: 0; border: 0; outline: 0; color: var(--text); background: transparent; font-size: 10.5px; }
 .model-picker__search input::placeholder { color: var(--text-tertiary); }
 .model-picker__results { max-height: min(264px, calc(100vh - 190px)); overflow-y: auto; scroll-padding-block: 24px 0; }
-.model-picker__group + .model-picker__group { margin-top: 2px; }
-.model-picker__group-heading { min-height: 22px; display: flex; align-items: center; padding: 0 8px; color: var(--text-tertiary); font-size: 9.5px; font-weight: 600; }
-.model-picker__option { min-height: 30px; gap: 6px; padding: 5px 8px; border-radius: 5px; }
+.model-picker__group + .model-picker__group { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
+.model-picker__group-heading { min-height: 22px; display: flex; align-items: center; padding: 0 8px; color: var(--text-tertiary); font-size: 11px; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-picker__option { min-height: 32px; gap: 8px; padding: 6px 8px; border-radius: 7px; }
 .model-picker__option.is-selected { color: var(--text); }
 .model-picker__option[aria-disabled="true"] { opacity: .5; cursor: default; }
 .model-picker__identity { flex: 1; }
-.model-picker__identity strong { font-size: 11px; font-weight: 520; }
+.model-picker__identity strong { font-size: 13px; font-weight: 400; }
 .model-picker__availability { flex: 0 0 auto; color: var(--text-tertiary); font-size: 9.5px; }
 .model-picker__empty { padding: 22px 10px; text-align: center; }
-.model-picker__manage { width: calc(100% + 8px); min-height: 34px; display: flex; align-items: center; margin: 4px -4px -4px; padding: 0 12px; border-top: 1px solid var(--border); border-radius: 0 0 7px 7px; color: var(--text); background: transparent; font-size: 11px; font-weight: 620; text-align: left; }
+.model-picker__manage { width: 100%; min-height: 34px; display: flex; align-items: center; margin: 6px 0 0; padding: 0 8px; border-top: 1px solid var(--border); border-radius: 0 0 7px 7px; color: var(--text); background: transparent; font-size: 12px; font-weight: 400; text-align: left; }
 .model-picker__manage:hover { color: var(--text); background: var(--surface-hover); }
 .worktree-picker__create { display: grid; gap: 5px; margin-top: 5px; padding: 8px 7px 3px; border-top: 1px solid var(--border); }
 .worktree-picker__create label { color: var(--text-secondary); font-size: 10.5px; font-weight: 600; }
@@ -175,3 +168,14 @@
 .composer-menu button > span { min-width: 0; display: flex; flex-direction: column; }
 .composer-menu strong { color: var(--text); font-size: 12.5px; font-weight: 560; }
 .composer-menu small { overflow: hidden; color: var(--text-tertiary); font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
+
+.model-picker__back { width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 7px; color: var(--text); background: transparent; text-align: left; font-size: 13px; }
+.model-picker__back span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-picker__back svg { flex-shrink: 0; }
+.model-picker__back:hover, .model-picker__level:hover { background: var(--surface-hover); }
+.model-picker__effort-heading { padding: 10px 8px 6px; border-top: 1px solid var(--border); color: var(--text-secondary); font-size: 11px; }
+.model-picker__levels { display: grid; gap: 2px; max-height: min(264px, calc(100vh - 190px)); overflow-y: auto; }
+.model-picker__level { min-height: 32px; display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-radius: 7px; color: var(--text); background: transparent; font-size: 13px; text-align: left; }
+.model-picker__level[aria-pressed='true'] { background: var(--surface-selected); }
+.model-picker__level svg { color: var(--accent); }
+.model-picker__level:focus-visible, .model-picker__back:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }

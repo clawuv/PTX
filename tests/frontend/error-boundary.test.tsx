@@ -61,6 +61,7 @@ describe('transcript per-message boundary', () => {
   it('labels an admitted steer that is waiting for a safe steering point', async () => {
     await act(async () => {
       root.render(<Transcript
+        harness="omp"
         messages={[{ id: 'user-pending-steer', role: 'user', steerState: 'accepted', timestamp: 1, parts: [{ type: 'text', text: 'redirect' }] }]}
         onOpenChanges={vi.fn()}
       />)
@@ -74,6 +75,7 @@ describe('transcript per-message boundary', () => {
     const broken = { id: 'broken', role: 'user', timestamp: 2, parts: undefined } as unknown as TranscriptMessage
     await act(async () => {
       root.render(<Transcript
+        harness="omp"
         messages={[good, broken]}
         onOpenChanges={vi.fn()}
       />)

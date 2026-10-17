@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, PanelLeft } from 'lucide-react'
+import { ArrowLeft, ArrowRight, PanelLeft, Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { ApplicationMenuCommand, ApplicationMenuName } from '@/types/api'
 import { useI18n, type MessageKey } from '@/lib/i18n'
@@ -62,6 +62,8 @@ function CloseGlyph() {
 
 interface TitleToolbarProps {
   onToggleSidebar(): void
+  onToggleSearch(): void
+  searchOpen: boolean
   platform?: NodeJS.Platform
   /** macOS: session actions rendered into the strip's right end, inside the drag region so they stay clickable. */
   sessionActions?: ReactNode
@@ -73,7 +75,7 @@ interface TitleToolbarProps {
 }
 
 /** The replica chrome: a full-width title strip with the sidebar toggle, history arrows, menus, and window controls. */
-export function TitleToolbar({ onToggleSidebar, platform = 'darwin', sessionActions, onBack, onForward, canBack = false, canForward = false }: TitleToolbarProps) {
+export function TitleToolbar({ onToggleSidebar, onToggleSearch, searchOpen, platform = 'darwin', sessionActions, onBack, onForward, canBack = false, canForward = false }: TitleToolbarProps) {
   const { t } = useI18n()
   const sidebarShortcut = shortcutLabel(platform, ['Primary', 'B'])
   const drawWindowControls = platform === 'win32' || platform === 'linux'
@@ -108,6 +110,7 @@ export function TitleToolbar({ onToggleSidebar, platform = 'darwin', sessionActi
       {platform === 'darwin' ? <div className="traffic-light-clearance traffic-light-clearance--toolbar" aria-hidden="true" /> : null}
       <div className="title-toolbar__nav no-drag">
         <IconButton label={t('shellui.toggleSidebar', { shortcut: sidebarShortcut })} onClick={onToggleSidebar}><PanelLeft size={16} /></IconButton>
+        <IconButton label={t('sidebar.search')} onClick={onToggleSearch} aria-expanded={searchOpen} className="title-toolbar__search"><Search size={16} /></IconButton>
         {platform === 'darwin' || platform === 'win32' ? (
           <span className="titlebar-arrows">
             <button type="button" className="titlebar-arrow" disabled={!canBack} aria-label={t('shellui.navigateBack')} title={t('shellui.navigateBack')} onClick={onBack}>

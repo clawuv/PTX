@@ -1,7 +1,7 @@
 @container (max-width: 620px) {
   .permissions-chip:not(.model-picker__trigger) { display: none; }
   .model-picker { flex-basis: auto; }
-  .model-picker__trigger { display: inline-flex; max-width: 112px; }
+  .model-picker__trigger { display: inline-flex; }
   .composer__controls { min-width: 0; }
   .select-menu--compact .select-menu__value { max-width: 92px; }
   .select-menu--compact .select-menu__chevron, .model-picker__trigger > svg:last-child { display: none; }
@@ -13,9 +13,7 @@
   .composer .select-menu--compact .select-menu__trigger { justify-content: center; gap: 0; padding-inline: 0; }
   .select-menu--compact .select-menu__value, .select-menu--compact .select-menu__chevron { display: none; }
   .fast-mode-toggle { width: 28px; justify-content: center; padding-inline: 0; }
-  .fast-mode-toggle__label, .model-picker__trigger > span { display: none; }
-  .model-picker, .model-picker__trigger { width: 28px; max-width: 28px; flex: 0 0 28px; }
-  .model-picker__trigger { justify-content: center; padding-inline: 0; }
+  .fast-mode-toggle__label { display: none; }
 }
 
 @media (max-width: 720px) {
@@ -48,7 +46,6 @@
   .native-heartbeat__actions { grid-column: 2; }
   .native-heartbeat__actions .button { min-height: 40px; }
   .title-toolbar { padding-inline: 6px; }
-  .title-toolbar__nav .icon-button:not(:first-child) { display: none; }
   .traffic-light-clearance--toolbar { width: 72px; flex-basis: 72px; }
   .title-toolbar__identity strong { max-width: 24vw; }
   .branch-pill, .title-toolbar__actions .button, .toolbar-divider { display: none; }

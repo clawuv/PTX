@@ -16,6 +16,7 @@ const noop = () => undefined
 
 function render(messages: TranscriptMessage[], active = false, showTools = true): string {
   return renderToStaticMarkup(createElement(Transcript, {
+      harness: 'omp',
     messages,
     active,
     showTools,
@@ -24,6 +25,19 @@ function render(messages: TranscriptMessage[], active = false, showTools = true)
 }
 
 describe('transcript rendering', () => {
+  it.each(['pi', 'omp'] as const)('uses the %s identity for activity and working labels', (harness) => {
+    const html = renderToStaticMarkup(createElement(Transcript, {
+      harness,
+      messages: [{ id: 'activity', role: 'system', parts: [{ type: 'text', text: 'Runtime ready' }] }],
+      active: true,
+      onOpenChanges: noop,
+    }))
+    const name = harness === 'pi' ? 'Pi' : 'OMP'
+    expect(html).toContain(`${name} message`)
+    expect(html).toContain(`${name} is working`)
+    expect(html).not.toContain(`${harness === 'pi' ? 'OMP' : 'Pi'} is working`)
+  })
+
   it('streams reasoning inside a distinct process rail with animated thinking dots', () => {
     const html = render([{
       id: 'active',
@@ -210,6 +224,7 @@ describe('transcript rendering', () => {
 
   it('renders turn change summaries inside their anchored assistant message', () => {
     const html = renderToStaticMarkup(createElement(Transcript, {
+      harness: 'omp',
       messages: [
         { id: 'user', role: 'user', parts: [{ type: 'text', text: 'Go' }] },
         { id: 'assistant', role: 'assistant', parts: [{ type: 'text', text: 'Done' }] },
@@ -227,6 +242,7 @@ describe('transcript rendering', () => {
 
   it('renders restored turn change records without an anchor message as a trailing stack', () => {
     const html = renderToStaticMarkup(createElement(Transcript, {
+      harness: 'omp',
       messages: [{ id: 'assistant-restored', role: 'assistant', parts: [{ type: 'text', text: 'Done' }] }],
       turnChanges: [
         { key: 'turn-1', messageId: 'assistant-live-9', files: [{ path: 'src/a.go', status: 'M', staged: false, additions: 3, deletions: 1 }] },

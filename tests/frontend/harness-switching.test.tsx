@@ -385,47 +385,27 @@ describe('sidebar brand switcher', () => {
     const onSelectHarness = vi.fn()
     await renderSidebar(onSelectHarness)
 
-    const trigger = container.querySelector<HTMLButtonElement>('.brand-switcher__trigger')
-    expect(trigger).not.toBeNull()
-    expect(trigger!.getAttribute('aria-haspopup')).toBe('menu')
-    expect(trigger!.getAttribute('aria-expanded')).toBe('false')
-    expect(trigger!.textContent).toContain('Pi')
-
-    await click(trigger!)
-    const menu = container.querySelector('[role="menu"]')
-    expect(menu).not.toBeNull()
-    const options = [...menu!.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')]
-    expect(options.map((option) => option.textContent)).toEqual(['Pi Work'])
-    expect(options[0].getAttribute('aria-checked')).toBe('true')
-
+    const group = container.querySelector('.brand-switcher[role="group"]')
+    expect(group).not.toBeNull()
+    const options = [...group!.querySelectorAll<HTMLButtonElement>('button')]
+    expect(options.map((option) => option.textContent)).toEqual(['Pi'])
+    expect(options[0].getAttribute('aria-pressed')).toBe('true')
     await click(options[0])
     expect(onSelectHarness).not.toHaveBeenCalled()
-    expect(container.querySelector('[role="menu"]')).toBeNull()
   })
 
-  it('switches to OMP from the brand switcher', async () => {
+  it('switches directly to OMP from the segmented selector', async () => {
     const onSelectHarness = vi.fn()
     await renderSidebar(onSelectHarness, 'pi', allDetectedMeta)
-
-    await click(container.querySelector('.brand-switcher__trigger')!)
-    const options = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')]
-    await click(options.find(option => option.textContent?.includes('OMP'))!)
+    const options = [...container.querySelectorAll<HTMLButtonElement>('.brand-switcher__segment')]
+    expect(options.map((option) => option.textContent)).toEqual(['Pi', 'OMP'])
+    expect(options[1].getAttribute('aria-pressed')).toBe('false')
+    await click(options[1])
     expect(onSelectHarness).toHaveBeenCalledWith('omp')
-    expect(container.querySelector('[role="menu"]')).toBeNull()
-  })
-
-  it('closes on Escape without selecting and shows shared navigation for OMP', async () => {
-    const onSelectHarness = vi.fn()
-    await renderSidebar(onSelectHarness, 'pi', allDetectedMeta)
-
+    await renderSidebar(onSelectHarness, 'omp', allDetectedMeta)
+    expect(container.querySelector('.brand-switcher__segment[aria-pressed="true"]')?.textContent).toBe('OMP')
     expect([...container.querySelectorAll('nav.sidebar__primary button span')].map((item) => item.textContent)).toContain('Scheduled')
     expect(container.textContent).toContain('Capabilities')
-
-    await click(container.querySelector('.brand-switcher__trigger')!)
-    expect(container.querySelector('[role="menu"]')).not.toBeNull()
-    await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) })
-    expect(container.querySelector('[role="menu"]')).toBeNull()
-    expect(onSelectHarness).not.toHaveBeenCalled()
   })
 })
 

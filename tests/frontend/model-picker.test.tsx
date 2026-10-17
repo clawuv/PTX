@@ -85,7 +85,7 @@ describe('ModelPicker', () => {
     const popover = await openPicker()
 
     expect(document.activeElement).toBe(popover)
-    expect(popover.textContent).toContain('OpenAI · Anthropic')
+    expect(popover.querySelector('.model-picker__heading')).toBeNull()
     expect(optionLabels()).toEqual(['GPT-5.6 Sol', 'GPT-5.6 Luna', 'Claude Opus 4.8', 'Claude Sonnet 4.7'])
     expect(container.querySelector('.model-picker__providers')).toBeNull()
     expect(container.querySelector('input[type="search"]')).toBeNull()
@@ -182,4 +182,37 @@ describe('ModelPicker', () => {
     expect(onManageModels).toHaveBeenCalledOnce()
     expect(container.querySelector('.model-picker__popover')).toBeNull()
   })
+})
+
+
+it('selects the model before offering only its supported reasoning levels', async () => {
+  const onChange = vi.fn()
+  const onEffortChange = vi.fn()
+  const candidate = { ...models[0], availableThinkingLevels: ['low', 'high'] satisfies AgentModelDescriptor['availableThinkingLevels'] }
+  const catalog = groupModelsByProvider([{ ...candidate, availableThinkingLevels: [...candidate.availableThinkingLevels] }])
+  await act(async () => {
+    root.render(<ModelPicker value={models[0].key} modelsByProvider={catalog} providers={providers} onChange={onChange} effort="high" onEffortChange={onEffortChange} />)
+  })
+  await openPicker()
+  await act(async () => container.querySelector<HTMLButtonElement>('[role="option"]')!.click())
+  expect(onChange).toHaveBeenCalledWith(models[0].key)
+  const levels = [...container.querySelectorAll<HTMLButtonElement>('.model-picker__level')]
+  expect(levels.map((button) => button.textContent)).toEqual(['Low', 'High'])
+  expect(levels[1].getAttribute('aria-pressed')).toBe('true')
+  expect(document.activeElement).toBe(levels[0])
+  await act(async () => levels[0].click())
+  expect(onEffortChange).toHaveBeenCalledWith('low')
+  expect(container.querySelector('.model-picker__popover')).toBeNull()
+  expect(document.activeElement).toBe(container.querySelector('.model-picker__trigger'))
+})
+
+it('lets users return from reasoning levels to the model list', async () => {
+  const candidate = { ...models[0], availableThinkingLevels: ['low', 'high'] satisfies AgentModelDescriptor['availableThinkingLevels'] }
+  await act(async () => {
+    root.render(<ModelPicker value={candidate.key} modelsByProvider={groupModelsByProvider([candidate])} providers={providers} onChange={vi.fn()} effort="low" onEffortChange={vi.fn()} />)
+  })
+  await openPicker()
+  await act(async () => container.querySelector<HTMLButtonElement>('[role="option"]')!.click())
+  await act(async () => container.querySelector<HTMLButtonElement>('.model-picker__back')!.click())
+  expect(optionLabels()).toEqual([candidate.name])
 })

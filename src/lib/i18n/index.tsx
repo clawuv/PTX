@@ -1,3 +1,4 @@
+import { tasksCatalog } from './catalogs/tasks'
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react'
 import type { LocalePreference } from '@/types/api'
 import { baseCatalog } from './catalogs/base'
@@ -17,12 +18,12 @@ export type { Message, MessageValues, ResolvedLocale }
 // The chain is split because `Object.assign` only preserves literals for up
 // to four source arguments.
 const enPartOne = Object.assign({}, baseCatalog.en, shellCatalog.en, chatCatalog.en, settingsCatalog.en)
-const englishCatalog = Object.assign(enPartOne, pagesCatalog.en, inspectorCatalog.en, miscCatalog.en)
+const englishCatalog = Object.assign(Object.assign(enPartOne, pagesCatalog.en, inspectorCatalog.en, miscCatalog.en), tasksCatalog.en)
 
 export type MessageKey = keyof typeof englishCatalog
 
 const zhPartOne = Object.assign({}, baseCatalog.zh, shellCatalog.zh, chatCatalog.zh, settingsCatalog.zh)
-const zhCatalog: Partial<Record<MessageKey, Message>> = Object.assign(zhPartOne, pagesCatalog.zh, inspectorCatalog.zh, miscCatalog.zh)
+const zhCatalog: Partial<Record<MessageKey, Message>> = Object.assign(Object.assign(zhPartOne, pagesCatalog.zh, inspectorCatalog.zh, miscCatalog.zh), tasksCatalog.zh)
 
 export function translate(locale: ResolvedLocale, key: MessageKey, values: MessageValues = {}): string {
   const translated = locale === 'zh-CN' ? zhCatalog[key] : undefined

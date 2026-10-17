@@ -82,7 +82,7 @@ describe('project removal', () => {
 
     // The removal deny-list is released once removal completes; the lasting
     // block is that the project is no longer authorized at all.
-    await expect(service.authorizeCwd(second)).rejects.toThrow(/not inside an added Prime Work project/)
+    await expect(service.authorizeCwd(second)).rejects.toThrow(/not inside an added OMP Work project/)
   })
 
   it('keeps a nested registered project authorized while and after its parent is removed', async () => {
@@ -113,7 +113,7 @@ describe('project removal', () => {
     await expect(removal).resolves.toBe(true)
 
     await expect(service.authorizeCwd(nested)).resolves.toBe(realpathSync(nested))
-    await expect(service.authorizeCwd(folder)).rejects.toThrow(/not inside an added Prime Work project/)
+    await expect(service.authorizeCwd(folder)).rejects.toThrow(/not inside an added OMP Work project/)
   })
 
   it('releases removal roots and keeps the project working when the store update fails', async () => {

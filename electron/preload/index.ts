@@ -47,6 +47,18 @@ function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
 }
 
 const api: PtxApi = {
+  tasks: {
+    list: () => invoke('tasks:list'),
+    create: (input) => invoke('tasks:create', input),
+    start: (id) => invoke('tasks:start', id),
+    stop: (id) => invoke('tasks:stop', id),
+    accept: (id) => invoke('tasks:accept', id),
+    revise: (id, instructions) => invoke('tasks:revise', id, instructions),
+    evidence: (id) => invoke('tasks:evidence', id),
+    templates: () => invoke('tasks:templates'),
+    saveTemplate: (input) => invoke('tasks:save-template', input),
+    deleteTemplate: (id) => invoke('tasks:delete-template', id),
+  },
   app: {
     getMeta: () => invoke('app:get-meta'),
     refreshHarnesses: () => invoke('app:refresh-harnesses'),

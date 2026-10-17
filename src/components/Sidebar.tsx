@@ -130,6 +130,7 @@ function HarnessMark({ harness, size }: { harness: HarnessId; size: number }) {
 
 function updateControlCopy(state: AppUpdateState, t: Translate): { label: string; title: string } {
   const version = state.version ? ` ${state.version}` : ''
+  if (state.manualInstall && (state.phase === 'available' || state.phase === 'downloaded')) return { label: t('sidebar.update.manualDownload'), title: t('sidebar.update.manualDownload') }
   switch (state.phase) {
     case 'checking': return { label: t('sidebar.update.checking'), title: t('sidebar.update.checkingTitle') }
     case 'available': return { label: t('sidebar.update.download', { version }), title: t('sidebar.update.downloadTitle', { version }) }
@@ -158,6 +159,7 @@ function updateAnnouncement(state: AppUpdateState, t: Translate): string {
 }
 
 function updateConfirmCopy(state: AppUpdateState, t: Translate): { title: string; body: string } {
+  if (state.manualInstall) return { title: t('sidebar.update.manualDownload'), body: t('sidebar.update.manualBody') }
   if (state.phase === 'downloaded') return {
     title: t('sidebar.update.confirmRestartTitle'),
     body: t('sidebar.update.confirmRestartBody'),
@@ -300,6 +302,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
 
           <nav className="sidebar__primary" aria-label={t('sidebar.primaryNav')}>
             <button type="button" className={activeView === 'session' && activeSessionId === undefined ? 'is-active' : ''} title={t('sidebar.newSessionTitle', { shortcut: newSessionShortcut })} onClick={() => onNewSession()}><NotebookPen size={15} /><span>{t('sidebar.newSession')}</span><kbd>{newSessionShortcut}</kbd></button>
+            <button type="button" title={t('nav.tasks')} className={activeView === 'tasks' ? 'is-active' : ''} onClick={() => onNavigate('tasks')}><CheckCircle2 size={15} /><span>{t('nav.tasks')}</span></button>
             <button type="button" title={t('nav.scheduled')} className={activeView === 'scheduled' ? 'is-active' : ''} onClick={() => onNavigate('scheduled')}><CalendarClock size={15} /><span>{t('nav.scheduled')}</span>{schedulesAttention > 0 ? <i className="nav-attention-badge" aria-label={t('scheduled.attentionBadge', { count: schedulesAttention })}>{schedulesAttention > 9 ? '9+' : schedulesAttention}</i> : null}</button>
             <button type="button" title={t('nav.capabilities')} className={activeView === 'plugins' ? 'is-active' : ''} onClick={() => onNavigate('plugins')}><PackageOpen size={15} /><span>{t('nav.capabilities')}</span></button>
           </nav>

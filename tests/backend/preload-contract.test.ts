@@ -15,6 +15,9 @@ type BridgeApi = Record<string, Record<string, (...args: unknown[]) => unknown>>
 const INVOKE_CASES: Array<[domain: string, method: string, channel: string, args: unknown[]]> = [
   ['app', 'getMeta', 'app:get-meta', []],
   ['app', 'refreshHarnesses', 'app:refresh-harnesses', []],
+  ['app', 'openWithTargets', 'app:open-with-targets', ['/repo/file']],
+  ['app', 'openWith', 'app:open-with', ['/repo/file', 'default']],
+  ['app', 'menuCommand', 'app:menu-command', ['copy']],
   ['app', 'openExternal', 'app:open-external', ['https://example.com']],
   ['app', 'revealPath', 'app:reveal-path', ['/repo/file']],
   ['app', 'popupMenu', 'app:popup-menu', ['file', 10, 20]],
@@ -45,6 +48,16 @@ const INVOKE_CASES: Array<[domain: string, method: string, channel: string, args
   ['agent', 'command', 'agent:command', ['runtime', { type: 'abort' }]],
   ['agent', 'stop', 'agent:stop', ['runtime']],
   ['agent', 'list', 'agent:list', []],
+  ['tasks', 'list', 'tasks:list', []],
+  ['tasks', 'create', 'tasks:create', [{ title: 'Task' }]],
+  ['tasks', 'start', 'tasks:start', ['task']],
+  ['tasks', 'stop', 'tasks:stop', ['task']],
+  ['tasks', 'accept', 'tasks:accept', ['task']],
+  ['tasks', 'revise', 'tasks:revise', ['task', 'Fix this']],
+  ['tasks', 'evidence', 'tasks:evidence', ['task']],
+  ['tasks', 'templates', 'tasks:templates', []],
+  ['tasks', 'saveTemplate', 'tasks:save-template', [{ name: 'Template' }]],
+  ['tasks', 'deleteTemplate', 'tasks:delete-template', ['template']],
   ['providers', 'catalog', 'providers:catalog', [true, 'omp']],
   ['providers', 'setEnabled', 'providers:set-enabled', ['openai', false, 'omp']],
   ['providers', 'setDisabled', 'providers:set-disabled', [['openai'], 'omp']],
@@ -96,6 +109,7 @@ const INVOKE_CASES: Array<[domain: string, method: string, channel: string, args
 ]
 
 const SUBSCRIPTION_CASES: Array<[domain: string, method: string, channel: string]> = [
+  ['schedules', 'onFocusRequested', 'schedules:focus'],
   ['updates', 'onChanged', 'updates:changed'],
   ['sessions', 'onChanged', 'sessions:changed'],
   ['agent', 'onEvent', 'agent:event'],

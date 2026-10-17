@@ -372,7 +372,7 @@ export function PtxMark({ size = 24 }: { size?: number }) {
   const { t } = useI18n()
   return (
     <span className="ptx-mark" style={{ width: size, height: size }} role="img" aria-label={t('shellui.mark.ptx')}>
-      <img src="/ptx-mascot.png" alt="" aria-hidden="true" />
+      <img src={`${import.meta.env.BASE_URL}ptx-mascot.png`} alt="" aria-hidden="true" />
     </span>
   )
 }

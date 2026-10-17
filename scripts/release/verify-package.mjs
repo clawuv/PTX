@@ -4,7 +4,8 @@ import { existsSync, lstatSync, mkdtempSync, readdirSync, readFileSync, rmSync }
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { listPackage } from '@electron/asar'
+import { extractFile, listPackage } from '@electron/asar'
+import { load } from 'js-yaml'
 import { FuseState, FuseV1Options, getCurrentFuseWire } from '@electron/fuses'
 import {
   artifactArchitectures,
@@ -92,6 +93,20 @@ async function verifyApp({ app, artifact, mode, expectedTeam }) {
   if (!existsSync(asar)) throw new Error(`${basename(artifact)} application must contain Resources/app.asar`)
   if (existsSync(looseApp)) throw new Error(`${basename(artifact)} contains forbidden loose Resources/app`)
   assertAsarLayout(listPackage(asar, { isPack: false }))
+  const sourcePackage = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
+  const packagedManifest = JSON.parse(extractFile(asar, 'package.json').toString('utf8'))
+  const updateConfig = load(readFileSync(join(resources, 'app-update.yml'), 'utf8'))
+  if (packagedManifest.version !== sourcePackage.version) throw new Error('Packaged update version does not match source')
+  for (const key of ['provider', 'owner', 'repo']) {
+    if (updateConfig?.[key] !== sourcePackage.build.publish[key]) throw new Error(`Packaged update source mismatch: ${key}`)
+  }
+  if (mode === 'qa') {
+    if (packagedManifest.ptxUpdateChannel !== 'testing' || packagedManifest.ptxUpdateInstall !== 'manual') {
+      throw new Error('macOS QA package must use testing updates and manual installation')
+    }
+  } else if (packagedManifest.ptxUpdateChannel || packagedManifest.ptxUpdateInstall) {
+    throw new Error('Production package must not contain QA update flags')
+  }
 
   const appArchitectures = parseArchitectures(run('lipo', ['-archs', executable]))
   assertExactArchitectures(appArchitectures, artifactArchitectures(artifact), basename(artifact))

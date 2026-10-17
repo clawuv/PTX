@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url'
 import { findUnpackedDirectory, packagedExecutablePath } from './verify-cross-platform-package.mjs'
 
 /**
- * Functional launch smoke for a packaged Linux or Windows build: the real
+ * Functional launch smoke for a packaged macOS, Linux or Windows build: the real
  * unpacked executable is started with an isolated user-data directory and must
  * report renderer readiness through the documented `--packaged-smoke` marker
  * before a single bounded deadline elapses. The structural verifier proves the
@@ -146,8 +146,8 @@ export async function smokePackagedApp(target, architecture, { timeoutMs = SMOKE
   let workspace = ''
   let launch = null
   try {
-    const unpacked = findUnpackedDirectory(outputDirectory, target)
-    const executable = packagedExecutablePath(unpacked, target)
+    const unpacked = target === 'mac' ? join(outputDirectory, architecture === 'arm64' ? 'mac-arm64' : 'mac', 'Ptx.app') : findUnpackedDirectory(outputDirectory, target)
+    const executable = target === 'mac' ? join(unpacked, 'Contents', 'MacOS', 'Ptx') : packagedExecutablePath(unpacked, target)
     workspace = mkdtempSync(join(tmpdir(), 'ptx-packaged-smoke-'))
     const markerPath = join(workspace, 'ready.json')
     launch = await runPackagedApp(executable, smokeArguments(markerPath, join(workspace, 'user-data')), { cwd: unpacked, timeoutMs })
@@ -181,7 +181,7 @@ if (invokedDirectly) {
     return index === -1 ? undefined : process.argv[index + 1]
   }
   try {
-    await smokePackagedApp(requireOption(option('--platform'), 'platform', ['linux', 'win']), requireOption(option('--arch'), 'arch', ['arm64', 'x64']), {
+    await smokePackagedApp(requireOption(option('--platform'), 'platform', ['mac', 'linux', 'win']), requireOption(option('--arch'), 'arch', ['arm64', 'x64']), {
       diagnosticsPath: option('--diagnostics') ?? '',
     })
   } catch (error) {

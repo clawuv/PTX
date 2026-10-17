@@ -50,6 +50,8 @@ try {
   if (!dryRun) rmSync(resolve('release', platform, arch), { recursive: true, force: true })
 
   const builderArgs = [`--${platform}`, `--${arch}`, '--publish', 'never', `--config.directories.output=release/${platform}/${arch}`]
+  if (isQa) builderArgs.push('--config.extraMetadata.ptxUpdateChannel=testing')
+  if (isQa && platform === 'mac') builderArgs.push('--config.extraMetadata.ptxUpdateInstall=manual')
   if (isPublic && platform === 'win') builderArgs.push('--config.forceCodeSigning=true')
   const builderEnv = isQa ? { ...process.env, CSC_IDENTITY_AUTO_DISCOVERY: 'false' } : process.env
   if (isQa && platform === 'mac') builderArgs.push('--config.mac.identity=null', '--config.mac.notarize=false')

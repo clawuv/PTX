@@ -1,4 +1,5 @@
-import { app, BrowserWindow, dialog, Menu, nativeTheme, Notification, protocol, safeStorage, session, webContents } from 'electron'
+import { TaskService } from './tasks/service'
+import { app, BrowserWindow, dialog, Menu, nativeTheme, Notification, protocol, safeStorage, session, shell, webContents } from 'electron'
 import type { BrowserWindowConstructorOptions, Input, WebContents } from 'electron'
 import { readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
@@ -844,6 +845,7 @@ async function bootstrap(): Promise<void> {
     omp: { projects: ompProjects, sessions: ompSessions, agents: ompManager, catalog: ompCatalog, plugins: ompPlugins },
     pi: { projects: piProjects, sessions: piSessions, agents: piManager, catalog: piCatalog, plugins: piPlugins },
   })
+  const tasks = new TaskService(join(userDataPath, 'development-tasks.json'), harnesses, git)
   const ompScheduledRuns = new ScheduledRunExecutor(
     ompProjects,
     ompSessions,
@@ -1010,7 +1012,13 @@ async function bootstrap(): Promise<void> {
       pi: HARNESSES.pi.capabilities,
     },
   }
-  const updates = new UpdateService(getAutoUpdater(), { enabled: app.isPackaged })
+  const packageMetadata: unknown = JSON.parse(await readFile(join(app.getAppPath(), 'package.json'), 'utf8'))
+  const testingUpdates = typeof packageMetadata === 'object' && packageMetadata !== null && 'ptxUpdateChannel' in packageMetadata && packageMetadata.ptxUpdateChannel === 'testing'
+  const manualUpdates = typeof packageMetadata === 'object' && packageMetadata !== null && 'ptxUpdateInstall' in packageMetadata && packageMetadata.ptxUpdateInstall === 'manual'
+  const updates = new UpdateService(getAutoUpdater(testingUpdates), {
+    enabled: app.isPackaged,
+    ...(manualUpdates ? { openDownloadPage: () => shell.openExternal('https://github.com/clawuv/PTX/releases') } : {}),
+  })
   updateService = updates
   const refreshHarnesses = async () => {
     const harnesses = await discovery.refresh()
@@ -1020,13 +1028,14 @@ async function bootstrap(): Promise<void> {
   }
   trustedRendererUrl = resolveRendererUrl()
   ipc = registerIpc({
-    meta, refreshHarnesses, terminals, git, settings, updates, cuaDriver, schedules, browser: browserService, voice, pets, harnesses,
+    meta, refreshHarnesses, terminals, git, settings, updates, cuaDriver, schedules, tasks, browser: browserService, voice, pets, harnesses,
     popupApplicationMenu, applyMenuCommand, setTitleBarTheme, windowControls,
     applyInterfaceZoom,
   }, trustedRendererUrl)
   // Both managers share the one renderer forwarding path: envelopes carry the
   // runtimeId and RuntimeInfo carries the harness, so the renderer can route.
   const forwardAgentEvent = (envelope: AgentEventEnvelope): void => {
+    try { tasks.onAgentEvent(envelope) } catch (error) { console.error('Task lifecycle persistence failed', error) }
     const renderer = mainWindow?.webContents
     if (!shutdownStarted && renderer && !renderer.isDestroyed()
       && isTrustedRendererUrl(renderer.getURL(), trustedRendererUrl)

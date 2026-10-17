@@ -1,6 +1,6 @@
 {
   "name": "ptx",
-  "version": "1.1.15",
+  "version": "1.0.0",
   "private": true,
   "description": "A desktop workspace for Pi and OMP",
   "main": "out/main/index.js",
@@ -9,7 +9,7 @@
     "name": "Ptx contributors",
     "email": "42459108+am-will@users.noreply.github.com"
   },
-  "homepage": "https://github.com/am-will/pi-studio",
+  "homepage": "https://github.com/clawuv/PTX",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
-    "js-yaml": "^5.3.0",
+    "js-yaml": "^5.5.0",
     "node-pty": "^1.1.0",
     "rrule": "^2.8.1"
   },
@@ -164,8 +164,8 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "am-will",
-      "repo": "pi-studio"
+      "owner": "clawuv",
+      "repo": "PTX"
     },
     "afterPack": "scripts/release/after-pack.cjs",
     "extraResources": [

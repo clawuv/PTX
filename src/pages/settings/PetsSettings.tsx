@@ -68,7 +68,7 @@ export function PetsSettings({ settings, onUpdate, pets }: SettingsSectionProps 
                 onClick={() => { void onUpdate({ petId: pet.id, petEnabled: true }) }}
               >
                 <span className="pet-choice__art">
-                  {pet.id === 'pi-studio' ? <img src="/ptx-mascot.png" alt="" /> : pet.kind === 'orb' ? <PetAvatar pet={pet} pets={pets} size={48} reduceMotion={settings.reduceMotion} /> : <PawPrint size={24} />}
+                  {pet.id === 'pi-studio' ? <img src={`${import.meta.env.BASE_URL}ptx-mascot.png`} alt="" /> : pet.kind === 'orb' ? <PetAvatar pet={pet} pets={pets} size={48} reduceMotion={settings.reduceMotion} /> : <PawPrint size={24} />}
                 </span>
                 <span><strong>{pet.displayName}</strong><small>{pet.source === 'built-in' ? t('settings.pets.source.builtIn') : t('settings.pets.source.codex')}</small></span>
               </button>

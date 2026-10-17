@@ -1180,7 +1180,7 @@ describe('post-package verification helpers', () => {
     const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
     expect(packageJson.author).toEqual({ name: 'Ptx contributors', email: '42459108+am-will@users.noreply.github.com' })
     expect(packageJson.description).toBe('A desktop workspace for Pi and OMP')
-    expect(packageJson.homepage).toBe('https://github.com/am-will/pi-studio')
+    expect(packageJson.homepage).toBe('https://github.com/clawuv/PTX')
     expect(packageJson.build.productName).toBe('Ptx')
     expect(packageJson.build.appId).toBe('app.ptx.desktop')
     expect(packageJson.desktopName).toBe('ptx.desktop')

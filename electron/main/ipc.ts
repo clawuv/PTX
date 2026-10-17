@@ -1,3 +1,4 @@
+import type { TaskService } from './tasks/service'
 import { type IpcMainEvent, type IpcMainInvokeEvent, ipcMain, shell, type WebContents } from 'electron'
 import type { ApplicationMenuCommand, ApplicationMenuName, AppMeta, HarnessId, SessionChangeEvent, ThemeMode } from '../../src/types/api'
 import type { AgentRpcManager } from './agent-rpc'
@@ -37,6 +38,7 @@ interface Services {
   settings: SettingsService
   updates: UpdateService
   cuaDriver: CuaDriverService
+  tasks: TaskService
   schedules: AutomationService
   browser: AgentBrowserService
   voice: VoiceService
@@ -460,6 +462,16 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
   handle('browser:set-preview-context', (_event, webContentsId, sessionFile) => services.browser.setPreviewContext(webContentsId, sessionFile))
   handle('browser:navigate-tab', (_event, tabId, action, url) => services.browser.navigateTab(tabId, action, url))
 
+  handle('tasks:list', () => services.tasks.list())
+  handle('tasks:create', (_event, input) => services.tasks.create(input))
+  handle('tasks:start', (_event, id) => services.tasks.start(id))
+  handle('tasks:stop', (_event, id) => services.tasks.stop(id))
+  handle('tasks:accept', (_event, id) => services.tasks.accept(id))
+  handle('tasks:revise', (_event, id, instructions) => services.tasks.revise(id, instructions))
+  handle('tasks:evidence', (_event, id) => services.tasks.evidence(id))
+  handle('tasks:templates', () => services.tasks.templates())
+  handle('tasks:save-template', (_event, input) => services.tasks.saveTemplate(input))
+  handle('tasks:delete-template', (_event, id) => services.tasks.deleteTemplate(id))
   handle('schedules:list', (_event, harness) => services.schedules.list(requireHarness(harness)))
   handle('schedules:get', (_event, id) => services.schedules.get(id))
   handle('schedules:preview', (_event, timing, count) => services.schedules.preview(timing, count))

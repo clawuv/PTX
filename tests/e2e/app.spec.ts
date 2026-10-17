@@ -21,7 +21,7 @@ const attachDiagnostics = (target: Page) => {
   instrumentedPages.add(target)
   target.on('pageerror', (error) => actionableErrors.push(error.message))
   target.on('console', (message) => {
-    if (message.type() === 'error') actionableErrors.push(message.text())
+    if (message.type() === 'error') actionableErrors.push(`${message.text()} ${message.location().url ?? ''}`.trim())
   })
 }
 
@@ -478,6 +478,7 @@ test.describe('Pi Work desktop smoke', () => {
         app.context().on('page', attachDiagnostics)
         for (const target of app.windows()) attachDiagnostics(target)
         page = await app.firstWindow({ timeout: 15_000 })
+        await page.setViewportSize({ width: 1440, height: 920 })
         attachDiagnostics(page)
         await expect(page.locator('.app-shell')).toHaveAttribute('data-ready', 'true', { timeout: 20_000 })
         return
@@ -503,12 +504,45 @@ test.describe('Pi Work desktop smoke', () => {
     currentFixture = undefined
   })
 
+  test('creates a task, runs its bound session, and requires manual acceptance', async () => {
+    const scrim = page.locator('.panel-scrim--inspector')
+    if (await scrim.isVisible()) await scrim.click({ position: { x: 10, y: 10 } })
+    await page.getByRole('button', { name: 'Tasks', exact: true }).click()
+    await page.getByRole('button', { name: 'New task', exact: true }).click()
+    await page.getByRole('combobox', { name: 'Working directory', exact: true }).selectOption({ index: 1 })
+    await page.getByLabel('Task name', { exact: true }).fill('Review fixture delivery')
+    await page.getByLabel('Goal', { exact: true }).fill('Report the fixture result')
+    await page.getByLabel('Acceptance requirements', { exact: true }).fill('Inspect the recorded response and working tree')
+    await expect(page.getByRole('combobox', { name: 'Model', exact: true })).toContainText('Fixture Model')
+    await page.getByRole('button', { name: 'Save task', exact: true }).click()
+    await expect(page.locator('.task-detail .task-status')).toHaveText('Not started')
+    await page.getByRole('button', { name: 'Start task', exact: true }).click()
+    await expect(page.locator('.task-detail .task-status')).toHaveText('Ready for review', { timeout: 20_000 })
+    const records = await page.evaluate(() => window.ptx!.tasks.list())
+    expect(records[0]).toMatchObject({ harness: 'pi', model: 'fixture/fixture-model', status: 'review' })
+    expect(records[0].sessionFile).toBeTruthy()
+    await expect(page.getByRole('heading', { name: 'Current working tree', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Mark accepted', exact: true })).toBeEnabled()
+    await page.locator('.page.scroll-area').evaluate((node) => { node.scrollTop = 0 })
+    await page.screenshot({ path: '/tmp/ptx-task-workflow.png' })
+    await page.getByRole('button', { name: 'Mark accepted', exact: true }).click()
+    await expect(page.locator('.task-detail .task-status')).toHaveText('Accepted')
+    await page.reload()
+    await expect(page.locator('.app-shell')).toHaveAttribute('data-ready', 'true')
+    await page.getByRole('button', { name: 'Tasks', exact: true }).click()
+    await page.locator('.task-row').filter({ hasText: 'Review fixture delivery' }).click()
+    await expect(page.locator('.task-detail .task-status')).toHaveText('Accepted')
+    await page.getByRole('button', { name: 'Open session', exact: true }).click()
+    await expect(page.getByRole('combobox', { name: 'Message Pi' })).toBeVisible()
+    expect(actionableErrors).toEqual([])
+  })
+
   test('steers the active turn with Ctrl+Enter', async () => {
     await page.locator('.session-row-wrap').filter({ hasText: 'Hermetic desktop fixture' }).locator('.session-row').click()
     const composer = page.getByRole('combobox', { name: 'Message Pi' })
     await composer.fill('stay busy while I steer')
     await composer.press('Enter')
-    await expect(page.getByRole('button', { name: 'Stop Pi' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Stop Ptx' })).toBeVisible()
 
     await composer.fill('send this queued task now')
     await composer.press('Enter')
@@ -562,7 +596,7 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(page.locator('.composer-attachment').filter({ hasText: 'picker.png' })).toHaveCount(0)
   })
 
-  test('collapses composer selectors and keeps picker menus inside the window', async () => {
+  test('keeps model names readable and picker menus inside the window', async () => {
     const scrim = page.locator('.panel-scrim--inspector')
     if (await scrim.isVisible()) await scrim.click({ position: { x: 10, y: 10 } })
     await page.locator('.session-row-wrap').filter({ hasText: 'Hermetic desktop fixture' }).locator('.session-row').click()
@@ -579,7 +613,7 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(reasoning).toHaveCount(0)
 
     await page.locator('.conversation-column').evaluate((node) => { node.style.flex = '0 0 300px' })
-    await expect(modelTrigger.locator('span')).toHaveCSS('display', 'none')
+    await expect(modelTrigger.locator('span')).toHaveCSS('display', 'block')
     await expect(modelTrigger.locator('svg').first()).not.toHaveCSS('display', 'none')
     await expect(reasoning).toHaveCount(0)
 
@@ -623,7 +657,7 @@ test.describe('Pi Work desktop smoke', () => {
       return { type: typeof prime, groups: prime ? Object.keys(prime).sort() : [], voiceMethods: voice && typeof voice === 'object' ? Object.keys(voice).sort() : [] }
     })
     expect(bridge.type).toBe('object')
-    expect(bridge.groups).toEqual(['agent', 'app', 'browser', 'git', 'pets', 'plugins', 'projects', 'providers', 'schedules', 'sessions', 'settings', 'terminal', 'updates', 'voice'])
+    expect(bridge.groups).toEqual(['agent', 'app', 'browser', 'git', 'pets', 'plugins', 'projects', 'providers', 'schedules', 'sessions', 'settings', 'tasks', 'terminal', 'updates', 'voice'])
     expect(bridge.voiceMethods).toContain('testSelfHosted')
     const updateMenu = await app!.evaluate(({ Menu }) => {
       const parents = Menu.getApplicationMenu()?.items ?? []
@@ -724,7 +758,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('opens General settings when the main process requests Settings', async () => {
-    await page.locator('.sidebar__footer button').filter({ hasText: 'Settings' }).click()
+    await page.locator('.sidebar__footer button[title="Settings"]').click()
     await page.getByRole('button', { name: 'Appearance', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Theme' })).toBeVisible()
 
@@ -735,18 +769,14 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(page.getByRole('heading', { name: 'Startup & background' })).toBeVisible()
   })
 
-  test('returns from settings with its back button, New session, Escape, and Ctrl+W', async () => {
+  test('returns from settings with its back button, Escape, and Ctrl+W', async () => {
     const openSettings = async () => {
-      await page.locator('.sidebar__footer button').filter({ hasText: 'Settings' }).click()
+      await page.locator('.sidebar__footer button[title="Settings"]').click()
       await expect(page.getByRole('heading', { name: 'General' })).toBeVisible()
     }
 
     await openSettings()
     await page.getByRole('button', { name: 'Back to session' }).click()
-    await expect(page.getByRole('combobox', { name: 'Message Pi' })).toBeVisible()
-
-    await openSettings()
-    await page.locator('.sidebar__primary').getByRole('button', { name: /^New session/ }).click()
     await expect(page.getByRole('combobox', { name: 'Message Pi' })).toBeVisible()
 
     await openSettings()
@@ -807,13 +837,13 @@ test.describe('Pi Work desktop smoke', () => {
     })
     expect(idlePetGap).toBeGreaterThanOrEqual(-8)
     expect(idlePetGap).toBeLessThanOrEqual(1)
-    await page.locator('.title-toolbar').getByRole('button', { name: 'Open realtime voice' }).click()
+    await page.getByRole('button', { name: 'Open realtime voice', exact: true }).click()
     await expect(page.getByRole('complementary', { name: 'Realtime voice session' })).toBeVisible()
     await expect(page.getByRole('button', { name: /Orb, draggable Ptx pet/ })).toBeVisible()
     await expect(page.locator('.voice-orb')).toHaveCount(0)
     await page.getByRole('complementary', { name: 'Realtime voice session' }).getByRole('button', { name: 'Close realtime voice' }).click()
 
-    await page.locator('.sidebar__footer button').filter({ hasText: 'Settings' }).click()
+    await page.locator('.sidebar__footer button[title="Settings"]').click()
     await page.getByRole('button', { name: 'Pets', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Pets', exact: true })).toBeVisible()
     await expect(page.getByRole('radio', { name: /^Orb Built/ })).toBeChecked()
@@ -844,7 +874,7 @@ test.describe('Pi Work desktop smoke', () => {
 
     await expect(page.locator('.desktop-pet')).toHaveCount(0)
     await page.locator('.session-row-wrap').filter({ hasText: 'Hermetic desktop fixture' }).locator('.session-row').click()
-    await page.locator('.title-toolbar').getByRole('button', { name: 'Open realtime voice' }).click()
+    await page.getByRole('button', { name: 'Open realtime voice', exact: true }).click()
     const realtimePet = page.getByRole('complementary', { name: 'Realtime voice session' })
     await expect(realtimePet.getByRole('button', { name: /Ptx, draggable Ptx pet/ })).toBeVisible()
     await expect(realtimePet.locator('.pet-sprite img')).toBeVisible()
@@ -884,7 +914,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('closes realtime voice before switching harnesses', async () => {
-    await page.locator('.title-toolbar').getByRole('button', { name: 'Open realtime voice' }).click()
+    await page.getByRole('button', { name: 'Open realtime voice', exact: true }).click()
     const petSurface = page.locator('.desktop-pet')
     await expect(petSurface.getByRole('button', { name: 'Mute realtime voice' })).toBeVisible()
     await expect(page.locator('.voice-orb')).toHaveCount(0)
@@ -917,7 +947,7 @@ test.describe('Pi Work desktop smoke', () => {
   test('persists a desktop-only OMP provider toggle and removes its models from the picker', async () => {
     await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
     await page.getByRole('button', { name: 'OMP Work — switch harness' }).click()
-    await page.locator('.sidebar__footer button').filter({ hasText: 'Settings' }).click()
+    await page.locator('.sidebar__footer button[title="Settings"]').click()
     await page.getByRole('button', { name: 'Providers', exact: true }).click()
     const voiceModelsBefore = await page.evaluate(async () => JSON.parse((await window.ptx.voice.executeTool({ name: 'list_models', arguments: {} }, 'omp')).output) as { models: Array<{ name: string }> })
     expect(voiceModelsBefore.models.map((model) => model.name).sort()).toEqual(['Claude Fixture', 'GPT Fixture'])
@@ -939,7 +969,7 @@ test.describe('Pi Work desktop smoke', () => {
   test('persists an OMP model toggle and removes only that model from every picker', async () => {
     await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
     await page.getByRole('button', { name: 'OMP Work — switch harness' }).click()
-    await page.locator('.sidebar__footer button').filter({ hasText: 'Settings' }).click()
+    await page.locator('.sidebar__footer button[title="Settings"]').click()
     await page.getByRole('button', { name: 'Providers', exact: true }).click()
     await page.getByRole('tab', { name: /Models/ }).click()
 
@@ -972,7 +1002,7 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(modelPicker.getByRole('option', { name: /GPT Fixture/ })).toHaveCount(0)
     await expect(modelPicker.getByRole('option', { name: /Claude Fixture/ })).toHaveCount(1)
 
-    await page.locator('.sidebar__footer button').filter({ hasText: 'Settings' }).click()
+    await page.locator('.sidebar__footer button[title="Settings"]').click()
     await page.getByRole('button', { name: 'Providers', exact: true }).click()
     await page.getByRole('tab', { name: /Models/ }).click()
     const hiddenToggle = page.getByRole('checkbox', { name: 'Show GPT Fixture model' })
@@ -985,7 +1015,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('keeps Harness settings shared when changing the default while providers follow the active harness', async () => {
-    await page.locator('.sidebar__footer button').filter({ hasText: 'Settings' }).click()
+    await page.locator('.sidebar__footer button[title="Settings"]').click()
     await page.getByRole('button', { name: 'Harness', exact: true }).click()
     await expect(page.getByText('OMP approval mode', { exact: true })).toBeVisible()
     await expect(page.getByLabel('Pi executable override')).toHaveCount(0)
@@ -1032,7 +1062,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('refreshes harness discovery through the live settings and preload path', async () => {
-    await page.locator('.sidebar__footer button').filter({ hasText: 'Settings' }).click()
+    await page.locator('.sidebar__footer button[title="Settings"]').click()
     await page.getByRole('button', { name: 'Harness', exact: true }).click()
 
     const refresh = page.getByRole('button', { name: 'Refresh harnesses' })
@@ -1059,7 +1089,7 @@ test.describe('Pi Work desktop smoke', () => {
 
     const ompExecutable = join(fixtureRoot, 'omp-fixture.cjs')
     renameSync(`${ompExecutable}.pending`, ompExecutable)
-    await page.locator('.sidebar__footer button').filter({ hasText: 'Settings' }).click()
+    await page.locator('.sidebar__footer button[title="Settings"]').click()
     await page.getByRole('button', { name: 'Harness', exact: true }).click()
     await expect(page.getByText('OMP not detected', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Refresh harnesses' }).click()
@@ -1551,7 +1581,7 @@ test.describe('Pi Work desktop smoke', () => {
         await addDialog.getByRole('button', { name: 'Close' }).click()
       }
     }
-    await page.locator('.sidebar__footer button').filter({ hasText: 'Settings' }).click()
+    await page.locator('.sidebar__footer button[title="Settings"]').click()
     await expect(page.getByRole('heading', { name: 'General' })).toBeVisible()
     await page.getByRole('button', { name: 'Providers', exact: true }).click()
     await expect(page.getByLabel('Search providers')).toBeVisible()
@@ -2311,7 +2341,7 @@ test.describe('Pi Work desktop smoke', () => {
     const composer = page.getByRole('combobox', { name: 'Message Pi' })
     await composer.fill('stay busy while I close the window')
     await composer.press('Enter')
-    await expect(page.getByRole('button', { name: 'Stop Pi' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Stop Ptx' })).toBeVisible()
     await stubCloseDialog(app!)
 
     const runningPrompt = {
@@ -2359,7 +2389,7 @@ test.describe('Pi Work desktop smoke', () => {
     const composer = page.getByRole('combobox', { name: 'Message Pi' })
     await composer.fill('stay busy while I background the window')
     await composer.press('Enter')
-    await expect(page.getByRole('button', { name: 'Stop Pi' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Stop Ptx' })).toBeVisible()
     const runtimePidPath = join(fixtureRoot, 'pi-runtime.pid')
     await expect.poll(() => existsSync(runtimePidPath)).toBe(true)
     const runtimePid = Number(readFileSync(runtimePidPath, 'utf8'))

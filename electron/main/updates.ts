@@ -18,6 +18,7 @@ export interface UpdateAdapter {
 
 export interface UpdateServiceOptions {
   enabled: boolean
+  openDownloadPage?: () => Promise<void>
   checkIntervalMs?: number
   initialCheckDelayMs?: number
   setInterval?: typeof globalThis.setInterval
@@ -70,10 +71,13 @@ export function createManualUpdateCheck(
   }
 }
 
-export function getAutoUpdater(): AppUpdater {
+export function getAutoUpdater(testing = false): AppUpdater {
   // electron-updater is CommonJS; accessing through its default export keeps
   // the bundled Electron ESM output compatible with both Node module modes.
-  return electronUpdater.autoUpdater
+  const updater = electronUpdater.autoUpdater
+  updater.allowPrerelease = testing
+  updater.allowDowngrade = false
+  return updater
 }
 
 export class UpdateService {
@@ -147,7 +151,7 @@ export class UpdateService {
   }
 
   getState(): AppUpdateState {
-    return structuredClone(this.state)
+    return structuredClone({ ...this.state, ...(this.options.openDownloadPage ? { manualInstall: true } : {}) })
   }
 
   setEventSink(sink: ((state: AppUpdateState) => void) | null): void {
@@ -171,6 +175,16 @@ export class UpdateService {
   downloadAndInstall(): Promise<boolean> {
     if (!this.options.enabled) return Promise.resolve(false)
     if (this.downloadPromise) return this.downloadPromise
+    if (this.options.openDownloadPage && (this.state.phase === 'available' || this.state.phase === 'downloaded')) {
+      this.downloadPromise = this.options.openDownloadPage()
+        .then(() => true)
+        .catch((error) => {
+          this.publish({ phase: 'error', message: errorMessage(error) })
+          return false
+        })
+        .finally(() => { this.downloadPromise = null })
+      return this.downloadPromise
+    }
     if (this.state.phase === 'downloaded') {
       this.updater.quitAndInstall(false, true)
       return Promise.resolve(true)

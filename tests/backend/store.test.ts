@@ -332,7 +332,7 @@ describe('JsonStateStore', () => {
     const path = join(dir, 'state.json')
     writeFileSync(path, JSON.stringify({
       version: 2,
-      projects: [{ id: 'p1', name: 'One', path: '/one', folders: ['/one'], primaryFolder: '/one' }],
+      projects: [{ id: 'p1', harness: 'omp', name: 'One', path: '/one', folders: ['/one'], primaryFolder: '/one' }],
       settings: { ...defaultSettings(), terminalShell: '/bin/bash' },
       archivedSessions: ['/sessions/kept.jsonl'],
       dismissedProjectPaths: [],

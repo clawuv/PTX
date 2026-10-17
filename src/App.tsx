@@ -1,3 +1,4 @@
+import { useTaskSessionNavigation } from '@/hooks/useTaskSessionNavigation'
 import type { CSSProperties } from 'react'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plus } from 'lucide-react'
@@ -67,6 +68,7 @@ const VoiceOrb = lazy(() => import('@/components/VoiceOrb').then((module) => ({ 
 const DesktopPet = lazy(() => import('@/components/DesktopPet').then((module) => ({ default: module.DesktopPet })))
 const ProjectsPage = lazy(() => import('@/pages/ProjectsPage').then((module) => ({ default: module.ProjectsPage })))
 const ActivityPage = lazy(() => import('@/pages/ActivityPage').then((module) => ({ default: module.ActivityPage })))
+const TasksPage = lazy(() => import('@/pages/TasksPage').then((module) => ({ default: module.TasksPage })))
 const ScheduledPage = lazy(() => import('@/pages/ScheduledPage').then((module) => ({ default: module.ScheduledPage })))
 const PluginsPage = lazy(() => import('@/pages/PluginsPage').then((module) => ({ default: module.PluginsPage })))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((module) => ({ default: module.SettingsPage })))
@@ -90,6 +92,7 @@ const LOADING_LABEL_KEYS: Record<string, MessageKey> = {
   projects: 'app.loading.projects',
   activity: 'app.loading.activity',
   scheduled: 'app.loading.scheduled',
+  tasks: 'nav.tasks',
   plugins: 'app.loading.plugins',
   settings: 'app.loading.settings',
 }
@@ -916,9 +919,12 @@ export default function App() {
     })
   }, [bridge, busy, externalSessionRunning, queuedMessages, sendPrompt, submitting])
 
+  const openTaskSession = useTaskSessionNavigation({ bridge, harness: activeHarness, projects, selectHarness, selectSession, reportError })
   const page =
     view === 'projects' ? (
       <ProjectsPage projects={projects} onAdd={() => void addProject()} onOpen={selectProject} onRemove={(project) => void removeProject(project)} showHeaderAction={false} />
+    ) : view === 'tasks' ? (
+      <TasksPage bridge={bridge} harness={activeHarness} onOpenSession={openTaskSession} />
     ) : view === 'activity' ? (
       <ActivityPage sessions={sessions} projects={projects} clearedActivity={clearedActivity} onOpen={selectSession} onClear={clearActivity} />
     ) : view === 'scheduled' ? (

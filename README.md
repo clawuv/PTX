@@ -1,6 +1,8 @@
 # Ptx
 
-Ptx is a desktop workspace for [Pi](https://pi.dev/) and [OMP](https://github.com/can1357/oh-my-pi). It gives both coding agents the same friendly interface on macOS, Linux, and Windows while leaving each harness in charge of its own models, logins, and saved sessions.
+Ptx is a local AI development workspace for managing work across projects and reviewing results before accepting them. It runs on macOS, Linux, and Windows, with [Pi](https://pi.dev/) and [OMP](https://github.com/can1357/oh-my-pi) handling execution, models, logins, and saved sessions. Bring your own model account.
+
+The new **Tasks** page is a free local preview: define goals and acceptance requirements, reuse templates, choose a project folder or worktree, and review actual session tools and current Git changes. Execution ending only makes a task ready for human review. See the [task workflow guide](docs/task-workflow.md) and [commercial validation playbook](docs/business/validation-playbook.md). No paid checkout is live; existing features remain free and the repository retains its MIT license.
 
 <img width="2234" height="1332" alt="Ptx desktop workspace" src="https://github.com/user-attachments/assets/864ff0e1-71cc-49da-955f-f226710ef890" />
 

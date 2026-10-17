@@ -214,3 +214,29 @@ describe('automatic update service', () => {
     expect(manualUpdateNotification(service.getState())).toMatchObject({ type: 'info', message: 'Ptx Updates Unavailable' })
   })
 })
+
+ describe('unsigned test update installation', () => {
+  it('opens the release page without downloading or restarting', async () => {
+    const updater = new FakeUpdater()
+    const openDownloadPage = vi.fn(async () => undefined)
+    const service = new UpdateService(updater as unknown as UpdateAdapter, { enabled: true, openDownloadPage })
+    updater.emit('update-available', { version: '1.0.1' })
+    expect(service.getState()).toEqual({ phase: 'available', version: '1.0.1', manualInstall: true })
+    await expect(service.downloadAndInstall()).resolves.toBe(true)
+    expect(openDownloadPage).toHaveBeenCalledOnce()
+    expect(updater.downloadUpdate).not.toHaveBeenCalled()
+    expect(updater.quitAndInstall).not.toHaveBeenCalled()
+  })
+
+  it('reports download page failures and allows checking again', async () => {
+    const updater = new FakeUpdater()
+    const service = new UpdateService(updater as unknown as UpdateAdapter, {
+      enabled: true, openDownloadPage: async () => { throw new Error('Browser unavailable') },
+    })
+    updater.emit('update-available', { version: '1.0.1' })
+    await expect(service.downloadAndInstall()).resolves.toBe(false)
+    expect(service.getState()).toMatchObject({ phase: 'error', manualInstall: true, message: 'Browser unavailable' })
+    await service.check()
+    expect(updater.checkForUpdates).toHaveBeenCalledOnce()
+  })
+})

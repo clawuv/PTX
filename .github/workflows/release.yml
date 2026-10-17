@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*.*.*'
+      # Initial unsigned test release is published with the documented local QA flow.
+      - '!v1.0.0'
   workflow_dispatch:
     inputs:
       tag:

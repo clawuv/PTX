@@ -20,7 +20,7 @@ const PACKAGE_HELP: Record<HarnessId, MessageKey> = {
   omp: 'plugins.packageHelp.omp',
   pi: 'plugins.packageHelp.pi',
 }
-const GITHUB_ISSUES_URL = 'https://github.com/am-will/pi-studio/issues/new'
+const GITHUB_ISSUES_URL = 'https://github.com/clawuv/PTX/issues/new'
 
 function capabilityDetailId(skill: SkillRecord): string {
   return `capability-detail-${skill.id.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 128)}`

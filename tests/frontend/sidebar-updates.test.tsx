@@ -128,3 +128,15 @@ describe('sidebar update control', () => {
     expect(status?.textContent).toBe('Downloading Ptx update 0.2.0')
   })
 })
+
+describe('unsigned test update control', () => {
+  it('explains manual installation without promising an automatic restart', async () => {
+    const action = vi.fn()
+    await renderSidebar({ phase: 'available', version: '1.0.1', manualInstall: true }, action)
+    await press(container.querySelector('.sidebar-update')!)
+    expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('requires manual installation')
+    const yes = [...document.body.querySelectorAll<HTMLButtonElement>('.modal__footer button')].find((button) => button.textContent === 'Yes')
+    await press(yes!)
+    expect(action).toHaveBeenCalledOnce()
+  })
+})

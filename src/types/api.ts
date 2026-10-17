@@ -1,3 +1,5 @@
+import type { TasksApi } from './tasks'
+
 /**
  * Session partition shared by the in-app browser webviews. The renderer's
  * webview attribute must match the main process's will-attach-webview gate
@@ -6,7 +8,7 @@
 export const BROWSER_PARTITION = 'persist:prime-work-browser'
 
 export type ThemeMode = 'system' | 'light' | 'dark'
-export type WorkspaceView = 'session' | 'projects' | 'activity' | 'scheduled' | 'plugins' | 'settings'
+export type WorkspaceView = 'session' | 'projects' | 'activity' | 'tasks' | 'scheduled' | 'plugins' | 'settings'
 export type InspectorTab = 'summary' | 'changes' | 'browser' | 'files'
 export type SessionStatus = 'idle' | 'running' | 'waiting' | 'complete' | 'failed' | 'unknown'
 
@@ -62,6 +64,7 @@ export type ApplicationMenuCommand =
 export type AppUpdatePhase = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error' | 'unsupported'
 
 export interface AppUpdateState {
+  manualInstall?: boolean
   phase: AppUpdatePhase
   version?: string
   percent?: number
@@ -730,6 +733,7 @@ export interface AgentBrowserPointerEvent {
 }
 
 export interface PtxApi {
+  tasks: TasksApi
   app: {
     getMeta(): Promise<AppMeta>
     refreshHarnesses(): Promise<{ meta: AppMeta; settings: AppSettings }>

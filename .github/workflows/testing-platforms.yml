@@ -1,0 +1,55 @@
+name: Build v1.0.0 testing platforms
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            target: linux
+          - runner: windows-2022
+            target: win
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          # Match the already published macOS build; never move the release tag.
+          ref: 744a69bef6b019938db94a953efac98c383d22b0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm run toolchain:bootstrap
+      - name: Install Linux packaging and display dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm libarchive-tools xvfb libgtk-3-0 libnss3 libasound2 libgbm1
+      - run: npm ci
+      - run: npm run release:preflight:toolchain
+      - run: npm run audit:production
+      - run: npm run typecheck
+      - name: Build and verify unsigned testing installers
+        run: node scripts/release/package.mjs --qa --platform ${{ matrix.target }} --arch x64 --skip-verify
+      - name: Launch the actual packaged application
+        run: node scripts/release/smoke-packaged-app.mjs --platform ${{ matrix.target }} --arch x64
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ptx-v1.0.0-${{ matrix.target }}-x64
+          if-no-files-found: error
+          path: |
+            release/${{ matrix.target }}/x64/*.AppImage
+            release/${{ matrix.target }}/x64/*.deb
+            release/${{ matrix.target }}/x64/*.rpm
+            release/${{ matrix.target }}/x64/*.pacman
+            release/${{ matrix.target }}/x64/*.exe
+            release/${{ matrix.target }}/x64/*.zip
+            release/${{ matrix.target }}/x64/*.appx
+            release/${{ matrix.target }}/x64/*.msix
+            release/${{ matrix.target }}/x64/*.yml
+            release/${{ matrix.target }}/x64/*.blockmap

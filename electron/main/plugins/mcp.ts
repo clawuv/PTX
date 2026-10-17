@@ -268,6 +268,13 @@ export function validateMcpConnection(value: unknown, _harness: HarnessId = 'omp
   const name = requireString(value.name, 'MCP server name', { min: 1, max: 64, trim: true })
   const validName = isAppManageableLocalMcpKey(name)
   if (!validName || ['__proto__', 'prototype', 'constructor'].includes(name)) throw new TypeError('MCP server name contains unsupported characters')
+  let previousKey: string | undefined
+  if (value.previousKey !== undefined) {
+    previousKey = requireString(value.previousKey, 'MCP previous key', { min: 1, max: MAX_MCP_DEFINITION_KEY_LENGTH, trim: true })
+    if (!isAppManageableLocalMcpKey(previousKey) || ['__proto__', 'prototype', 'constructor'].includes(previousKey)) {
+      throw new TypeError('MCP previous key contains unsupported characters')
+    }
+  }
   const scope = value.scope
   if (scope !== 'user' && scope !== 'project') throw new TypeError('MCP scope must be user or project')
   const projectPath = scope === 'project' ? requireString(value.projectPath, 'projectPath', { min: 1, max: 4096 }) : undefined
@@ -281,7 +288,7 @@ export function validateMcpConnection(value: unknown, _harness: HarnessId = 'omp
       return parsed
     })
     if (args.length > 64) throw new TypeError('MCP arguments exceed the maximum count')
-    return { name, scope, projectPath, type: 'stdio', command, args }
+    return { name, scope, projectPath, ...(previousKey !== undefined ? { previousKey } : {}), type: 'stdio', command, args }
   }
   throw new TypeError('MCP transport must be http or stdio')
 }
@@ -397,12 +404,32 @@ export async function updateMcpSettings(
       const settings = snapshot.settings
       if (settings.mcpServers !== undefined && !isRecord(settings.mcpServers)) throw new TypeError(`${agentName} mcpServers setting must contain a JSON object`)
       const currentServers = isRecord(settings.mcpServers) ? settings.mcpServers : {}
-      if (Object.hasOwn(currentServers, input.name)) {
-        return { ok: false, reason: 'blocked', output: `An MCP server named “${input.name}” already exists in this scope.` }
+      const previousKey = input.previousKey
+      let previousDefinition: Record<string, unknown> | undefined
+      if (previousKey !== undefined) {
+        const found = currentServers[previousKey]
+        if (!isRecord(found)) return { ok: false, reason: 'blocked', output: `MCP server "${previousKey}" was not found in this scope.` }
+        if (isNetworkMcpDefinition(found)) return { ok: false, reason: 'blocked', output: NETWORK_MCP_UNAVAILABLE_DETAIL }
+        previousDefinition = found
+      }
+      if (Object.hasOwn(currentServers, input.name) && input.name !== previousKey) {
+        return { ok: false, reason: 'blocked', output: `An MCP server named "${input.name}" already exists in this scope.` }
       }
       const includeType = options.includeType !== false
-      const config = { ...(includeType ? { type: 'stdio' } : {}), command: input.command, ...(input.args?.length ? { args: input.args } : {}), enabled: true }
-      settings.mcpServers = { ...currentServers, [input.name]: config }
+      let config: Record<string, unknown>
+      if (previousDefinition) {
+        // Editing replaces one known stdio definition in place; unrelated keys such as env or cwd stay untouched.
+        config = { ...previousDefinition, command: input.command, enabled: previousDefinition.enabled !== false }
+        if (input.args?.length) config.args = input.args
+        else delete config.args
+      } else {
+        config = { ...(includeType ? { type: 'stdio' } : {}), command: input.command, ...(input.args?.length ? { args: input.args } : {}), enabled: true }
+      }
+      // Rebuild entries so a renamed definition keeps its position in the file. Object.fromEntries
+      // defines keys as own data properties, so hostile JSON keys such as __proto__ cannot escape.
+      const entries = Object.entries(currentServers).map(([key, value]) => (key === previousKey ? [input.name, config] : [key, value])) as Array<[string, unknown]>
+      if (previousKey === undefined) entries.push([input.name, config])
+      settings.mcpServers = Object.fromEntries(entries)
       if (options.schema && settings.$schema === undefined) settings.$schema = options.schema
       if (await writeSettingsAtomically(settingsPath, settings, snapshot.fingerprint, snapshot.source, fingerprint, verify)) {
         return { ok: true, output: options.successMessage ?? (agentName === 'OMP'

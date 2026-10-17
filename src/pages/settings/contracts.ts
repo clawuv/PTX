@@ -1,6 +1,6 @@
 import type { AppMeta, AppSettings } from '@/types/api'
 
-export type SettingsSection = 'mobile' | 'general' | 'appearance' | 'projects' | 'agent' | 'providers' | 'voice' | 'pets' | 'browser' | 'terminal' | 'privacy' | 'about'
+export type SettingsSection = 'mobile' | 'general' | 'appearance' | 'projects' | 'agent' | 'providers' | 'mcp' | 'voice' | 'pets' | 'browser' | 'terminal' | 'privacy' | 'about'
 
 export type SettingsUpdate = (patch: Partial<AppSettings>) => Promise<void> | void
 

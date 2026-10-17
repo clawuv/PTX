@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { PluginService, beginPluginDiscoveryShutdown } from '../../electron/main/plugins'
-import { removeMcpDefinition, updateMcpSettings, updateMcpState } from '../../electron/main/plugins/mcp'
+import { removeMcpDefinition, updateMcpSettings, updateMcpState, validateMcpConnection } from '../../electron/main/plugins/mcp'
 import { executePiPluginInstall, executePiPluginRemove } from '../../electron/main/plugins/package-execution'
 import { ProjectService } from '../../electron/main/projects'
 import { JsonStateStore } from '../../electron/main/store'
@@ -602,6 +602,59 @@ describe('PluginService MCP connections', () => {
 
     const config = JSON.parse(readFileSync(join(agentDir, 'mcp.json'), 'utf8'))
     expect(config.mcpServers.files).toMatchObject({ command: 'mcp-files', args: ['--root', '/tmp'], enabled: true })
+  })
+
+  it.each(['omp', 'pi'] as const)('edits an existing %s stdio definition in place without touching sibling entries', async (harness) => {
+    const root = temp()
+    const agentDir = join(root, 'agent')
+    mkdirSync(agentDir)
+    if (harness === 'pi') writeFileSync(join(agentDir, 'settings.json'), JSON.stringify({ packages: ['npm:pi-mcp-adapter'] }))
+    const service = new PluginService(null, async (path) => resolve(path), { agentDir, harness })
+    writeFileSync(join(agentDir, 'mcp.json'), JSON.stringify({
+      mcpServers: {
+        files: { type: 'stdio', command: 'mcp-files', args: ['--root', '/tmp'], enabled: false, env: { TOKEN: 'x' } },
+        other: { type: 'stdio', command: 'mcp-other', enabled: true },
+      },
+    }))
+
+    expect((await service.connectMcp({ name: 'docs', scope: 'user', type: 'stdio', command: 'mcp-docs', previousKey: 'files' })).ok).toBe(true)
+
+    const settings = JSON.parse(readFileSync(join(agentDir, 'mcp.json'), 'utf8'))
+    expect(Object.keys(settings.mcpServers)).toEqual(['docs', 'other'])
+    expect(settings.mcpServers.docs).toEqual({ type: 'stdio', command: 'mcp-docs', enabled: false, env: { TOKEN: 'x' } })
+    expect(settings.mcpServers.other).toEqual({ type: 'stdio', command: 'mcp-other', enabled: true })
+
+    const record = (await service.list()).skills.find((skill) => skill.definitionKey === 'docs')
+    expect(record).toMatchObject({ kind: 'mcp', name: 'docs', mcpDefinition: { command: 'mcp-docs' } })
+  })
+
+  it('blocks edits that collide with another name, miss their previous key, or target a network definition', async () => {
+    const root = temp()
+    const settingsPath = join(root, 'mcp.json')
+    writeFileSync(settingsPath, JSON.stringify({
+      mcpServers: {
+        alpha: { type: 'stdio', command: 'a' },
+        beta: { type: 'stdio', command: 'b' },
+        remote: { type: 'http', url: 'https://mcp.example/mcp' },
+      },
+    }))
+
+    await expect(updateMcpSettings(settingsPath, { name: 'beta', scope: 'user', type: 'stdio', command: 'a2', previousKey: 'alpha' }, undefined, { harness: 'omp', agentName: 'OMP' }))
+      .resolves.toMatchObject({ ok: false, reason: 'blocked', output: expect.stringContaining('already exists') })
+    await expect(updateMcpSettings(settingsPath, { name: 'gamma', scope: 'user', type: 'stdio', command: 'g', previousKey: 'missing' }, undefined, { harness: 'omp', agentName: 'OMP' }))
+      .resolves.toMatchObject({ ok: false, reason: 'blocked', output: expect.stringContaining('was not found') })
+    await expect(updateMcpSettings(settingsPath, { name: 'gamma', scope: 'user', type: 'stdio', command: 'g', previousKey: 'remote' }, undefined, { harness: 'omp', agentName: 'OMP' }))
+      .resolves.toMatchObject({ ok: false, reason: 'blocked', output: expect.stringContaining('managed outside Ptx') })
+
+    const settings = JSON.parse(readFileSync(settingsPath, 'utf8'))
+    expect(Object.keys(settings.mcpServers)).toEqual(['alpha', 'beta', 'remote'])
+    expect(settings.mcpServers.alpha).toMatchObject({ command: 'a' })
+  })
+
+  it('rejects unsafe previous keys at connection validation', () => {
+    for (const previousKey of ['../escape', '__proto__', 'has space']) {
+      expect(() => validateMcpConnection({ name: 'ok', scope: 'user', type: 'stdio', command: 'c', previousKey })).toThrow(/unsupported characters/)
+    }
   })
 
   it.each(['omp', 'pi'] as const)('marks unaddressable local %s MCP keys non-actionable while retaining bounded cleanup identity', async (harness) => {

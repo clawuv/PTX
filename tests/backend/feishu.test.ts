@@ -1,3 +1,4 @@
+import type { ReplyCard } from '../../electron/main/feishu/cards'
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
 import { mkdtempSync, readFileSync, writeFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -60,7 +61,10 @@ function fixture() {
   let receive: (raw: unknown) => Promise<void> = async () => {}
   const send = vi.fn(async (_chatId: string, _text: string, _uuid: string) => {})
   const close = vi.fn()
-  const transport = { start: vi.fn(async (callback: typeof receive) => { receive = callback }), close, state: () => 'connected' as const, send }
+  const createCard = vi.fn(async (_reply: ReplyCard) => `card-${createCard.mock.calls.length}`)
+  const sendCard = vi.fn(async (_chatId: string, _cardId: string, _uuid: string) => {})
+  const updateCard = vi.fn(async (_id: string, _reply: ReplyCard, _sequence: number, _done: boolean) => {})
+  const transport = { createCard, sendCard, updateCard, start: vi.fn(async (callback: typeof receive) => { receive = callback }), close, state: () => 'connected' as const, send }
   const make = () => {
     const service = new FeishuService(store, { pi: harness, omp: harness }, { pi: projects, omp: projects }, () => transport)
     services.push(service)
@@ -252,16 +256,88 @@ describe('Feishu local execution', () => {
     await f.service.save(config, 'secret')
     await f.service.connect()
     await f.receive(event('run tests'))
-    f.send.mockRejectedValueOnce(new Error('secret must not appear in status'))
-    await vi.advanceTimersByTimeAsync(3000)
+    f.transport.sendCard.mockRejectedValueOnce(new Error('secret must not appear in status'))
+    await vi.advanceTimersByTimeAsync(1000)
     expect(f.service.status().error).toContain('会话已读取，但飞书发送失败')
     expect(f.service.status().error).not.toContain('secret')
     expect(f.store.load()?.conversation?.delivered).toEqual([])
-    const failedReceipt = f.send.mock.calls.at(-1)?.[2]
-    await vi.advanceTimersByTimeAsync(3000)
-    expect(f.send.mock.calls.at(-1)?.[2]).toBe(failedReceipt)
+    const failedReceipt = f.transport.sendCard.mock.calls.at(-1)?.[2]
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.transport.sendCard.mock.calls.at(-1)?.[2]).toBe(failedReceipt)
     expect(f.store.load()?.conversation?.delivered).toEqual(['answer'])
     expect(f.service.status().error).toBeUndefined()
+  })
+
+  it('streams live text to one card, excludes tool payloads, and finalizes from the transcript', async () => {
+    vi.useFakeTimers()
+    const f = fixture()
+    await f.service.save(config, 'secret')
+    await f.service.connect()
+    await f.receive(event('run tests'))
+    const runtime = f.agents.getForSession()
+    if (!runtime) throw new Error('missing runtime')
+    runtime.isStreaming = true
+    f.service.onAgentEvent({ runtimeId: 'unrelated', event: { type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'private-other-project' } } })
+    f.service.onAgentEvent({ runtimeId: 'runtime', event: { type: 'message_update', assistantMessageEvent: { type: 'thinking_delta', delta: 'private-reasoning' } } })
+    f.service.onAgentEvent({ runtimeId: 'runtime', event: { type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'Checking' } } })
+    f.service.onAgentEvent({ runtimeId: 'runtime', event: { type: 'tool_execution_start', toolCallId: 'one', toolName: 'Read', args: { secret: 'private-argument' } } })
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.transport.createCard).toHaveBeenCalledTimes(1)
+    expect(f.transport.updateCard).toHaveBeenLastCalledWith('card-1', { text: 'Checking', tools: [{ name: 'Read', status: 'running' }] }, 1, false)
+    f.service.onAgentEvent({ runtimeId: 'runtime', event: { type: 'tool_execution_end', toolCallId: 'one', toolName: 'Read', result: 'private-output' } })
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.transport.updateCard.mock.calls.at(-1)?.[2]).toBe(3)
+    runtime.isStreaming = false
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.transport.updateCard).toHaveBeenLastCalledWith('card-1', expect.objectContaining({ text: 'Tests passed. Please review the diff.' }), 5, true)
+    expect(f.transport.sendCard).toHaveBeenCalledTimes(1)
+    expect(JSON.stringify(f.transport.updateCard.mock.calls)).not.toContain('private-')
+    expect(f.store.load()?.conversation?.card).toBeUndefined()
+    expect(f.store.load()?.conversation?.delivered).toEqual(['answer'])
+  })
+
+  it('recovers the same card after restart and advances sequences after a failed final update', async () => {
+    vi.useFakeTimers()
+    const f = fixture()
+    await f.service.save(config, 'secret')
+    await f.service.connect()
+    await f.receive(event('run tests'))
+    const runtime = f.agents.getForSession()
+    if (!runtime) throw new Error('missing runtime')
+    runtime.isStreaming = true
+    f.service.onAgentEvent({ runtimeId: 'runtime', event: { type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'partial' } } })
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.store.load()?.conversation?.card).toMatchObject({ id: 'card-1', sent: true, sequence: 2 })
+    f.service.stop()
+    runtime.isStreaming = false
+    const restored = f.make()
+    await restored.start()
+    f.transport.updateCard.mockRejectedValueOnce(new Error('network failure'))
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.store.load()?.conversation?.card).toMatchObject({ id: 'card-1', finishing: true, sequence: 4 })
+    expect(f.store.load()?.conversation?.delivered).toEqual([])
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.transport.updateCard).toHaveBeenLastCalledWith('card-1', expect.any(Object), 5, true)
+    expect(f.transport.createCard).toHaveBeenCalledTimes(1)
+    expect(f.transport.sendCard).toHaveBeenCalledTimes(1)
+    expect(f.store.load()?.conversation?.delivered).toEqual(['answer'])
+  })
+
+  it('does not continue a live card after project access is revoked', async () => {
+    vi.useFakeTimers()
+    const f = fixture()
+    await f.service.save(config, 'secret')
+    await f.service.connect()
+    await f.receive(event('run tests'))
+    const runtime = f.agents.getForSession()
+    if (!runtime) throw new Error('missing runtime')
+    runtime.isStreaming = true
+    f.service.onAgentEvent({ runtimeId: 'runtime', event: { type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'partial' } } })
+    await vi.advanceTimersByTimeAsync(1000)
+    f.revoke()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.transport.updateCard).toHaveBeenCalledTimes(1)
+    expect(f.service.status().error).toContain('授权已失效')
   })
 
   it('sends assistant replies once and receives desktop replies through the same transcript', async () => {
@@ -271,12 +347,12 @@ describe('Feishu local execution', () => {
     await f.service.connect()
     await f.receive(event('run tests'))
     await vi.advanceTimersByTimeAsync(3000)
-    expect(f.send.mock.calls.at(-1)?.[1]).toContain('Tests passed')
-    const count = f.send.mock.calls.length
+    expect(f.transport.updateCard.mock.calls.at(-1)?.[1].text).toContain('Tests passed')
+    const count = f.transport.updateCard.mock.calls.length
     await vi.advanceTimersByTimeAsync(3000)
-    expect(f.send).toHaveBeenCalledTimes(count)
+    expect(f.transport.updateCard).toHaveBeenCalledTimes(count)
     f.messages.push({ id: 'desktop-answer', role: 'assistant', parts: [{ type: 'text', text: 'Desktop follow-up reply' }] })
     await vi.advanceTimersByTimeAsync(3000)
-    expect(f.send.mock.calls.at(-1)?.[1]).toBe('Desktop follow-up reply')
+    expect(f.transport.updateCard.mock.calls.at(-1)?.[1].text).toBe('Desktop follow-up reply')
   })
 })

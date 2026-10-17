@@ -50,7 +50,6 @@ export function TasksPage({ bridge, harness, onOpenSession }: { bridge: PtxApi |
   const projectOptions = [...new Map(tasks.map((task) => [`${task.harness}:${task.projectId}`, `${task.projectName} · ${task.harness === 'pi' ? 'Pi' : 'OMP'}`])).entries()]
   return <div className="page scroll-area"><div className="page-container task-page">
     <header className="page-header"><div><h1>{t('nav.tasks')}</h1><p>{t('tasks.subtitle')}</p></div><button type="button" className="button button--primary" disabled={!bridge || busy} onClick={() => { setCreating(true); setSelectedId(null) }}><Plus size={14} />{t('tasks.new')}</button></header>
-    <p className="task-muted task-preview">{t('tasks.preview')}</p>
     {error || loadError ? <div className="task-error" role="alert">{error || loadError}<button className="button" type="button" disabled={busy} onClick={() => void refresh()}>{t('tasks.refresh')}</button></div> : null}
     {creating && bridge ? <TaskForm bridge={bridge} harness={harness} projects={projects} templates={templates} onCancel={() => setCreating(false)}
       onProjectCreated={(project) => setProjects((items) => [...items.filter((item) => item.id !== project.id || item.harness !== project.harness), project])}

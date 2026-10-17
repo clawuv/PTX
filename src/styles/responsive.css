@@ -165,7 +165,7 @@
 }
 
 @media (max-width: 760px) {
-  .page-container.plugin-container, .page-container.schedule-page { padding: 18px 18px 32px; }
+  .page-container.plugin-container, .page-container.schedule-page, .page-container.task-page { padding: 18px 18px 32px; }
   .plugin-header { flex-wrap: wrap; gap: 10px; }
   .directory-tools { flex-wrap: wrap; gap: 8px; }
 }

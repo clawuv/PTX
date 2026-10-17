@@ -1050,6 +1050,7 @@ async function bootstrap(): Promise<void> {
       piSessions.runtimeExited(envelope.runtimeId)
       ompSessions.runtimeExited(envelope.runtimeId)
     }
+    feishu.onAgentEvent(envelope)
     try { tasks.onAgentEvent(envelope) } catch (error) { console.error('Task lifecycle persistence failed', error) }
     const renderer = mainWindow?.webContents
     if (!shutdownStarted && renderer && !renderer.isDestroyed()

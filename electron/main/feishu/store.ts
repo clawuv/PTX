@@ -39,6 +39,7 @@ export class FeishuStore {
         sessionId: requireString(conversation.sessionId, 'session ID', { min: 1, max: 200 }),
         chatId: requireString(conversation.chatId, 'chat ID', { min: 1, max: 200 }),
         title: requireString(conversation.title, 'title', { min: 1, max: 200 }),
+        ...(conversation.card === undefined ? {} : { card: parseCardReceipt(conversation.card) }),
         delivered: (Array.isArray(conversation.delivered) ? conversation.delivered : []).map((id: unknown) => requireString(id, 'reply ID', { min: 1, max: 200 })),
       } } : {}),
       config: parseConfig(data.config), secret: requireString(data.secret, 'App Secret', { min: 1, max: 512 }), enabled: data.enabled,
@@ -64,4 +65,10 @@ export class FeishuStore {
     } finally { if (existsSync(temp)) unlinkSync(temp) }
   }
   forget(): void { if (existsSync(this.file)) unlinkSync(this.file) }
+}
+
+function parseCardReceipt(value: unknown): NonNullable<MobileConversation['card']> {
+  const card = requireRecord(value, 'card receipt')
+  if (!Number.isSafeInteger(card.sequence) || typeof card.sequence !== 'number' || card.sequence < 0 || typeof card.sent !== 'boolean' || typeof card.finishing !== 'boolean') throw new Error('Invalid card sequence')
+  return { id: requireString(card.id, 'card ID', { min: 1, max: 200 }), uuid: requireString(card.uuid, 'card UUID', { min: 1, max: 100 }), sequence: card.sequence, sent: card.sent, finishing: card.finishing }
 }

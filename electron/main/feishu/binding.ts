@@ -41,7 +41,7 @@ export class FeishuBinding {
       appPreset: { name: 'PTX 手机助手', desc: '从手机飞书向自己的电脑发送开发任务并查看结果' },
       addons: {
         preset: false,
-        scopes: { tenant: ['im:message.p2p_msg:readonly', 'im:message:send_as_bot'] },
+        scopes: { tenant: ['im:message.p2p_msg:readonly', 'im:message:send_as_bot', 'cardkit:card:write'] },
         events: { items: { tenant: ['im.message.receive_v1'] } },
       },
       onQRCodeReady: ({ url, expireIn }) => {

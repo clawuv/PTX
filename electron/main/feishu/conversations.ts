@@ -1,3 +1,4 @@
+import { summarizeTools } from './cards'
 import { existsSync } from 'node:fs'
 import type { HarnessRuntimeMap } from '../harness-runtime'
 import type { FeishuConfig } from '../../../src/types/feishu'
@@ -15,6 +16,7 @@ export interface MobileConversation {
   chatId: string
   title: string
   delivered: string[]
+  card?: { id: string; uuid: string; sequence: number; sent: boolean; finishing: boolean }
 }
 
 export class FeishuConversationError extends Error {}
@@ -76,6 +78,10 @@ export class FeishuConversations {
     } catch (error) { await agents.stop(runtime.runtimeId); throw error }
   }
 
+  ownsRuntime(config: FeishuConfig, binding: MobileConversation, runtimeId: string): boolean {
+    return this.harnesses[config.harness].agents.getForSession(binding.sessionFile)?.runtimeId === runtimeId
+  }
+
   busy(config: FeishuConfig, binding: MobileConversation): boolean {
     const runtime = this.harnesses[config.harness].agents.getForSession(binding.sessionFile)
     return Boolean(runtime?.isStreaming || runtime?.isCompacting || this.deliveries.get(binding.sessionFile))
@@ -117,8 +123,8 @@ export class FeishuConversations {
     if (this.fresh.has(binding.sessionFile)) return []
     return (await this.harnesses[config.harness].sessions.read(binding.sessionFile))
       .filter((message) => message.role === 'assistant' && !message.streaming)
-      .map((message) => ({ id: message.id, text: message.parts.filter((part) => part.type === 'text').map((part) => part.text).join('\n') }))
-      .filter((message) => message.text.trim())
+      .map((message) => ({ id: message.id, tools: summarizeTools(message.parts), text: message.parts.filter((part) => part.type === 'text').map((part) => part.text).join('\n') }))
+      .filter((message) => message.text.trim() || message.tools.length)
   }
 
   failure(binding: MobileConversation): string | undefined { return this.failures.get(binding.sessionFile) }

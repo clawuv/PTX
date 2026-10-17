@@ -337,11 +337,14 @@ function addMcpSettingsMetadata(
       const availability = !isAppManageableLocalMcpKey(name)
         ? { available: false as const, detail: LOCAL_MCP_STATE_UNAVAILABLE_DETAIL }
         : undefined
+      const args = Array.isArray(definition.args)
+        ? definition.args.filter((arg): arg is string => typeof arg === 'string' && arg.length <= 2_048).slice(0, 64)
+        : undefined
       output.push({
         id: idFor('mcp', location, name), name: displayName,
         description: `Local stdio MCP server (${command})`,
         kind: 'mcp', location, enabled, source: command, ...definitionIdentity,
-        ...(availability ? { availability } : {}),
+        ...(availability ? { availability } : { mcpDefinition: { command: definition.command.slice(0, 2_048), ...(args?.length ? { args } : {}) } }),
       })
 
     }

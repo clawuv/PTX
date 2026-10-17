@@ -296,6 +296,8 @@ export interface SkillRecord {
   definitionKey?: string
   /** False when an external definition key cannot be represented safely by the app removal API. */
   definitionRemovalAvailable?: boolean
+  /** Present for app-manageable local stdio definitions so the settings UI can offer in-place editing. */
+  mcpDefinition?: { command: string; args?: string[] }
   availability?: {
     available: boolean
     detail: string
@@ -318,6 +320,8 @@ export type McpConnectionInput = {
   name: string
   scope: 'user' | 'project'
   projectPath?: string
+  /** Existing bounded map key this connection replaces in place; enables editing app-managed stdio definitions. */
+  previousKey?: string
 } & ({ type: 'http'; url: string; auth?: 'none' | 'oauth' | 'bearer'; bearerTokenEnvVar?: string } | { type: 'stdio'; command: string; args?: string[] })
 
 export interface McpStateInput {

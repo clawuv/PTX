@@ -1255,6 +1255,16 @@ test.describe('Pi Work desktop smoke', () => {
     await page.screenshot({ path: '/tmp/ptx-feishu-settings.png' })
   })
 
+  test('shows the MCP servers settings section with the Pi adapter card', async () => {
+    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await page.locator('.sidebar__settings-nav').getByRole('button', { name: 'MCP servers', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'MCP servers' })).toBeVisible()
+    await expect(page.getByText('Pi MCP Adapter', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Install adapter', exact: true })).toBeVisible()
+    await expect(page.getByText('No MCP servers in this scope.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Add server', exact: true })).toBeDisabled()
+  })
+
   test('shows a blue update icon beside search only after discovering an update', async () => {
     const update = page.locator('.title-toolbar .app-update')
     await expect(update).toHaveCount(0)

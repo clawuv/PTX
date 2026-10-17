@@ -1,3 +1,5 @@
+import { LiveReply, type ReplyCard } from './cards'
+import type { AgentEventEnvelope } from '../../../src/types/api'
 import { FeishuConversationError, FeishuConversations, type ConversationHarness } from './conversations'
 import { FeishuBinding } from './binding'
 import { createHash } from 'node:crypto'
@@ -35,6 +37,8 @@ export class FeishuService {
   private configuring = false
   private generation = 0
 
+  private live?: { sessionFile: string; reply: LiveReply }
+  private syncedRevision = -1
   private conversations: FeishuConversations
 
   constructor(private store: FeishuStore, harnesses: Record<'pi' | 'omp', ConversationHarness>, private projects: Record<'pi' | 'omp', Projects>,
@@ -42,6 +46,17 @@ export class FeishuService {
     this.conversations = new FeishuConversations(harnesses)
     try { this.record = store.load() }
     catch { this.error = '飞书配置无法读取，请检查系统安全存储。原文件已保留。' }
+  }
+
+  onAgentEvent({ runtimeId, event }: AgentEventEnvelope): void {
+    const record = this.record
+    const binding = record?.conversation
+    if (!record?.enabled || !binding || !this.transport || !this.conversations.ownsRuntime(record.config, binding, runtimeId)) return
+    if (!this.live || this.live.sessionFile !== binding.sessionFile || (event.type === 'agent_start' && this.live.reply.finalizing)) {
+      this.live = { sessionFile: binding.sessionFile, reply: new LiveReply() }
+      this.syncedRevision = -1
+    }
+    this.live.reply.apply(event)
   }
 
   status(): FeishuStatus {
@@ -129,7 +144,7 @@ export class FeishuService {
     this.timer = setInterval(() => {
       if (this.handling || this.pending || this.configuring) return
       this.tail = this.notify(transport, generation)
-    }, 3_000)
+    }, 1_000)
     this.timer.unref()
   }
 
@@ -139,6 +154,8 @@ export class FeishuService {
     this.timer = undefined
     this.transport?.close()
     this.transport = null
+    this.live = undefined
+    this.syncedRevision = -1
   }
 
   private async project(config: FeishuRecord['config']) {
@@ -173,6 +190,13 @@ export class FeishuService {
     }
     if (command.kind === 'new' || command.kind === 'switch') {
       if (this.activeConversation()) { await this.reply(transport, message, '当前会话仍在运行，请等待完成或先 /停止 再切换。'); return }
+      if (this.record.conversation) {
+        await this.notify(transport, generation, true)
+        if (this.record.conversation?.card) {
+          await this.reply(transport, message, '上一张回复卡片尚未完成同步，请检查卡片权限和网络后再切换。')
+          return
+        }
+      }
       if (command.kind === 'new') {
         const conversation = await this.conversations.create(config, project.primaryFolder, message.chatId)
         this.persist({ ...this.record, conversation })
@@ -215,29 +239,68 @@ export class FeishuService {
     } else await this.reply(transport, message, `会话：${binding.title}\nID：${binding.sessionId}\n项目：${project.name}\n引擎：${config.harness}\n状态：${this.conversations.busy(config, binding) ? '运行中或等待确认' : '空闲'}`)
   }
 
-  private async notify(transport: FeishuTransport, generation: number): Promise<void> {
-    if (this.handling || this.pending || this.configuring || generation !== this.generation || !this.record?.conversation || transport.state() !== 'connected') return
+  private async notify(transport: FeishuTransport, generation: number, admitted = false): Promise<void> {
+    if ((!admitted && (this.handling || this.pending || this.configuring)) || generation !== this.generation || !this.record?.conversation || transport.state() !== 'connected') return
+    const wasHandling = this.handling
     this.handling = true
     let stage: 'project' | 'transcript' | 'send' | 'receipt' = 'project'
     try {
       const binding = this.record.conversation
       await this.project(this.record.config)
-      if (this.conversations.busy(this.record.config, binding)) return
       stage = 'transcript'
-      const replies = await this.conversations.replies(this.record.config, binding)
+      await this.conversations.require(this.record.config, binding)
+      const busy = this.conversations.busy(this.record.config, binding)
+      const live = this.live?.sessionFile === binding.sessionFile ? this.live.reply : undefined
+      const finishing = binding.card?.finishing === true
+      if (busy && !live && !finishing) return
+      stage = 'transcript'
+      const replies = busy && !finishing ? [] : await this.conversations.replies(this.record.config, binding)
       const lastDelivered = binding.delivered.at(-1)
       const cursor = lastDelivered ? replies.findIndex((item) => item.id === lastDelivered) : -1
       const unseen = replies.slice(cursor + 1).filter((item) => !binding.delivered.includes(item.id))
-      for (const reply of unseen) {
-        if (generation !== this.generation) return
-        const uuid = createHash('sha256').update(`${binding.sessionId}:${reply.id}`).digest('hex').slice(0, 32)
+      const done = !busy || finishing
+      const revision = live?.revision ?? -1
+      if (binding.card || unseen.length || (live && revision > 0)) {
+        const snapshot: ReplyCard = done && unseen.length
+          ? { text: unseen.map((reply) => reply.text).filter(Boolean).join('\n\n'), tools: unseen.flatMap((reply) => reply.tools).slice(0, 50) }
+          : live?.snapshot() ?? { text: '执行已中断，请在电脑检查会话。', tools: [] }
+        if (done && live) live.finalizing = true
         stage = 'send'
-        await transport.send(binding.chatId, reply.text, uuid)
-        const delivered = [...binding.delivered, reply.id].slice(-2000)
-        stage = 'receipt'
-        this.persist({ ...this.record, conversation: { ...binding, delivered } })
-        binding.delivered = delivered
+        let card = binding.card
+        if (!card) {
+          const id = await transport.createCard(snapshot)
+          card = { id, uuid: createHash('sha256').update(`${binding.sessionId}:${id}`).digest('hex').slice(0, 32), sequence: 0, sent: false, finishing: false }
+          stage = 'receipt'
+          this.persist({ ...this.record, conversation: { ...binding, card } })
+          binding.card = card
+        }
+        if (!card.sent) {
+          stage = 'send'
+          await transport.sendCard(binding.chatId, card.id, card.uuid)
+          card = { ...card, sent: true }
+          stage = 'receipt'
+          this.persist({ ...this.record, conversation: { ...binding, card } })
+          binding.card = card
+        }
+        if (done || revision !== this.syncedRevision) {
+          const sequence = card.sequence + 1
+          card = { ...card, sequence: sequence + 1, finishing: done }
+          stage = 'receipt'
+          this.persist({ ...this.record, conversation: { ...binding, card } })
+          binding.card = card
+          stage = 'send'
+          await transport.updateCard(card.id, snapshot, sequence, done)
+          this.syncedRevision = revision
+          if (done) {
+            const { card: _card, ...completed } = binding
+            stage = 'receipt'
+            this.persist({ ...this.record, conversation: { ...completed, delivered: [...binding.delivered, ...unseen.map((reply) => reply.id)].slice(-2000) } })
+            if (this.live?.reply === live) this.live = undefined
+            this.syncedRevision = -1
+          }
+        }
       }
+      if (busy) return
       const failure = this.conversations.failure(binding)
       if (failure) {
         stage = 'send'
@@ -249,11 +312,11 @@ export class FeishuService {
       const failures = {
         project: '回复同步暂停：项目授权检查失败，请在桌面重新选择并授权项目。',
         transcript: '回复同步暂停：无法读取绑定会话，请在电脑确认会话可打开，或通过 /会话 重新选择。',
-        send: '会话已读取，但飞书发送失败，将重试。请检查机器人发送权限和网络。',
+        send: '会话已读取，但飞书发送失败，将重试。请检查 cardkit:card:write、机器人发送权限和网络。',
         receipt: '回复已发送，但本地回执保存失败。请检查系统安全存储和磁盘空间。',
       }
       this.error = error instanceof FeishuConversationError ? `回复同步暂停：${error.message}` : failures[stage]
     }
-    finally { this.handling = false }
+    finally { this.handling = wasHandling }
   }
 }

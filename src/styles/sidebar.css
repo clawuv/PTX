@@ -27,8 +27,7 @@
 .sidebar__section-heading .section-heading__label[aria-expanded='true'] .section-heading__chevron { opacity: 0; }
 .sidebar__section-heading:hover .section-heading__chevron, .sidebar__section-heading:hover .section-heading__label[aria-expanded='true'] .section-heading__chevron { opacity: .7; }
 .sidebar__section-heading .section-heading__chevron:hover { background: var(--sidebar-row-background); opacity: 1; }
-.sidebar__section-heading .section-heading__actions { display: flex; align-items: center; gap: 2px; opacity: 0; transition: opacity 130ms ease-out; }
-.sidebar__section-heading:hover .section-heading__actions, .sidebar__section-heading:focus-within .section-heading__actions { opacity: 1; }
+.sidebar__section-heading .section-heading__actions { display: flex; align-items: center; gap: 2px; }
 
 .sidebar-search-wrap { padding: 0 12px 10px; }
 .sidebar-search { height: 31px; display: flex; align-items: center; gap: 6px; padding: 0 7px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--canvas); color: var(--text-tertiary); }

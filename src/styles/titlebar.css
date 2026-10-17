@@ -334,6 +334,12 @@
   z-index: 60;
   -webkit-app-region: drag;
 }
+/* Collapsed: the header starts inset at 218px, so its divider stops short of the
+   strip column. Continue the seam across the strip whenever a bordered header is
+   up; the strip's bottom edge sits on the same 40px line as the header's. */
+.app-shell[data-platform="darwin"][data-sidebar-open="false"]:has(.conversation-header:not(.conversation-header--new)) .title-toolbar {
+  border-bottom: 1px solid var(--border);
+}
 .app-shell[data-platform="darwin"][data-sidebar-open="false"] .title-toolbar__nav,
 .app-shell[data-platform="darwin"][data-sidebar-open="false"] .title-toolbar__nav > * {
   position: relative;

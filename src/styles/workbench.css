@@ -190,13 +190,18 @@
   outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
+/* Drawer divider: mirrors the sidebar/inspector handles — the line is invisible
+   at rest and reveals in the chrome divider color on hover, focus, or drag,
+   with no accent tint or glow. Only the top edge is draggable, so the toolbar's
+   bottom rule never joins the hover state. */
 .terminal-drawer > .resize-handle > span {
-  background: var(--terminal-resize);
+  background: transparent;
 }
 .terminal-drawer > .resize-handle:hover > span,
 .terminal-drawer > .resize-handle:focus-visible > span,
 .terminal-drawer > .resize-handle[data-resizing="true"] > span {
-  background: var(--accent);
+  background: var(--border);
+  box-shadow: none;
 }
 body.is-resizing-vertical,
 body.is-resizing-vertical * {

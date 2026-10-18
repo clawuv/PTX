@@ -1223,7 +1223,10 @@ export default function App() {
                           minHeight={TERMINAL_MIN}
                           maxHeight={layout.terminalMax}
                           defaultHeight={TERMINAL_DEFAULT}
-                          onHeightChange={layout.setTerminalHeight}
+                          onHeightChange={(height) => {
+                            layout.markTerminalUserSet()
+                            layout.setTerminalHeight(height)
+                          }}
                           onClose={() => closeTerminal(terminal.id)}
                           onError={reportError}
                           onInitialCommandConsumed={() => setTerminalSessions((current) => current.map((item) => (item.id === terminal.id ? { ...item, initialCommand: undefined } : item)))}

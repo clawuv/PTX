@@ -142,7 +142,7 @@
   --annotation: #339cff;
   --terminal-bg: #111110;
   --terminal-text: #deded9;
-  --terminal-toolbar-bg: #1e1e1d;
+  --terminal-toolbar-bg: rgb(17, 17, 17);
   --terminal-border: #2e2e2c;
   --terminal-control: #a8a8a3;
   --terminal-control-active: #e3e3de;

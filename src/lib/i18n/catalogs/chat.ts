@@ -193,6 +193,7 @@ const en = {
   'transcript.compactionTruncated': '… [Compaction details truncated in the desktop view.]',
   'transcript.agentWork': 'Agent work activity',
   'transcript.statusThinking': 'Thinking',
+  'transcript.reasoningLabel': 'Thinking process',
   'transcript.statusWorking': 'Working',
   'transcript.workedFor': 'Worked for {duration}',
   // Transcript: pasted image lightbox
@@ -431,6 +432,7 @@ export const chatCatalog = defineCatalog(en, {
   'transcript.compactionTruncated': '… [压缩详情在桌面视图中已截断。]',
   'transcript.agentWork': '智能体工作动态',
   'transcript.statusThinking': '思考中',
+  'transcript.reasoningLabel': '思考过程',
   'transcript.statusWorking': '工作中',
   'transcript.workedFor': '已工作 {duration}',
   'transcript.imageExpand': '放大粘贴的图片',

@@ -52,7 +52,8 @@ describe('transcript rendering', () => {
     expect(html).toContain('work-disclosure__rail')
     expect(html).toContain('work-disclosure__status')
     expect(html).toContain('role="status"><span>Thinking</span>')
-    expect(html).toContain('Checking <strong>the workspace</strong> now.')
+    expect(html).toContain('Thinking process')
+    expect(html).not.toContain('Checking')
     expect(html).not.toContain('**the workspace**')
     expect(html).not.toContain('Worked for')
     expect(html).toContain('thinking-dots')
@@ -136,7 +137,7 @@ describe('transcript rendering', () => {
       ],
     }], true)
 
-    expect(html).toContain('Following the external session.')
+    expect(html).not.toContain('Following the external session.')
     expect(html).toContain('Explaining the next step.')
     expect(html).toContain('read_file')
     expect(html).toContain('src/App.tsx')
@@ -333,7 +334,8 @@ describe('transcript rendering', () => {
 
     expect(html).toContain('Worked for 1s')
     expect(html).toContain('The primary final report stays visible.')
-    expect(html).toContain('Trailing lightweight reasoning.')
+    expect(html).toContain('Thinking process')
+    expect(html).not.toContain('Trailing lightweight reasoning.')
     expect(html).not.toContain('Earlier reasoning.')
     expect(html).toContain('aria-label="Copy assistant message"')
   })
@@ -375,7 +377,7 @@ describe('transcript rendering', () => {
     expect(html).toContain('reviewer')
     expect(html).not.toContain('Detailed child-agent response.')
     expect(html).not.toContain('message--agent')
-    expect(html.match(/aria-expanded="false"/g)).toHaveLength(2)
+    expect(html.match(/aria-expanded="false"/g)).toHaveLength(3)
   })
 
   it('renders system failures as compact expandable activity instead of red boxes', () => {

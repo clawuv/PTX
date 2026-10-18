@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
+  Brain,
   Check,
   ChevronDown,
   ChevronRight,
@@ -99,9 +100,20 @@ function toolPreview(part: Extract<MessagePart, { type: 'toolCall' }>): string {
   return boundText(serialize(raw).replace(/\s+/g, ' ').trim(), 180, '…')
 }
 
-function ReasoningPart({ part, streaming = false }: { part: Extract<MessagePart, { type: 'thinking' }>; streaming?: boolean }) {
+/** One collapsible row per work group: all reasoning chunks merge, the text only renders on demand. */
+function ReasoningPart({ parts, streaming = false }: { parts: Array<Extract<MessagePart, { type: 'thinking' }>>; streaming?: boolean }) {
   const { t } = useI18n()
-  return <div className="activity-line activity-line--reasoning"><MarkdownText text={boundText(part.text, 40_000, `\n${t('transcript.reasoningTruncated')}`)} streaming={streaming} /></div>
+  const [open, setOpen] = useState(false)
+  const text = parts.map((part) => part.text).filter(Boolean).join('\n\n')
+  if (!text) return null
+  return <div className="activity-line activity-line--reasoning">
+    <button type="button" className="reasoning__toggle" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+      <Brain size={13} aria-hidden="true" />
+      <span>{t('transcript.reasoningLabel')}</span>
+      {open ? <ChevronDown size={12} aria-hidden="true" /> : <ChevronRight size={12} aria-hidden="true" />}
+    </button>
+    {open ? <div className="reasoning__body"><MarkdownText text={boundText(text, 40_000, `\n${t('transcript.reasoningTruncated')}`)} streaming={streaming} /></div> : null}
+  </div>
 }
 
 export function ThinkingDots({ labelled = false }: { labelled?: boolean }) {
@@ -259,11 +271,13 @@ function partKey(part: MessagePart, index: number): string {
 
 export function WorkTimeline({ parts, showReasoning, showTools, streaming = false }: { parts: MessagePart[]; showReasoning: boolean; showTools: boolean; streaming?: boolean }) {
   const pairedResults = new Set<number>()
+  const thinkingParts = showReasoning ? parts.filter((part): part is Extract<MessagePart, { type: 'thinking' }> => part.type === 'thinking') : []
+  const firstThinkingIndex = parts.findIndex((part) => part.type === 'thinking')
   return <div className="work-timeline">{parts.map((part, index) => {
     const key = partKey(part, index)
     if (part.type === 'toolResult' && pairedResults.has(index)) return null
     if (part.type === 'compaction') return <CompactionPart key={key} part={part} />
-    if (part.type === 'thinking') return showReasoning ? <ReasoningPart key={key} part={part} streaming={streaming} /> : null
+    if (part.type === 'thinking') return index === firstThinkingIndex ? <ReasoningPart key={key} parts={thinkingParts} streaming={streaming} /> : null
     if (part.type === 'toolCall') {
       if (!showTools) return null
       const next = parts[index + 1]

@@ -71,7 +71,7 @@ function fixture() {
   const createCard = vi.fn(async (_reply: ReplyCard) => `card-${createCard.mock.calls.length}`)
   const sendCard = vi.fn(async (_chatId: string, _cardId: string, _uuid: string) => {})
   const updateCard = vi.fn(async (_id: string, _reply: ReplyCard, _sequence: number, _done: boolean) => {})
-  const transport = { createCard, sendCard, updateCard, start: vi.fn(async (callback: typeof receive) => { receive = callback }), close, state: () => 'connected' as const, send, sendImage: vi.fn(async (_chatId: string, _filePath: string, _uuid: string) => {}), downloadImage: vi.fn(async (_messageId: string, _fileKey: string) => Buffer.from('')) }
+  const transport = { createCard, sendCard, updateCard, start: vi.fn(async (callback: typeof receive) => { receive = callback }), close, state: () => 'connected' as const, send, sendImage: vi.fn(async (_chatId: string, _filePath: string, _uuid: string) => {}), sendImageData: vi.fn(async (_chatId: string, _data: Buffer, _uuid: string) => {}), downloadImage: vi.fn(async (_messageId: string, _fileKey: string) => Buffer.from('')) }
   const make = () => {
     const service = new FeishuService(store, { pi: harness, omp: harness }, { pi: projects, omp: projects }, () => transport)
     services.push(service)
@@ -198,7 +198,7 @@ describe('Feishu local execution', () => {
     await f.receive(event('/切换 missing', 'missing'))
     expect(f.store.load()?.conversation).toBeUndefined()
     await f.receive(event('/切换 session', 'switch'))
-    expect(f.store.load()?.conversation?.delivered).toEqual(['answer'])
+    expect(f.store.load()?.conversation?.delivered.filter((item) => !item.startsWith('echo:'))).toEqual(['answer', 'images:ready'])
     expect(f.agents.start).not.toHaveBeenCalled()
   })
   it('sends local images to the requesting chat and reports failures without touching the conversation', async () => {
@@ -323,11 +323,11 @@ describe('Feishu local execution', () => {
     await vi.advanceTimersByTimeAsync(1000)
     expect(f.service.status().error).toContain('会话已读取，但飞书发送失败')
     expect(f.service.status().error).not.toContain('secret')
-    expect(f.store.load()?.conversation?.delivered).toEqual([])
+    expect(f.store.load()?.conversation?.delivered.filter((item) => !item.startsWith('echo:'))).toEqual(['images:ready'])
     const failedReceipt = f.transport.sendCard.mock.calls.at(-1)?.[2]
     await vi.advanceTimersByTimeAsync(1000)
     expect(f.transport.sendCard.mock.calls.at(-1)?.[2]).toBe(failedReceipt)
-    expect(f.store.load()?.conversation?.delivered).toEqual(['answer'])
+    expect(f.store.load()?.conversation?.delivered.filter((item) => !item.startsWith('echo:'))).toEqual(['images:ready', 'answer'])
     expect(f.service.status().error).toBeUndefined()
   })
 
@@ -356,7 +356,7 @@ describe('Feishu local execution', () => {
     expect(f.transport.sendCard).toHaveBeenCalledTimes(1)
     expect(JSON.stringify(f.transport.updateCard.mock.calls)).not.toContain('private-')
     expect(f.store.load()?.conversation?.card).toBeUndefined()
-    expect(f.store.load()?.conversation?.delivered).toEqual(['answer'])
+    expect(f.store.load()?.conversation?.delivered.filter((item) => !item.startsWith('echo:'))).toEqual(['images:ready', 'answer'])
   })
 
   it('recovers the same card after restart and advances sequences after a failed final update', async () => {
@@ -378,12 +378,12 @@ describe('Feishu local execution', () => {
     f.transport.updateCard.mockRejectedValueOnce(new Error('network failure'))
     await vi.advanceTimersByTimeAsync(1000)
     expect(f.store.load()?.conversation?.card).toMatchObject({ id: 'card-1', finishing: true, sequence: 4 })
-    expect(f.store.load()?.conversation?.delivered).toEqual([])
+    expect(f.store.load()?.conversation?.delivered.filter((item) => !item.startsWith('echo:'))).toEqual(['images:ready'])
     await vi.advanceTimersByTimeAsync(1000)
     expect(f.transport.updateCard).toHaveBeenLastCalledWith('card-1', expect.any(Object), 5, true)
     expect(f.transport.createCard).toHaveBeenCalledTimes(1)
     expect(f.transport.sendCard).toHaveBeenCalledTimes(1)
-    expect(f.store.load()?.conversation?.delivered).toEqual(['answer'])
+    expect(f.store.load()?.conversation?.delivered.filter((item) => !item.startsWith('echo:'))).toEqual(['images:ready', 'answer'])
   })
 
   it('does not continue a live card after project access is revoked', async () => {
@@ -417,5 +417,81 @@ describe('Feishu local execution', () => {
     f.messages.push({ id: 'desktop-answer', role: 'assistant', parts: [{ type: 'text', text: 'Desktop follow-up reply' }] })
     await vi.advanceTimersByTimeAsync(3000)
     expect(f.transport.updateCard.mock.calls.at(-1)?.[1].text).toBe('Desktop follow-up reply')
+  })
+})
+
+describe('Feishu desktop image sync', () => {
+  const pngBytes = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), Buffer.alloc(8)])
+
+  it('pushes desktop images once, skips history, and does not echo phone-sent images', async () => {
+    vi.useFakeTimers()
+    const f = fixture()
+    f.messages.push({ id: 'history-user', role: 'user', parts: [{ type: 'image', mimeType: 'image/png', data: 'AAAA' }] })
+    await f.service.save(config, 'secret')
+    await f.service.connect()
+    await f.receive(event('/切换 session', 'switch'))
+    await f.service.start()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.transport.sendImageData).not.toHaveBeenCalled()
+
+    f.messages.push({ id: 'desktop-user', role: 'user', parts: [{ type: 'image', mimeType: 'image/png', data: 'BBBB' }] })
+    await f.service.start()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.transport.sendImageData).toHaveBeenCalledTimes(1)
+    expect(f.transport.sendImageData.mock.calls[0]?.[1]).toEqual(Buffer.from('BBBB', 'base64'))
+
+    f.transport.downloadImage.mockResolvedValueOnce(pngBytes)
+    await f.receive(imageEvent('img_v2_key', 'phone-image'))
+    f.messages.push({ id: 'phone-user', role: 'user', parts: [{ type: 'image', mimeType: 'image/png', data: pngBytes.toString('base64') }] })
+    await f.service.start()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.transport.sendImageData).toHaveBeenCalledTimes(1)
+    expect(f.store.load()?.conversation?.delivered.some((item) => item.startsWith('echo:'))).toBe(false)
+  })
+  it('forwards desktop message text with its image and skips phone-sent text', async () => {
+    vi.useFakeTimers()
+    const f = fixture()
+    await f.service.save(config, 'secret')
+    await f.service.connect()
+    await f.receive(event('/切换 session', 'switch'))
+    await f.service.start()
+    await vi.advanceTimersByTimeAsync(1000)
+
+    f.messages.push({ id: 'desktop-both', role: 'user', parts: [{ type: 'text', text: '看看这张图' }, { type: 'image', mimeType: 'image/png', data: 'BBBB' }] })
+    await f.service.start()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.send.mock.calls.filter((call) => call[1].includes('看看这张图'))).toHaveLength(1)
+    expect(f.transport.sendImageData).toHaveBeenCalledTimes(1)
+
+    await f.receive(event('手机发出的文字', 'phone-text'))
+    f.messages.push({ id: 'phone-text-user', role: 'user', parts: [{ type: 'text', text: '手机发出的文字' }] })
+    await f.service.start()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.send.mock.calls.filter((call) => call[1].includes('手机发出的文字'))).toHaveLength(0)
+    expect(f.send.mock.calls.filter((call) => call[1].includes('看看这张图'))).toHaveLength(1)
+  })
+  it('retries the oversize-image notice until it is delivered and never uploads the bytes', async () => {
+    vi.useFakeTimers()
+    const f = fixture()
+    await f.service.save(config, 'secret')
+    await f.service.connect()
+    await f.receive(event('/切换 session', 'switch'))
+    await f.service.start()
+    await vi.advanceTimersByTimeAsync(1000)
+
+    f.messages.push({ id: 'huge-user', role: 'user', parts: [{ type: 'image', mimeType: 'image/png', dataTruncated: true }] })
+    f.send.mockRejectedValueOnce(new Error('network failure'))
+    await f.service.start()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(f.send.mock.calls.filter((call) => call[1].includes('电脑端图片过大'))).toHaveLength(1)
+    expect(f.transport.sendImageData).not.toHaveBeenCalled()
+    expect(f.store.load()?.conversation?.delivered).not.toContain('msg:huge-user:0')
+
+    // The receipt is only recorded after the notice succeeds, so the backoff retry resends it.
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(f.send.mock.calls.filter((call) => call[1].includes('电脑端图片过大'))).toHaveLength(2)
+    expect(f.store.load()?.conversation?.delivered).toContain('msg:huge-user:0')
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(f.send.mock.calls.filter((call) => call[1].includes('电脑端图片过大'))).toHaveLength(2)
   })
 })

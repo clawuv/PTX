@@ -1,5 +1,5 @@
 import { cardJson, toolPanel, boundedCardText, type ReplyCard } from './cards'
-import { createReadStream } from 'node:fs'
+import { createReadStream, type ReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { Client, defaultHttpInstance, EventDispatcher, LoggerLevel, WSClient, type HttpInstance, type HttpRequestOptions } from '@larksuiteoapi/node-sdk'
 import type { FeishuStatus } from '../../../src/types/feishu'
@@ -13,6 +13,7 @@ export interface FeishuTransport {
   updateCard(cardId: string, reply: ReplyCard, sequence: number, done: boolean): Promise<void>
   send(chatId: string, text: string, uuid: string): Promise<void>
   sendImage(chatId: string, filePath: string, uuid: string): Promise<void>
+  sendImageData(chatId: string, data: Buffer, uuid: string): Promise<void>
   downloadImage(messageId: string, fileKey: string): Promise<Buffer>
 }
 
@@ -50,6 +51,29 @@ export function createFeishuTransport(appId: string, appSecret: string): FeishuT
   const ws = new WSClient({ ...options, handshakeTimeoutMs: 15_000 })
   const check = (result: { code?: number }) => {
     if (result.code !== 0) throw new Error('飞书卡片操作失败，请检查 cardkit:card:write、机器人发送权限和网络。')
+  }
+  const uploadImage = async (image: Buffer | ReadStream): Promise<string> => {
+    let imageKey: string | undefined
+    try {
+      imageKey = (await media.im.v1.image.create({ data: { image_type: 'message', image } }))?.image_key
+    } catch (error) {
+      const data = (error as { response?: { data?: unknown } })?.response?.data
+      console.warn('[feishu] image upload failed:', typeof data === 'string' ? data.slice(0, 200) : data ?? error)
+      throw new Error('图片上传失败，请确认飞书应用已开通 im:resource（上传图片）权限。')
+    }
+    if (!imageKey) throw new Error('图片上传失败，请确认飞书应用已开通 im:resource（上传图片）权限。')
+    return imageKey
+  }
+  const sendImageKey = async (chatId: string, imageKey: string, uuid: string) => {
+    try {
+      check(await client.im.v1.message.create({ params: { receive_id_type: 'chat_id' }, data: {
+        receive_id: chatId, msg_type: 'image', content: JSON.stringify({ image_key: imageKey }), uuid,
+      } }))
+    } catch (error) {
+      const data = (error as { response?: { data?: unknown } })?.response?.data
+      console.warn('[feishu] image message send failed:', typeof data === 'string' ? data.slice(0, 200) : data ?? error)
+      throw new Error('图片消息发送失败，请检查机器人发送权限和网络。')
+    }
   }
   return {
     createCard: async (reply) => {
@@ -95,27 +119,18 @@ export function createFeishuTransport(appId: string, appSecret: string): FeishuT
       // Real uploads consume the stream through the SDK; the no-op error handler keeps an
       // unconsumed stream from surfacing late open failures as uncaught exceptions.
       image.on('error', () => {})
-      let imageKey: string | undefined
+      let imageKey: string
       try {
-        imageKey = (await media.im.v1.image.create({ data: { image_type: 'message', image } }))?.image_key
-      } catch (error) {
-        const data = (error as { response?: { data?: unknown } })?.response?.data
-        console.warn('[feishu] image upload failed:', typeof data === 'string' ? data.slice(0, 200) : data ?? error)
-        throw new Error('图片上传失败，请确认飞书应用已开通 im:resource（上传图片）权限。')
+        imageKey = await uploadImage(image)
       } finally {
         // The SDK may not consume the stream on rejection; destroy it so a pending open cannot emit after cleanup.
         image.destroy()
       }
-      if (!imageKey) throw new Error('图片上传失败，请确认飞书应用已开通 im:resource（上传图片）权限。')
-      try {
-        check(await client.im.v1.message.create({ params: { receive_id_type: 'chat_id' }, data: {
-          receive_id: chatId, msg_type: 'image', content: JSON.stringify({ image_key: imageKey }), uuid,
-        } }))
-      } catch (error) {
-        const data = (error as { response?: { data?: unknown } })?.response?.data
-        console.warn('[feishu] image message send failed:', typeof data === 'string' ? data.slice(0, 200) : data ?? error)
-        throw new Error('图片消息发送失败，请检查机器人发送权限和网络。')
-      }
+      await sendImageKey(chatId, imageKey, uuid)
+    },
+    sendImageData: async (chatId, data, uuid) => {
+      if (data.length === 0 || data.length > 10 * 1024 * 1024) throw new Error('图片无效或超过飞书 10MB 上限。')
+      await sendImageKey(chatId, await uploadImage(data), uuid)
     },
     downloadImage: async (messageId, fileKey) => {
       // client.request returns the response body directly (the httpInstance wrapper

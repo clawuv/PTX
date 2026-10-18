@@ -124,6 +124,30 @@ it('rejects missing or oversized files before uploading', async () => {
   expect(mocks.axios).not.toHaveBeenCalled()
 })
 
+it('uploads image buffers over the binary-bounded client and sends them as image messages', async () => {
+  const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47])
+  mocks.axios.mockResolvedValueOnce({ data: { code: 0, data: { image_key: 'img_v2_key' } } })
+    .mockResolvedValueOnce({ data: { code: 0 } })
+  await createFeishuTransport('cli_test', 'secret').sendImageData('chat', bytes, 'receipt')
+  expect(mocks.axios.mock.calls[0][0]).toMatchObject({ url: '/im/v1/images', method: 'POST', data: { image_type: 'message', image: bytes } })
+  expect(mocks.axios.mock.calls[0][1]).toMatchObject({ maxBodyLength: 12 * 1024 * 1024, maxContentLength: 12 * 1024 * 1024 })
+  expect(mocks.axios.mock.calls[1][0]).toMatchObject({ params: { receive_id_type: 'chat_id' }, data: {
+    receive_id: 'chat', msg_type: 'image', content: JSON.stringify({ image_key: 'img_v2_key' }), uuid: 'receipt',
+  } })
+})
+
+it('rejects empty or oversized image buffers before uploading', async () => {
+  await expect(createFeishuTransport('cli_test', 'secret').sendImageData('chat', Buffer.alloc(0), 'receipt')).rejects.toThrow('10MB')
+  await expect(createFeishuTransport('cli_test', 'secret').sendImageData('chat', Buffer.alloc(10 * 1024 * 1024 + 1), 'receipt')).rejects.toThrow('10MB')
+  expect(mocks.axios).not.toHaveBeenCalled()
+})
+
+it('points at im:resource when a buffer upload is rejected', async () => {
+  mocks.axios.mockResolvedValueOnce({ data: { code: 99991672, msg: 'insufficient permissions' } })
+  await expect(createFeishuTransport('cli_test', 'secret').sendImageData('chat', Buffer.from('png'), 'receipt')).rejects.toThrow('im:resource')
+  expect(mocks.axios).toHaveBeenCalledTimes(1)
+})
+
 it('downloads image resources as arraybuffer over the binary-bounded client', async () => {
   const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
   mocks.axios.mockResolvedValueOnce({ data: bytes.buffer })

@@ -1,4 +1,9 @@
+import { createHash } from 'node:crypto'
 import { nativeImage } from 'electron'
+
+export function imageDigest(base64: string): string {
+  return createHash('sha256').update(base64).digest('hex').slice(0, 32)
+}
 
 /**
  * Mobile images must survive the agent RPC write-frame budget, which caps each

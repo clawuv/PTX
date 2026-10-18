@@ -134,7 +134,7 @@
 .message--activity .work-timeline { padding: 0; }
 /* Quiet turn-closing changes summary: flat hairline shell, plain colored diff
    numbers stacked under the title; the left chevron expands the per-file list. */
-.changes-card { width: 100%; display: flex; flex-direction: column; margin: 12px 0 4px; border: 1px solid var(--border); border-radius: 9px; color: var(--text-secondary); background: transparent; text-align: left; }
+.changes-card { width: 100%; display: flex; flex-direction: column; margin: 12px 0 4px; border: 1px solid var(--border); border-radius: 9px; color: var(--text-secondary); background: var(--surface-raised); text-align: left; }
 .changes-card:hover { background: var(--surface-subtle); }
 .changes-card__summary { display: flex; align-items: center; gap: 4px; min-height: 46px; padding: 6px 8px 6px 6px; }
 .changes-card__expand { width: 26px; height: 26px; display: grid; flex: 0 0 26px; place-items: center; padding: 0; border-radius: 6px; color: var(--text-tertiary); background: transparent; }

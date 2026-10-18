@@ -1,10 +1,19 @@
 import { summarizeTools } from './cards'
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import type { HarnessRuntimeMap } from '../harness-runtime'
 import type { FeishuConfig } from '../../../src/types/feishu'
 import type { RuntimeInfo, SessionRecord } from '../../../src/types/api'
 import { assertNoMcpAuthenticationCommand } from '../../../src/lib/mcp-policy'
-import type { SessionImage } from './image'
+import { imageDigest, type SessionImage } from './image'
+
+export interface TranscriptReply { id: string; tools: ReturnType<typeof summarizeTools>; text: string }
+export interface TranscriptImage { key: string; digest?: string; data?: string; mimeType?: string }
+export interface TranscriptText { key: string; digest: string; text: string }
+
+export function textDigest(text: string): string {
+  return createHash('sha256').update(text).digest('hex').slice(0, 32)
+}
 
 export type ConversationHarness = {
   projects: Pick<HarnessRuntimeMap['pi']['projects'], 'list' | 'authorizeCwd'>
@@ -21,6 +30,8 @@ export interface MobileConversation {
 }
 
 export class FeishuConversationError extends Error {}
+/** Marks a binding whose existing transcript images have been accounted for, so history is never replayed to the phone. */
+export const IMAGE_BASELINE = 'images:ready'
 
 /** Uses the same runtime and transcript catalog as the desktop, never a parallel chat log. */
 export class FeishuConversations {
@@ -75,7 +86,7 @@ export class FeishuConversations {
         title: '飞书会话', createdAt: timestamp, updatedAt: timestamp, status: 'idle', depth: 0,
       }, current.runtimeId)
       this.fresh.set(current.sessionFile, { runtimeId: current.runtimeId, cwd, sessionId: current.sessionId })
-      return { sessionFile: current.sessionFile, sessionId: current.sessionId, chatId, title: '飞书会话', delivered: [] }
+      return { sessionFile: current.sessionFile, sessionId: current.sessionId, chatId, title: '飞书会话', delivered: [IMAGE_BASELINE] }
     } catch (error) { await agents.stop(runtime.runtimeId); throw error }
   }
 
@@ -126,12 +137,29 @@ export class FeishuConversations {
   }
 
   async replies(config: FeishuConfig, binding: MobileConversation) {
+    return (await this.transcript(config, binding)).replies
+  }
+
+  /** One transcript read yields both assistant replies and every settled image, from either side of the desktop session. */
+  async transcript(config: FeishuConfig, binding: MobileConversation): Promise<{ replies: TranscriptReply[]; texts: TranscriptText[]; images: TranscriptImage[] }> {
     await this.require(config, binding)
-    if (this.fresh.has(binding.sessionFile)) return []
-    return (await this.harnesses[config.harness].sessions.read(binding.sessionFile))
-      .filter((message) => message.role === 'assistant' && !message.streaming)
+    if (this.fresh.has(binding.sessionFile)) return { replies: [], texts: [], images: [] }
+    const messages = (await this.harnesses[config.harness].sessions.read(binding.sessionFile)).filter((message) => !message.streaming)
+    const replies = messages
+      .filter((message) => message.role === 'assistant')
       .map((message) => ({ id: message.id, tools: summarizeTools(message.parts), text: message.parts.filter((part) => part.type === 'text').map((part) => part.text).join('\n') }))
       .filter((message) => message.text.trim() || message.tools.length)
+    const images = messages.flatMap((message) => message.parts.flatMap((part, index): TranscriptImage[] => {
+      if (part.type !== 'image') return []
+      const data = part.dataTruncated || !part.data ? undefined : part.data
+      return [{ key: `msg:${message.id}:${index}`, digest: data ? imageDigest(data) : undefined, data, mimeType: part.mimeType }]
+    }))
+    const texts = messages.flatMap((message) => {
+      if (message.role !== 'user') return []
+      const text = message.parts.filter((part) => part.type === 'text').map((part) => part.text).join('\n').trim()
+      return text ? [{ key: `user:${message.id}`, digest: textDigest(text), text }] : []
+    })
+    return { replies, texts, images }
   }
 
   failure(binding: MobileConversation): string | undefined { return this.failures.get(binding.sessionFile) }

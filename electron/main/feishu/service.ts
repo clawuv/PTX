@@ -1,6 +1,6 @@
-import { LiveReply, type ReplyCard } from './cards'
+import { LiveReply, boundedCardText, type ReplyCard } from './cards'
 import type { AgentEventEnvelope } from '../../../src/types/api'
-import { FeishuConversationError, FeishuConversations, type ConversationHarness } from './conversations'
+import { FeishuConversationError, FeishuConversations, IMAGE_BASELINE, textDigest, type ConversationHarness } from './conversations'
 import { FeishuBinding } from './binding'
 import { createHash } from 'node:crypto'
 import type { FeishuStatus } from '../../../src/types/feishu'
@@ -8,12 +8,17 @@ import { assertNoMcpAuthenticationCommand } from '../../../src/lib/mcp-policy'
 import type { HarnessRuntimeMap } from '../harness-runtime'
 import { requireRecord, rejectUnknownKeys, requireString } from '../validation'
 import { admittedMessage, parseCommand, parseConfig, type FeishuMessage } from './protocol'
-import { prepareSessionImage, type SessionImage } from './image'
+import { imageDigest, prepareSessionImage, type SessionImage } from './image'
 import type { FeishuRecord, FeishuStore } from './store'
 import { createFeishuTransport, type FeishuTransport } from './transport'
 
 const HELP = 'PTX 飞书会话\n直接发文字或图片即可继续当前会话，电脑端同步可见。\n/新建：开始新会话\n/会话：列出当前项目会话\n/切换 会话ID：切换会话\n/状态：查看当前会话\n/结果：查看最新回复\n/发图 图片路径：把电脑上的本地图片发到本聊天\n/停止：停止当前会话并清除引擎队列\n电脑需保持运行，交互确认请在电脑处理。'
 type Projects = Pick<HarnessRuntimeMap['pi']['projects'], 'list' | 'authorizeCwd'>
+// Desktop prompts and their settled messages arrive as these events; images are scanned only then, not on every token.
+const IMAGE_SCAN_EVENTS = new Set<string>(['agent_start', 'message_start', 'message_end', 'agent_end'])
+const IMAGE_RETRY_MS = 10_000
+const ECHO_PREFIX = 'echo:'
+const FEISHU_IMAGE_BYTES = 10 * 1024 * 1024
 
 
 export class FeishuService {
@@ -37,6 +42,8 @@ export class FeishuService {
   private tail: Promise<void> = Promise.resolve()
   private configuring = false
   private generation = 0
+  private imagesDirty = false
+  private imageRetryAt = 0
 
   private live?: { sessionFile: string; reply: LiveReply }
   private syncedRevision = -1
@@ -53,6 +60,7 @@ export class FeishuService {
     const record = this.record
     const binding = record?.conversation
     if (!record?.enabled || !binding || !this.transport || !this.conversations.ownsRuntime(record.config, binding, runtimeId)) return
+    if (typeof event.type === 'string' && IMAGE_SCAN_EVENTS.has(event.type)) this.imagesDirty = true
     if (!this.live || this.live.sessionFile !== binding.sessionFile || (event.type === 'agent_start' && this.live.reply.finalizing)) {
       this.live = { sessionFile: binding.sessionFile, reply: new LiveReply() }
       this.syncedRevision = -1
@@ -121,16 +129,13 @@ export class FeishuService {
     const generation = this.generation
     const transport = this.makeTransport(record.config.appId, record.secret)
     this.transport = transport
+    this.imagesDirty = true
     this.error = undefined
     // Keep startup non-blocking; the SDK owns reconnect attempts.
     void transport.start(async (raw) => {
       if (generation !== this.generation || this.configuring) return
       const message = admittedMessage(raw, record.config.allowedOpenId)
-      if (!message) {
-        const type = (raw as { message?: { message_type?: string } })?.message?.message_type
-        console.warn('[feishu] event dropped:', type, JSON.stringify(raw).slice(0, 400))
-        return
-      }
+      if (!message) return
       if (!message || this.record?.seen.some((receipt) => receipt.id === message.id)) return
       if (this.pending >= 32) { this.error = '飞书消息过于频繁，请稍后重试。'; return }
       this.pending++
@@ -149,7 +154,9 @@ export class FeishuService {
     }).catch(() => { if (generation === this.generation) this.error = '飞书连接失败，请检查 App ID、App Secret、长连接设置和网络。' })
     this.timer = setInterval(() => {
       if (this.handling || this.pending || this.configuring) return
-      this.tail = this.notify(transport, generation)
+      // The receive chain waits on this tail; a rejection here would silently drop
+      // incoming phone messages, so keep the same guard the receive path uses.
+      this.tail = this.tick(transport, generation).catch(() => undefined)
     }, 1_000)
     this.timer.unref()
   }
@@ -225,7 +232,8 @@ export class FeishuService {
         const session = (await this.conversations.list(config)).find((item) => item.id === id)
         if (!session) { await this.reply(transport, message, '找不到此项目中的会话，请发送 /会话 获取完整 ID。'); return }
         const conversation = { sessionFile: session.filePath, sessionId: session.id, chatId: message.chatId, title: session.title, delivered: [] }
-        const delivered = (await this.conversations.replies(config, conversation)).map((item) => item.id).slice(-2000)
+        const { replies, texts, images } = await this.conversations.transcript(config, conversation)
+        const delivered = [...replies.map((item) => item.id), ...texts.map((item) => item.key), ...images.map((item) => item.key), IMAGE_BASELINE].slice(-2000)
         this.persist({ ...this.record, conversation: { ...conversation, delivered } })
       }
       await this.reply(transport, message, '已切换会话。直接发送文字即可继续，电脑端可查看同一会话。')
@@ -242,6 +250,7 @@ export class FeishuService {
       if (binding.chatId !== message.chatId) throw new Error('会话聊天身份不一致')
       const busy = this.conversations.busy(config, binding)
       await this.conversations.send(config, binding, command.prompt)
+      this.recordEcho(`text:${textDigest(command.prompt)}`)
       try { await this.reply(transport, message, busy ? '已加入当前会话队列。' : '已发送到当前会话，回复会同步到这里。') }
       catch { this.error = '消息已提交，但飞书回执失败。请通过 /状态 查询，勿重复提交。' }
       return
@@ -283,8 +292,91 @@ export class FeishuService {
     if ('error' in image) { await this.reply(transport, message, image.error); return }
     const queued = this.conversations.busy(config, binding)
     await this.conversations.send(config, binding, message.text || '[图片]', [image])
+    this.recordEcho(imageDigest(image.data))
+    if (message.text) this.recordEcho(`text:${textDigest(message.text)}`)
     try { await this.reply(transport, message, queued ? '图片已加入当前会话队列。' : '图片已发送到当前会话。') }
     catch { this.error = '图片已提交，但飞书回执失败。请通过 /状态 查询，勿重复提交。' }
+  }
+
+  private updateDelivered(change: (delivered: string[]) => string[]): void {
+    const conversation = this.record?.conversation
+    if (!this.record || !conversation) return
+    this.persist({ ...this.record, conversation: { ...conversation, delivered: change(conversation.delivered).slice(-2000) } })
+  }
+
+  /** Phone-originated images echo back through the transcript; one echo marker suppresses exactly one such image. */
+  private recordEcho(digest: string): void {
+    this.updateDelivered((delivered) => [...delivered, `${ECHO_PREFIX}${digest}`])
+  }
+
+  private async tick(transport: FeishuTransport, generation: number): Promise<void> {
+    if (this.imagesDirty && Date.now() >= this.imageRetryAt) await this.syncDesktop(transport, generation)
+    await this.notify(transport, generation)
+  }
+
+  private async syncDesktop(transport: FeishuTransport, generation: number): Promise<void> {
+    if (generation !== this.generation || !this.record?.conversation || transport.state() !== 'connected') return
+    this.imagesDirty = false
+    this.handling = true
+    try {
+      const config = this.record.config
+      const { texts, images } = await this.conversations.transcript(config, this.record.conversation)
+      if (!this.record.conversation.delivered.includes(IMAGE_BASELINE)) {
+        this.updateDelivered((delivered) => [...delivered.filter((item) => !item.startsWith(ECHO_PREFIX)), ...texts.map((item) => item.key), ...images.map((item) => item.key), IMAGE_BASELINE])
+        return
+      }
+      // Receipt-cap eviction can drop old keys, so anchor each scan at the newest
+      // already-delivered item of its kind; earlier entries were accounted for and
+      // must never be reconsidered.
+      const settledKeys = new Set(this.record.conversation.delivered)
+      const anchor = (items: readonly { key: string }[]) => {
+        for (let i = items.length - 1; i >= 0; i--) if (settledKeys.has(items[i].key)) return i
+        return -1
+      }
+      for (const item of texts.slice(anchor(texts) + 1)) {
+        const conversation = this.record?.conversation
+        if (!conversation || generation !== this.generation) return
+        if (conversation.delivered.includes(item.key)) continue
+        if (this.consumeEcho(`${ECHO_PREFIX}text:${item.digest}`, item.key)) continue
+        const uuid = createHash('sha256').update(`${conversation.sessionId}:${item.key}`).digest('hex').slice(0, 32)
+        await transport.send(conversation.chatId, boundedCardText(item.text), uuid)
+        this.updateDelivered((delivered) => [...delivered, item.key])
+      }
+      for (const item of images.slice(anchor(images) + 1)) {
+        const conversation = this.record?.conversation
+        if (!conversation || generation !== this.generation) return
+        if (conversation.delivered.includes(item.key)) continue
+        if (item.digest && this.consumeEcho(`${ECHO_PREFIX}${item.digest}`, item.key)) continue
+        const uuid = createHash('sha256').update(`${conversation.sessionId}:${item.key}`).digest('hex').slice(0, 32)
+        const bytes = item.data ? Buffer.from(item.data, 'base64') : undefined
+        if (!bytes || bytes.length > FEISHU_IMAGE_BYTES) {
+          // Send the notice before recording the receipt so a failed notice is retried
+          // instead of being silently dropped.
+          await transport.send(conversation.chatId, '电脑端图片过大，无法同步到飞书，请在电脑查看。', createHash('sha256').update(`${uuid}:notice`).digest('hex').slice(0, 32))
+          this.updateDelivered((delivered) => [...delivered, item.key])
+          continue
+        }
+        await transport.sendImageData(conversation.chatId, bytes, uuid)
+        this.updateDelivered((delivered) => [...delivered, item.key])
+      }
+    } catch (error) {
+      console.warn('[feishu] desktop sync failed, retrying:', error instanceof Error ? error.message : error)
+      this.imagesDirty = true
+      this.imageRetryAt = Date.now() + IMAGE_RETRY_MS
+    } finally {
+      this.handling = false
+    }
+  }
+
+  /** Consumes one phone-originated echo marker for this desktop item; returns true when the item must not be forwarded. */
+  private consumeEcho(echo: string, key: string): boolean {
+    const delivered = this.record?.conversation?.delivered ?? []
+    if (!delivered.includes(echo)) return false
+    this.updateDelivered((items) => {
+      const index = items.indexOf(echo)
+      return [...items.slice(0, index), ...items.slice(index + 1), key]
+    })
+    return true
   }
 
   private async notify(transport: FeishuTransport, generation: number, admitted = false): Promise<void> {
@@ -303,8 +395,16 @@ export class FeishuService {
       if (busy && !live && !finishing) return
       stage = 'transcript'
       const replies = busy && !finishing ? [] : await this.conversations.replies(this.record.config, binding)
-      const lastDelivered = binding.delivered.at(-1)
-      const cursor = lastDelivered ? replies.findIndex((item) => item.id === lastDelivered) : -1
+      // Delivered receipts interleave reply ids with text/image keys, so the list can end
+      // with a non-reply id. Anchor on the newest delivered reply: items before it were
+      // already accounted for and must never be reconsidered, even after receipt-cap
+      // eviction trims their ids.
+      const replyOrder = new Map(replies.map((item, index) => [item.id, index]))
+      let cursor = -1
+      for (let i = binding.delivered.length - 1; i >= 0; i--) {
+        const found = replyOrder.get(binding.delivered[i])
+        if (found !== undefined) { cursor = found; break }
+      }
       const unseen = replies.slice(cursor + 1).filter((item) => !binding.delivered.includes(item.id))
       const done = !busy || finishing
       const revision = live?.revision ?? -1

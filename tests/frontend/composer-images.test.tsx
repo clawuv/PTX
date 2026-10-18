@@ -134,12 +134,16 @@ async function dropFiles(files: File[]): Promise<void> {
   })
 }
 
+/** Image attachments render as thumbnails; the file name only survives in the remove button's label. */
+const attachedImageNames = () => Array.from(container.querySelectorAll<HTMLButtonElement>('.composer-attachment--image button[aria-label]'))
+  .map((button) => button.getAttribute('aria-label') ?? '')
+
 describe('Composer image ingestion', () => {
   it('previews and sends a pasted image through the prompt callback', async () => {
     const onSend = renderComposer(vi.fn(async () => undefined))
     await paste(pastedPng())
 
-    expect(container.querySelector('.composer-attachment')?.textContent).toContain('pasted.png')
+    expect(attachedImageNames().some((label) => label.includes('pasted.png'))).toBe(true)
     await act(async () => {
       ;(container.querySelector('button[aria-label="Send message"]') as HTMLButtonElement).click()
       await Promise.resolve()
@@ -156,7 +160,7 @@ describe('Composer image ingestion', () => {
     await paste(pastedPng())
 
     expect(container.querySelector('[role="alert"]')).toBeNull()
-    expect(container.querySelector('.composer-attachment')?.textContent).toContain('pasted.png')
+    expect(attachedImageNames().some((label) => label.includes('pasted.png'))).toBe(true)
     await act(async () => {
       ;(container.querySelector('button[aria-label="Send message"]') as HTMLButtonElement).click()
     })
@@ -196,7 +200,7 @@ describe('Composer image ingestion', () => {
       await Promise.resolve()
       await Promise.resolve()
     })
-    expect(container.querySelector('.composer-attachment')?.textContent).toContain('newer.png')
+    expect(attachedImageNames().some((label) => label.includes('newer.png'))).toBe(true)
     expect(container.querySelector('[role="alert"]')).toBeNull()
 
     await act(async () => {
@@ -205,7 +209,7 @@ describe('Composer image ingestion', () => {
       await Promise.resolve()
     })
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('could not read the image')
-    expect(container.querySelector('.composer-attachment')?.textContent).toContain('newer.png')
+    expect(attachedImageNames().some((label) => label.includes('newer.png'))).toBe(true)
   })
 
   it('inserts mixed clipboard text at the caret instead of appending', async () => {
@@ -270,7 +274,7 @@ describe('Composer image ingestion', () => {
       await Promise.resolve()
     })
 
-    const attachments = Array.from(container.querySelectorAll('.composer-attachment')).map((attachment) => attachment.textContent)
+    const attachments = attachedImageNames()
     expect(attachments).toHaveLength(2)
     expect(attachments.join(' ')).toContain('submitted.png')
     expect(attachments.join(' ')).toContain('new-draft.png')
@@ -291,8 +295,8 @@ describe('Composer image ingestion', () => {
     })
 
     expect(container.querySelectorAll('.composer-attachment')).toHaveLength(8)
-    expect(container.textContent).toContain('submitted-1.png')
-    expect(container.textContent).not.toContain('submitted-2.png')
+    expect(attachedImageNames().join(' ')).toContain('submitted-1.png')
+    expect(attachedImageNames().join(' ')).not.toContain('submitted-2.png')
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('1 submitted image could not be restored because the attachment limits are full')
     expect(container.querySelector('[role="status"]')?.textContent).toContain('8 files attached')
   })
@@ -311,8 +315,8 @@ describe('Composer image ingestion', () => {
     })
 
     expect(container.querySelectorAll('.composer-attachment')).toHaveLength(1)
-    expect(container.textContent).toContain('new-large.png')
-    expect(container.textContent).not.toContain('submitted-large.png')
+    expect(attachedImageNames().join(' ')).toContain('new-large.png')
+    expect(attachedImageNames().join(' ')).not.toContain('submitted-large.png')
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('1 submitted image could not be restored because the attachment limits are full')
   })
 
@@ -332,7 +336,7 @@ describe('Composer image ingestion', () => {
     expect(container.querySelector('button[aria-label="Attach images"]')).toBeNull()
 
     await pickFiles([pastedPng()])
-    expect(container.querySelector('.composer-attachment')?.textContent).toContain('pasted.png')
+    expect(attachedImageNames().some((label) => label.includes('pasted.png'))).toBe(true)
   })
 
   it('closes the add menu from its trigger or an outside click', () => {
@@ -368,7 +372,7 @@ describe('Composer image ingestion', () => {
       await Promise.resolve()
     })
     expect(container.querySelector('.composer-drop-feedback')).toBeNull()
-    expect(container.querySelector('.composer-attachment')?.textContent).toContain('pasted.png')
+    expect(attachedImageNames().some((label) => label.includes('pasted.png'))).toBe(true)
   })
 
   it('stages mixed file types and rejects unsupported files when sending', async () => {
@@ -407,7 +411,7 @@ describe('Composer image ingestion', () => {
     renderComposer(vi.fn(), false)
     await pickFiles([pastedPng()])
     expect(container.querySelector('[role="alert"]')).toBeNull()
-    expect(container.querySelector('.composer-attachment')?.textContent).toContain('pasted.png')
+    expect(attachedImageNames().some((label) => label.includes('pasted.png'))).toBe(true)
     act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Remove pasted.png"]')?.click())
     expect(container.querySelector('.composer-attachment')).toBeNull()
   })

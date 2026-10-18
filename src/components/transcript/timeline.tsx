@@ -29,6 +29,7 @@ import {
   UNKNOWN_EXIT_REASON,
 } from '@/lib/events/reduce'
 import { writeClipboardText } from '@/lib/clipboard'
+import { apiErrorDetail } from '@/lib/harness-error-text'
 import { boundText } from '@/lib/render-bounds'
 import { MarkdownText } from '../MarkdownText'
 import { SyntaxText } from './syntax'
@@ -38,6 +39,8 @@ type Translate = (key: MessageKey, values?: MessageValues) => string
 /** The event reducer bakes a few fallback sentences into view-model data; they are recognized here and translated at render. */
 function systemFallbackText(text: string, t: Translate): string {
   if (text === AGENT_ERROR_FALLBACK) return t('transcript.errorFallback')
+  const detail = apiErrorDetail(text)
+  if (detail) return detail
   const exit = RUNTIME_EXIT_PATTERN.exec(text)
   if (!exit) return text
   const reason = exit[1]

@@ -183,7 +183,6 @@ function ToolPart({ part, next }: { part: Extract<MessagePart, { type: 'toolCall
         <span className="activity-line__icon">{toolIcon(kind)}</span>
         <span className="activity-line__kind">{kind === 'question' ? t('transcript.toolQuestion') : part.name === FALLBACK_TOOL_NAME ? t('transcript.tool') : part.name}</span>
         {preview ? <code className="activity-tool__preview"><SyntaxText text={preview} /></code> : null}
-        <span className="activity-tool__state">{failed ? <><CircleAlert size={12} /> {t('transcript.stateFailed')}</> : finished ? <><Check size={12} /> {t('transcript.stateDone')}</> : kind === 'question' ? t('transcript.stateNeedsInput') : <><LoaderCircle className="spin" size={12} /> {t('transcript.stateRunning')}</>}</span>
         {canExpand ? open ? <ChevronDown size={13} /> : <ChevronRight size={13} /> : null}
       </button>
       {open && visibleOutput ? (
@@ -237,11 +236,6 @@ function CompactionPart({ part }: { part: Extract<MessagePart, { type: 'compacti
     : part.status === 'done'
       ? t('transcript.compaction.done')
       : part.status === 'cancelled' ? t('transcript.compaction.cancelled') : part.outcome === 'skipped' ? t('transcript.compaction.skipped') : t('transcript.compaction.failed')
-  const state = part.status === 'running'
-    ? <><LoaderCircle className="spin" size={12} /> {t('transcript.stateRunning')}</>
-    : part.status === 'done'
-      ? <><Check size={12} /> {part.willRetry ? t('transcript.stateContinuing') : t('transcript.stateDone')}</>
-      : <><CircleAlert size={12} /> {part.status === 'cancelled' ? t('transcript.stateCancelled') : t('transcript.stateNeedsAttention')}</>
   const rawDetails = part.error || part.summary
   const details = rawDetails === COMPACTION_INCOMPLETE_FALLBACK ? t('transcript.compaction.incomplete') : rawDetails
   const tokenLabel = part.tokensBefore === undefined ? '' : t('transcript.compaction.tokensBefore', { count: part.tokensBefore.toLocaleString() })
@@ -251,7 +245,6 @@ function CompactionPart({ part }: { part: Extract<MessagePart, { type: 'compacti
       <span className="activity-line__kind">{label}</span>
       <span className="activity-compaction__reason">{t(compactionReasonKey(part.reason))}</span>
       {tokenLabel ? <span className="activity-compaction__tokens">{tokenLabel}</span> : null}
-      <span className="activity-tool__state">{state}</span>
       {canExpand ? open ? <ChevronDown size={13} /> : <ChevronRight size={13} /> : null}
     </button>
     {open && details ? <div className={`activity-compaction__details ${part.status === 'done' ? '' : 'is-error'}`}><MarkdownText text={boundText(details, 40_000, `\n${t('transcript.compactionTruncated')}`)} /></div> : null}
@@ -323,7 +316,7 @@ export function WorkDisclosure({ message, parts, showReasoning, showTools, runni
   return (
     <section className="work-disclosure">
       <button type="button" className="work-disclosure__button" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
-        {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}<span>{t('transcript.workedFor', { duration })}</span>
+        <span>{t('transcript.workedFor', { duration })}</span>{open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
       </button>
       {open ? <WorkTimeline parts={parts} showReasoning={showReasoning} showTools={showTools} /> : null}
     </section>

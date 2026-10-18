@@ -60,7 +60,7 @@ describe('ChangesPanel status states', () => {
     expect(list.textContent).toContain('src/App.tsx')
 
     const byText = (label: string) => [...container.querySelectorAll<HTMLButtonElement>('.changes-card__summary button')].find((button) => button.textContent?.trim() === label)!
-    act(() => { byText('Review').click() })
+    act(() => { byText('Review code').click() })
     expect(onOpenChanges).toHaveBeenCalledTimes(1)
   })
 

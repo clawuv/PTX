@@ -182,7 +182,7 @@ const en = {
 
   // Changes card
   'changescard.filesChanged': { one: '{count} file changed', other: '{count} files changed' },
-  'changescard.reviewAction': 'Review',
+  'changescard.reviewAction': 'Review code',
   'changescard.show': 'Show changed files',
   'changescard.hide': 'Hide changed files',
   'changescard.filesRegion': 'Changed files',
@@ -369,7 +369,7 @@ const zh = {
   'pane.toggleInspector': '切换检查器',
 
   'changescard.filesChanged': { one: '已更改 {count} 个文件', other: '已更改 {count} 个文件' },
-  'changescard.reviewAction': '审查',
+  'changescard.reviewAction': '审查代码',
   'changescard.show': '展开更改的文件',
   'changescard.hide': '收起更改的文件',
   'changescard.filesRegion': '更改的文件',

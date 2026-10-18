@@ -8,10 +8,12 @@ interface ConversationHeaderProps {
   project?: ProjectRecord
   worktrees: GitWorktree[]
   activeWorktreePath?: string
-  /** Branch/worktree name shown before or without the linked-worktree catalog. */
+  /** Branch/worktree name shown on the checkout row. */
   checkoutLabel?: string
   worktreesLoading: boolean
+  /** Opens a linked worktree (grant + new session); without it the list is display-only. */
   onOpenWorktree?(worktree: GitWorktree): Promise<void> | void
+  /** Creates a linked worktree on a new branch and opens it. */
   onCreateWorktree?(branch: string): Promise<void> | void
   inspectorOpen?: boolean
   onToggleInspector?(): void
@@ -21,6 +23,8 @@ interface ConversationHeaderProps {
   /** Local branch list for the project menu's switcher; without it the section stays hidden. */
   onBranches?(): Promise<string[]>
   onSwitchBranch?(branch: string): Promise<void> | void
+  /** Creates a new local branch at HEAD without switching to it. */
+  onCreateBranch?(branch: string): Promise<void> | void
 }
 
 /**
@@ -43,6 +47,7 @@ export function ConversationHeader({
   onOpenWith,
   onBranches,
   onSwitchBranch,
+  onCreateBranch,
 }: ConversationHeaderProps) {
   const { t } = useI18n()
 
@@ -60,9 +65,9 @@ export function ConversationHeader({
       ) : null}
       <span className="conversation-header__spacer" />
       <SummaryPopover
-        checkoutLabel={checkoutLabel}
         worktrees={worktrees}
         activeWorktreePath={activeWorktreePath}
+        checkoutLabel={checkoutLabel}
         worktreesLoading={worktreesLoading}
         onOpenWorktree={onOpenWorktree}
         onCreateWorktree={onCreateWorktree}
@@ -70,6 +75,7 @@ export function ConversationHeader({
         onOpenWith={onOpenWith}
         onBranches={onBranches}
         onSwitchBranch={onSwitchBranch}
+        onCreateBranch={onCreateBranch}
       />
       <button
         type="button"

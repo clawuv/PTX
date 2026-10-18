@@ -726,6 +726,14 @@ export default function App() {
     },
     [activeProject, addOrReplaceProject, bridge, newSession, reportError],
   )
+  /** Creates a local branch at HEAD from the header project menu; the popover refreshes its own list. */
+  const createProjectBranch = useCallback(
+    async (branch: string) => {
+      if (!bridge || !activeCwd) return
+      await bridge.git.createBranch(activeCwd, branch)
+    },
+    [activeCwd, bridge],
+  )
   /** Local branch names for the header project menu; a failed read just empties the list. */
   const projectMenuBranches = useCallback(async () => {
     if (!bridge || !activeCwd) return []
@@ -1086,9 +1094,10 @@ export default function App() {
                 checkoutLabel={git.branch ?? activeProject?.gitBranch ?? activeProject?.name}
                 worktreesLoading={worktreesLoading}
                 onOpenWorktree={bridge && activeProject && !activeProject.inferred && worktrees.length > 0 ? openWorktree : undefined}
-                onCreateWorktree={bridge && activeProject && !activeProject.inferred && worktrees.length > 0 ? createWorktree : undefined}
+                onCreateWorktree={bridge && activeProject && !activeProject.inferred ? createWorktree : undefined}
                 onBranches={bridge && activeCwd ? projectMenuBranches : undefined}
                 onSwitchBranch={bridge && activeCwd ? switchProjectBranch : undefined}
+                onCreateBranch={bridge && activeCwd ? createProjectBranch : undefined}
                 inspectorOpen={inspectorVisible}
                 onToggleInspector={toggleInspector}
                 onOpenWithTargets={openWithTargets}

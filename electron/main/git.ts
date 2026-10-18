@@ -441,6 +441,15 @@ export class GitService {
     return true
   }
 
+  /** Creates a new local branch at HEAD without switching to it. */
+  async createBranch(cwdValue: unknown, branchValue: unknown): Promise<boolean> {
+    const { cwd } = await this.withRepositoryGuards(cwdValue)
+    const branch = await validateGitBranch(cwd, branchValue)
+    const result = await runGit(cwd, ['branch', branch], { timeoutMs: 30_000, maxBytes: 64 * 1024 })
+    requireProcessSuccess('Git branch creation', result)
+    return true
+  }
+
   async status(cwdValue: unknown): Promise<GitStatus> {
     try {
       const { cwd, overrides } = await this.withRepositoryGuards(cwdValue, undefined, { readOnly: true })

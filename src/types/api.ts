@@ -832,6 +832,7 @@ export interface PtxApi {
     undoCommit(cwd: string, hash: string): Promise<ProcessOutcome>
     branches(cwd: string): Promise<string[]>
     switchBranch(cwd: string, branch: string): Promise<boolean>
+    createBranch(cwd: string, branch: string): Promise<boolean>
   }
   plugins: {
     list(projectPath?: string, harness?: HarnessId): Promise<PluginCatalog>

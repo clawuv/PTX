@@ -757,11 +757,10 @@ test.describe('Pi Work desktop smoke', () => {
     })
     await page.keyboard.press('Escape')
 
-    // The environment details moved into the composer's summary popover.
-    // The checkout picker lives inside the header's summary popover now.
-    await page.getByRole('button', { name: 'Summary', exact: true }).click()
+    // The checkout picker lives inside the header's project menu popover now.
+    await page.getByRole('button', { name: 'Project menu', exact: true }).click()
     await page.getByRole('button', { name: /^Checkout:/ }).click()
-    const menuBounds = await page.getByRole('menu', { name: 'Git worktrees' }).evaluate((menu) => {
+    const menuBounds = await page.getByRole('menu', { name: 'Branches' }).evaluate((menu) => {
       const menuRect = menu.getBoundingClientRect()
       const paneRect = document.documentElement.getBoundingClientRect()
       return { menuLeft: menuRect.left, menuRight: menuRect.right, paneLeft: paneRect.left, paneRight: paneRect.right }

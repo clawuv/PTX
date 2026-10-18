@@ -435,6 +435,7 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
   handle('git:undo-commit', (_event, cwd, hash) => services.git.undoCommit(cwd, hash))
   handle('git:branches', (_event, cwd) => services.git.branches(cwd))
   handle('git:switch-branch', (_event, cwd, branch) => services.git.switchBranch(cwd, branch))
+  handle('git:create-branch', (_event, cwd, branch) => services.git.createBranch(cwd, branch))
 
   handle('plugins:list', (_event, projectPath, harness) => pluginsFor(requireHarness(harness)).list(projectPath))
   handle('plugins:install', (_event, source, harness) => pluginsFor(requireHarness(harness)).install(source))

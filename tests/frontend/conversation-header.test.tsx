@@ -12,6 +12,7 @@ const worktrees: GitWorktree[] = [
   { path: '/repo', name: 'repo', branch: 'main', head: 'abc123', current: true, detached: false },
   { path: '/repo-feature', name: 'repo-feature', branch: 'feature/picker', head: 'def456', current: false, detached: false },
 ]
+
 const session = {
   id: 'session',
   harness: 'omp' as const,
@@ -32,7 +33,6 @@ function props(overrides: Record<string, unknown> = {}) {
     checkoutLabel: 'main',
     worktreesLoading: false,
     onOpenWorktree: vi.fn(),
-    onCreateWorktree: vi.fn(),
     ...overrides,
   }
 }
@@ -101,7 +101,7 @@ describe('conversation header', () => {
     expect(onBranches).toHaveBeenCalledOnce()
 
     const headings = [...container.querySelectorAll('.worktree-picker__heading')].map((node) => node.textContent)
-    expect(headings).toEqual(['Checkouts', 'Switch branch'])
+    expect(headings).toEqual(['Switch branch'])
     const branchOption = [...container.querySelectorAll('[role="menuitemradio"]')].find((button) => button.textContent?.includes('feature/next'))!
     expect(branchOption).not.toBeNull()
     expect(branchOption.getAttribute('aria-checked')).toBe('false')
@@ -171,11 +171,10 @@ describe('conversation header', () => {
     await press(container.querySelector<HTMLButtonElement>('[aria-label="Project menu"]')!)
     const trigger = container.querySelector<HTMLButtonElement>('[aria-label="Checkout: main"]')
     expect(trigger).not.toBeNull()
-    // The checkout row names the branch; "Local" only appears as its own summary row.
-    expect(trigger?.textContent).not.toContain('Local')
     await press(trigger!)
 
-    const options = container.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')
+    await press([...container.querySelectorAll('.summary-popover button')].find((button) => button.textContent?.includes('Worktrees'))!)
+    const options = container.querySelectorAll<HTMLButtonElement>('[role="menu"][aria-label="Worktrees"] [role="menuitemradio"]')
     expect(options).toHaveLength(2)
     expect(options[0].getAttribute('aria-checked')).toBe('true')
     expect(options[1].textContent).toContain('feature/picker')
@@ -186,10 +185,11 @@ describe('conversation header', () => {
     expect(container.querySelector('[role="menu"]')).toBeNull()
   })
 
-  it('creates a worktree from an inline branch form', async () => {
-    const onCreateWorktree = vi.fn().mockResolvedValue(undefined)
+  it('creates a branch from the inline form and refreshes the switcher', async () => {
+    const onCreateBranch = vi.fn().mockResolvedValue(undefined)
+    const onBranches = vi.fn(async () => ['main', 'feature/new-picker'])
     await act(async () => {
-      root.render(<ConversationHeader {...props({ onCreateWorktree })} />)
+      root.render(<ConversationHeader {...props({ onCreateBranch, onBranches })} />)
     })
     await press(container.querySelector<HTMLButtonElement>('[aria-label="Project menu"]')!)
     await press(container.querySelector<HTMLButtonElement>('[aria-label="Checkout: main"]')!)
@@ -203,7 +203,8 @@ describe('conversation header', () => {
     const form = input.closest('form')!
     await act(async () => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
 
-    expect(onCreateWorktree).toHaveBeenCalledWith('feature/new-picker')
-    expect(container.querySelector('[role="menu"]')).toBeNull()
+    expect(onCreateBranch).toHaveBeenCalledWith('feature/new-picker')
+    // The switcher list refreshes so the new branch shows up without reopening.
+    expect(onBranches).toHaveBeenCalledTimes(2)
   })
 })

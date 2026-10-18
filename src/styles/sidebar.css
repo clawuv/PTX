@@ -3,7 +3,7 @@
 :root[data-theme='dark'] .sidebar { --sidebar-icon-ink: color-mix(in srgb, var(--text-secondary) 85%, var(--text)); }
 /* Win/Linux: the divider is drawn by the workbench's left border instead, so it bends with the rounded corner instead of running past it. */
 .app-shell[data-platform='win32'] .sidebar, .app-shell[data-platform='linux'] .sidebar { border-right: 0; }
-.sidebar__titlebar { flex: 0 0 auto; padding: 16px 12px 12px; }
+.sidebar__titlebar { flex: 0 0 auto; padding: 14px 12px 10px; }
 .app-shell[data-platform='linux'] .traffic-light-clearance, .app-shell[data-platform='win32'] .traffic-light-clearance { display: none; }
 .brand-switcher { display: flex; width: 100%; gap: 2px; padding: 0; border-radius: var(--sidebar-row-radius); background: var(--surface-selected); }
 .brand-switcher__segment { flex: 1; min-width: 0; height: var(--sidebar-row-height); display: flex; align-items: center; justify-content: center; gap: 7px; padding: 0 8px; border-radius: var(--sidebar-row-radius); background: transparent; color: var(--text-tertiary); font-size: var(--sidebar-row-font-size); font-weight: 400; transition: background 130ms ease-out, color 130ms ease-out; }

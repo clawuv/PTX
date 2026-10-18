@@ -914,6 +914,46 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(page.getByRole('combobox', { name: 'Message Pi' })).toBeVisible()
   })
 
+  test('keeps the transcript pinned to the bottom across a settings round-trip', async () => {
+    await page.getByRole('button', { name: 'Hermetic desktop fixture', exact: true }).click()
+    await expect(page.locator('.transcript').getByText('Hermetic desktop fixture', { exact: true })).toBeVisible()
+    const nonce = Date.now()
+    const lines: string[] = []
+    for (let index = 0; index < 12; index += 1) {
+      lines.push(JSON.stringify({
+        type: 'message',
+        id: `fixture-scroll-${nonce}-${index}`,
+        parentId: index === 0 ? 'fixture-goal-summary' : `fixture-scroll-${nonce}-${index - 1}`,
+        timestamp: new Date(Date.now() + index).toISOString(),
+        message: { role: index % 2 ? 'assistant' : 'user', timestamp: new Date(Date.now() + index).toISOString(), content: [{ type: 'text', text: `Scroll filler ${nonce} ${index}\n${'filler line\n'.repeat(6)}` }] },
+      }))
+    }
+    appendFileSync(fixtureSessionFile, `${lines.join('\n')}\n`)
+    await expect(page.locator('.transcript').getByText(`Scroll filler ${nonce} 11`)).toBeVisible()
+    await page.locator('.transcript').evaluate((node) => { node.scrollTop = node.scrollHeight })
+    await page.waitForTimeout(400)
+    const before = await page.locator('.transcript').evaluate((node) => ({ top: node.scrollTop, max: node.scrollHeight - node.clientHeight }))
+    expect(before.max).toBeGreaterThan(400)
+    expect(before.top).toBeGreaterThan(before.max - 140)
+
+    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await expect(page.getByRole('heading', { name: 'General' })).toBeVisible()
+    await page.getByRole('button', { name: 'Back to session' }).click()
+    await expect(page.getByRole('combobox', { name: 'Message Pi' })).toBeVisible()
+    await page.waitForTimeout(800)
+    const after = await page.locator('.transcript').evaluate((node) => ({ top: node.scrollTop, max: node.scrollHeight - node.clientHeight }))
+    expect(after.top).toBeGreaterThan(after.max - 140)
+
+    // Re-enter settings and return through the session reload path; the pin must survive both.
+    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await expect(page.getByRole('heading', { name: 'General' })).toBeVisible()
+    await page.getByRole('button', { name: 'Back to session' }).click()
+    await expect(page.getByRole('combobox', { name: 'Message Pi' })).toBeVisible()
+    await page.waitForTimeout(800)
+    const reloaded = await page.locator('.transcript').evaluate((node) => ({ top: node.scrollTop, max: node.scrollHeight - node.clientHeight }))
+    expect(reloaded.top).toBeGreaterThan(reloaded.max - 140)
+  })
+
   test('keeps the application shell fixed when focus reveals root overflow', async () => {
     const layout = await page.evaluate(() => {
       const root = document.getElementById('root')

@@ -63,6 +63,7 @@
 .changes-body { min-height: 0; flex: 1; display: flex; flex-direction: column; }
 .file-changes { overflow: auto; flex: 0 1 auto; min-height: 0; max-height: 45%; border-bottom: 1px solid var(--border); scrollbar-gutter: stable; }
 .file-changes__header { height: 28px; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 10px; border-bottom: 1px solid var(--border); color: var(--text-tertiary); font-size: 10px; }
+.file-changes__header > div { display: flex; align-items: center; gap: 8px; }
 .file-changes__header button { padding: 4px; color: var(--text-secondary); background: transparent; font-size: 10px; }
 .file-changes > button { width: 100%; min-height: 26px; display: grid; grid-template-columns: 14px minmax(0, 1fr) auto auto 16px; align-items: center; gap: 5px; padding: 0 7px 0 9px; color: var(--text-secondary); background: transparent; text-align: left; }
 .file-changes > button:hover { color: var(--text); }

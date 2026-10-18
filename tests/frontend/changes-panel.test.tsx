@@ -119,6 +119,28 @@ describe('ChangesPanel status states', () => {
     expect(onRefreshGit).toHaveBeenCalledTimes(1)
   })
 
+  it('commits all listed files with a generated message from one click', async () => {
+    const diff = vi.fn(async () => ({ path: 'file.txt', staged: false, text: '', truncated: false }))
+    const stage = vi.fn(async () => true)
+    const commit = vi.fn(async () => ({ ok: true, output: '' }))
+    Object.defineProperty(window, 'ptx', { configurable: true, value: { git: { diff, stage, commit } } })
+    const onRefreshGit = vi.fn(async () => undefined)
+
+    await act(async () => {
+      root.render(<ChangesPanel cwd="/project" git={{ isRepo: true, files: [
+        { path: 'file.txt', status: 'M', staged: false, additions: 1, deletions: 0 },
+        { path: 'other.txt', status: 'M', staged: false, additions: 2, deletions: 1 },
+      ] }} onRefreshGit={onRefreshGit} />)
+      await Promise.resolve()
+    })
+
+    const button = (label: string) => [...container.querySelectorAll<HTMLButtonElement>('button')].find((candidate) => candidate.textContent?.trim() === label)!
+    await act(async () => { button('Commit all').click(); await Promise.resolve() })
+    expect(stage).toHaveBeenCalledWith('/project', ['file.txt', 'other.txt'])
+    expect(commit).toHaveBeenCalledWith('/project', 'Update file.txt and other.txt')
+    expect(onRefreshGit).toHaveBeenCalledTimes(1)
+  })
+
   it('disables mutating controls and offers an explicit grant for read-only projects', async () => {
     const onGrantProject = vi.fn(async () => undefined)
     const git = {

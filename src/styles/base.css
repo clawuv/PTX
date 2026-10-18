@@ -15,6 +15,8 @@
   --content-heading: #454540;
   --border: #e6e6e3;
   --border-strong: #d8d8d4;
+  /* Hairline inner dividers (popover headings, queue and file lists): the border token faded halfway out. */
+  --border-subtle: color-mix(in srgb, var(--border) 55%, transparent);
   --focus: #6aa9ff;
   --accent: #5f4bd3;
   --accent-soft: #efecff;
@@ -118,6 +120,7 @@
   --content-heading: #deded9;
   --border: #2a2a2a;
   --border-strong: #3a3a3a;
+  --border-subtle: color-mix(in srgb, var(--border) 55%, transparent);
   --focus: #339cff;
   --accent: #339cff;
   --accent-soft: #12293e;

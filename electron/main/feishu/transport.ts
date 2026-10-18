@@ -98,16 +98,24 @@ export function createFeishuTransport(appId: string, appSecret: string): FeishuT
       let imageKey: string | undefined
       try {
         imageKey = (await media.im.v1.image.create({ data: { image_type: 'message', image } }))?.image_key
-      } catch {
+      } catch (error) {
+        const data = (error as { response?: { data?: unknown } })?.response?.data
+        console.warn('[feishu] image upload failed:', typeof data === 'string' ? data.slice(0, 200) : data ?? error)
         throw new Error('图片上传失败，请确认飞书应用已开通 im:resource（上传图片）权限。')
       } finally {
         // The SDK may not consume the stream on rejection; destroy it so a pending open cannot emit after cleanup.
         image.destroy()
       }
       if (!imageKey) throw new Error('图片上传失败，请确认飞书应用已开通 im:resource（上传图片）权限。')
-      check(await client.im.v1.message.create({ params: { receive_id_type: 'chat_id' }, data: {
-        receive_id: chatId, msg_type: 'image', content: JSON.stringify({ image_key: imageKey }), uuid,
-      } }))
+      try {
+        check(await client.im.v1.message.create({ params: { receive_id_type: 'chat_id' }, data: {
+          receive_id: chatId, msg_type: 'image', content: JSON.stringify({ image_key: imageKey }), uuid,
+        } }))
+      } catch (error) {
+        const data = (error as { response?: { data?: unknown } })?.response?.data
+        console.warn('[feishu] image message send failed:', typeof data === 'string' ? data.slice(0, 200) : data ?? error)
+        throw new Error('图片消息发送失败，请检查机器人发送权限和网络。')
+      }
     },
     downloadImage: async (messageId, fileKey) => {
       // client.request returns the response body directly (the httpInstance wrapper

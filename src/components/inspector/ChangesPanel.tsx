@@ -178,9 +178,9 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
   return (
     <div className="changes-panel">
       <div className="changes-toolbar">
-        <div><strong><GitBranch size={13} /> {git.branch ?? t('changes.branch.fallback')}</strong>{git.ahead ? <button type="button" className="ahead-toggle" aria-expanded={aheadOpen} onClick={() => void toggleAhead()}>{t('changes.ahead', { count: git.ahead })}</button> : null}</div>
+        <div><strong><GitBranch size={13} /> {git.branch ?? t('changes.branch.fallback')}</strong><button type="button" className="ahead-toggle" aria-expanded={aheadOpen} disabled={readOnly || !git.ahead} title={git.ahead ? undefined : t('changes.ahead.none')} onClick={() => void toggleAhead()}>{t('changes.ahead', { count: git.ahead ?? 0 })}</button></div>
         <div className="changes-toolbar__actions">
-          {git.ahead ? <IconButton label={t('changes.action.push')} disabled={pushing} onClick={() => void pushCommits()}><Upload size={14} /></IconButton> : null}
+          <IconButton label={t('changes.action.push')} disabled={readOnly || pushing || !git.ahead} onClick={() => void pushCommits()}><Upload size={14} /></IconButton>
           <IconButton label={t('changes.action.refresh')} onClick={() => void onRefreshGit()}><RefreshCw size={14} /></IconButton>
         </div>
       </div>

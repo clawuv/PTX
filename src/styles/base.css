@@ -71,7 +71,7 @@
   --conversation-width: 670px;
   --terminal-bg: #ffffff;
   --terminal-text: #20201e;
-  --terminal-toolbar-bg: #f3f3f1;
+  --terminal-toolbar-bg: rgb(252, 252, 252);
   --terminal-border: #d3d3ce;
   --terminal-control: #686863;
   --terminal-control-active: #20201e;

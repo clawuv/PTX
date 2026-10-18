@@ -94,6 +94,24 @@ describe('conversation header', () => {
     expect(onArchive).toHaveBeenCalledWith(session)
   })
 
+  it('marks the body while open so drag-region clicks can dismiss the menu', async () => {
+    await act(async () => {
+      root.render(<ConversationHeader {...props()} />)
+    })
+
+    await press(container.querySelector<HTMLButtonElement>('[aria-label="Session options"]')!)
+    expect(container.querySelector('.conversation-header__menu')).not.toBeNull()
+    expect(document.body.classList.contains('has-header-popover')).toBe(true)
+
+    // The header is a drag region: without the body class its mouse events are
+    // swallowed by the OS and an outside click never reaches this listener.
+    await act(async () => {
+      document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    })
+    expect(container.querySelector('.conversation-header__menu')).toBeNull()
+    expect(document.body.classList.contains('has-header-popover')).toBe(false)
+  })
+
   it('renames the session through the inline confirmation dialog', async () => {
     const onRename = vi.fn()
     await act(async () => {

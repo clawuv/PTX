@@ -199,6 +199,14 @@ kbd { color: var(--text-tertiary); font: 10.5px/1.2 "SFMono-Regular", "SF Mono",
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .drag-region { -webkit-app-region: drag; }
 .no-drag, .drag-region button, .drag-region input { -webkit-app-region: no-drag; }
+/* Drag regions swallow mouse events (the OS turns them into window drags), so
+   clicks elsewhere in the top chrome never reach the page while a header
+   popover is open. Neutralize the top bands while one is open so an outside
+   click is delivered and dismisses it (body class set in ConversationHeader
+   and SummaryPopover). */
+body.has-header-popover .drag-region,
+body.has-header-popover .conversation-header__spacer,
+body.has-header-popover .workbench-titlebar-drag-region { -webkit-app-region: no-drag; }
 .accent-color { color: var(--accent); }
 
 .scroll-area { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }

@@ -150,10 +150,10 @@
 .changes-card__chevron { transition: transform 130ms ease-out; }
 .changes-card.is-expanded .changes-card__expand { color: var(--text); }
 .changes-card.is-expanded .changes-card__chevron { transform: rotate(90deg); }
-.changes-card__open { min-width: 0; flex: 1; display: flex; align-items: center; gap: 9px; padding: 3px 8px; border-radius: 6px; color: inherit; background: transparent; text-align: left; }
+.changes-card__open { min-width: 0; flex: 1; display: flex; align-items: center; gap: 7px; padding: 3px 6px; border-radius: 6px; color: inherit; background: transparent; text-align: left; }
 .changes-card__open:hover { color: var(--text); }
 .changes-card__open strong { min-width: 0; overflow: hidden; color: var(--text-secondary); font-size: 12.5px; font-weight: 560; text-overflow: ellipsis; white-space: nowrap; }
-.changes-card__review, .changes-card__undo { height: 26px; display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; padding: 0 9px; border-radius: 6px; color: var(--text-tertiary); background: transparent; font-size: 11.5px; font-weight: 560; }
+.changes-card__review, .changes-card__undo { height: 26px; display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; padding: 0 7px; border-radius: 6px; color: var(--text-tertiary); background: transparent; font-size: 11.5px; font-weight: 560; }
 .changes-card__review:hover:not(:disabled) { color: var(--text); background: var(--surface-hover); }
 .changes-card__undo:hover:not(:disabled) { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); }
 .changes-card__undo:disabled { opacity: .5; cursor: default; }

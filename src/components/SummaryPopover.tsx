@@ -31,6 +31,9 @@ export function SummaryPopover({ projectName, checkoutLabel, worktrees, activeWo
 
   useEffect(() => {
     if (!open) return
+    // Drag regions swallow mouse events, so mark the body to let outside header
+    // clicks reach the page and dismiss the popover (see base.css).
+    document.body.classList.add('has-header-popover')
     const dismiss = (event: MouseEvent) => {
       const target = event.target
       if (!(target instanceof Node) || panelRef.current?.contains(target)) return
@@ -46,6 +49,7 @@ export function SummaryPopover({ projectName, checkoutLabel, worktrees, activeWo
     document.addEventListener('mousedown', dismiss)
     document.addEventListener('keydown', dismissOnEscape)
     return () => {
+      document.body.classList.remove('has-header-popover')
       document.removeEventListener('mousedown', dismiss)
       document.removeEventListener('keydown', dismissOnEscape)
     }

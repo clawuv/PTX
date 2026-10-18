@@ -369,11 +369,11 @@ const zh = {
   'pane.toggleInspector': '切换检查器',
 
   'changescard.filesChanged': { one: '已更改 {count} 个文件', other: '已更改 {count} 个文件' },
-  'changescard.reviewAction': '审查代码',
+  'changescard.reviewAction': '审查',
   'changescard.show': '展开更改的文件',
   'changescard.hide': '收起更改的文件',
   'changescard.filesRegion': '更改的文件',
-  'changescard.undo': '撤销更改',
+  'changescard.undo': '撤销',
   'changescard.undoHint': '丢弃此工作区的全部未提交更改',
   'changescard.undoTitle': '撤销文件更改？',
   'changescard.undoBody': '这会丢弃 {count} 个文件的已暂存和未暂存更改，并将它们恢复到上一次提交。新建的未跟踪文件将被删除。',

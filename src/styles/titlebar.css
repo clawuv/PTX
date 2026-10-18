@@ -333,6 +333,11 @@
   z-index: 60;
   -webkit-app-region: drag;
 }
+/* Matching-specificity release of the rule above while a header popover is
+   open, so an outside click lands and dismisses it (see base.css). */
+body.has-header-popover .app-shell[data-platform="darwin"][data-sidebar-open="false"] .title-toolbar {
+  -webkit-app-region: no-drag;
+}
 /* Collapsed: the header starts inset at 218px, so its divider stops short of the
    strip column. Continue the seam across the strip whenever a bordered header is
    up; the strip's bottom edge sits on the same 40px line as the header's. */
@@ -381,6 +386,11 @@
   width: 26px;
   height: 26px;
   border-radius: 8px;
+}
+/* Same open-state fill as the summary trigger while its menu is up. */
+.conversation-header .conversation-header__more[aria-expanded="true"] {
+  color: var(--text);
+  background: var(--surface-hover);
 }
 .conversation-header__menu {
   position: absolute;

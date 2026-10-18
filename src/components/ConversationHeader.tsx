@@ -81,6 +81,9 @@ export function ConversationHeader({
 
   useEffect(() => {
     if (!menuOpen) return
+    // Drag regions swallow mouse events, so mark the body to let outside header
+    // clicks reach the page and dismiss the menu (see base.css).
+    document.body.classList.add('has-header-popover')
     const dismiss = (event: MouseEvent) => {
       if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false)
     }
@@ -93,6 +96,7 @@ export function ConversationHeader({
     document.addEventListener('mousedown', dismiss)
     document.addEventListener('keydown', dismissOnEscape)
     return () => {
+      document.body.classList.remove('has-header-popover')
       document.removeEventListener('mousedown', dismiss)
       document.removeEventListener('keydown', dismissOnEscape)
     }

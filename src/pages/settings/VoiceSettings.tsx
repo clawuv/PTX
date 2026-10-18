@@ -178,7 +178,7 @@ export function VoiceSettings({ settings, onUpdate, voice, platform = 'darwin' }
                   <small>{t(item.detailKey)}</small>
                 </div>
                 {serviceState === 'ready' ? <button type="button" className="button" disabled={busy} onClick={() => openCredential(item.id)}><KeyRound size={13} /> {configured ? t('settings.action.replaceKey') : t('settings.action.addKey')}</button> : null}
-                {serviceState === 'ready' && (source === 'saved' || source === 'session') ? <button type="button" className="button button--icon" aria-label={t('settings.voice.action.removeKey', { name: t(item.nameKey) })} disabled={busy} onClick={() => void removeCredential(item.id)}><Trash2 size={13} /></button> : null}
+                {serviceState === 'ready' && (source === 'saved' || source === 'session') ? <button type="button" className="button button--icon" aria-label={t('settings.voice.action.removeKey', { name: t(item.nameKey) })} data-tooltip={t('settings.voice.action.removeKey', { name: t(item.nameKey) })} disabled={busy} onClick={() => void removeCredential(item.id)}><Trash2 size={13} /></button> : null}
               </article>
             )
           })}
@@ -223,7 +223,7 @@ export function VoiceSettings({ settings, onUpdate, voice, platform = 'darwin' }
                 <span className="voice-self-hosted-auth__actions">
                   <i>{status?.configured['self-hosted'] ? status.source['self-hosted'] === 'session' ? t('settings.voice.status.sessionOnly') : status.source['self-hosted'] === 'environment' ? t('settings.voice.status.environmentToken') : t('settings.voice.status.tokenSaved') : status?.source['self-hosted'] === 'saved' ? t('settings.voice.status.storageLocked') : t('settings.voice.status.noToken')}</i>
                   {voice && serviceState === 'ready' ? <button type="button" className="button" disabled={busy} onClick={() => openCredential('self-hosted')}><KeyRound size={13} /> {status?.configured['self-hosted'] ? t('settings.voice.action.replaceToken') : t('settings.voice.action.addToken')}</button> : null}
-                  {voice && serviceState === 'ready' && (status?.source['self-hosted'] === 'saved' || status?.source['self-hosted'] === 'session') ? <button type="button" className="button button--icon" aria-label={t('settings.voice.action.removeToken')} disabled={busy} onClick={() => void removeCredential('self-hosted')}><Trash2 size={13} /></button> : null}
+                  {voice && serviceState === 'ready' && (status?.source['self-hosted'] === 'saved' || status?.source['self-hosted'] === 'session') ? <button type="button" className="button button--icon" aria-label={t('settings.voice.action.removeToken')} data-tooltip={t('settings.voice.action.removeToken')} disabled={busy} onClick={() => void removeCredential('self-hosted')}><Trash2 size={13} /></button> : null}
                 </span>
               </div>
               <div className="voice-self-hosted-connect">

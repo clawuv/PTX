@@ -47,7 +47,7 @@ export function ChangesCard({ git, cwd, readOnly = false, onOpenChanges, onRefre
           className="changes-card__expand"
           aria-expanded={expanded}
           aria-label={expanded ? t('changescard.hide') : t('changescard.show')}
-          title={expanded ? t('changescard.hide') : t('changescard.show')}
+          data-tooltip={expanded ? t('changescard.hide') : t('changescard.show')}
           onClick={() => setExpanded((open) => !open)}
         >
           <ChevronRight size={14} className="changes-card__chevron" aria-hidden="true" />

@@ -128,8 +128,8 @@ describe('sidebar project context menu', () => {
     expect(container.querySelector('.project-row__new-session .lucide-message-square-plus')).not.toBeNull()
     expect(container.querySelector('.sidebar__section-heading .lucide-plus')).not.toBeNull()
     expect(container.querySelector('.sidebar__primary button[title="New session (⌘N)"]')).not.toBeNull()
-    expect(container.querySelector('[aria-label="New session in Project"][title="New session in Project"]')).not.toBeNull()
-    expect(container.querySelector('[aria-label="Add project"][title="Add project"]')).not.toBeNull()
+    expect(container.querySelector('[aria-label="New session in Project"][data-tooltip="New session in Project"]')).not.toBeNull()
+    expect(container.querySelector('[aria-label="Add project"][data-tooltip="Add project"]')).not.toBeNull()
   })
 
   it('shows Linux shortcut names on Linux', async () => {
@@ -242,6 +242,6 @@ describe('sidebar session notifications', () => {
     const signature = sessionAttentionSignature(failedSession)!
     await act(async () => { root.render(<Sidebar {...props} clearedAttention={{ [failedSession.id]: signature }} />) })
     expect(container.querySelector('.session-row-wrap')?.classList.contains('has-attention')).toBe(false)
-    expect(container.querySelector('.session-status-mark--failed')?.getAttribute('title')).toBe('Failed — notification cleared')
+    expect(container.querySelector('.session-status-mark--failed')?.getAttribute('data-tooltip')).toBe('Failed — notification cleared')
   })
 })

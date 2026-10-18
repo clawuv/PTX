@@ -431,9 +431,9 @@ export const Composer = memo(function Composer({
                 <div className="composer-queue__item" key={queued.id}>
                   <span className="composer-queue__text">{queued.text}</span>
                   <span className="composer-queue__actions">
-                    <button type="button" className="composer-queue__action" disabled={sendPending} aria-label={t('composer.queue.sendNowAria', { name: queued.text })} title={t('composer.queue.sendNow')} onClick={() => { void sendQueuedMessageImmediately(queued) }}><ArrowUp size={13} /></button>
-                    <button type="button" className="composer-queue__action" disabled={sendPending} aria-label={t('composer.queue.editAria', { name: queued.text })} title={t('composer.queue.edit')} onClick={() => { onRemoveQueuedMessage?.(queued); setValue(queued.text); requestAnimationFrame(() => textareaRef.current?.focus()) }}><Edit3 size={13} /></button>
-                    <button type="button" className="composer-queue__action composer-queue__action--delete" disabled={sendPending} aria-label={t('composer.queue.deleteAria', { name: queued.text })} title={t('composer.queue.delete')} onClick={() => onRemoveQueuedMessage?.(queued)}><Trash2 size={13} /></button>
+                    <button type="button" className="composer-queue__action" disabled={sendPending} aria-label={t('composer.queue.sendNowAria', { name: queued.text })} data-tooltip={t('composer.queue.sendNow')} onClick={() => { void sendQueuedMessageImmediately(queued) }}><ArrowUp size={13} /></button>
+                    <button type="button" className="composer-queue__action" disabled={sendPending} aria-label={t('composer.queue.editAria', { name: queued.text })} data-tooltip={t('composer.queue.edit')} onClick={() => { onRemoveQueuedMessage?.(queued); setValue(queued.text); requestAnimationFrame(() => textareaRef.current?.focus()) }}><Edit3 size={13} /></button>
+                    <button type="button" className="composer-queue__action composer-queue__action--delete" disabled={sendPending} aria-label={t('composer.queue.deleteAria', { name: queued.text })} data-tooltip={t('composer.queue.delete')} onClick={() => onRemoveQueuedMessage?.(queued)}><Trash2 size={13} /></button>
                   </span>
                 </div>
               )
@@ -547,7 +547,7 @@ export const Composer = memo(function Composer({
                     <p>{annotation.comment}</p>
                     {annotation.stale ? <small>{t('composer.annotations.stale')}</small> : null}
                   </div>
-                  <button type="button" aria-label={t('composer.annotations.removeOne', { index: index + 1 })} onClick={() => onRemoveAnnotation(annotation.id)}>
+                  <button type="button" aria-label={t('composer.annotations.removeOne', { index: index + 1 })} data-tooltip={t('composer.annotations.removeOne', { index: index + 1 })} onClick={() => onRemoveAnnotation(annotation.id)}>
                     <X size={12} />
                   </button>
                 </div>
@@ -584,6 +584,7 @@ export const Composer = memo(function Composer({
                   type="button"
                   className="composer-attachment__clear"
                   aria-label={t('composer.annotations.remove')}
+                  data-tooltip={t('composer.annotations.remove')}
                   onClick={() => {
                     setAnnotationsOpen(false)
                     onClearAnnotations()
@@ -606,7 +607,7 @@ export const Composer = memo(function Composer({
                   <span>{terminalSelection.label}</span>
                   <small>{t('composer.terminal.selected')}</small><ChevronDown size={11} className={terminalSelectionOpen ? 'is-open' : ''} />
                 </button>
-                <button type="button" className="composer-attachment__clear" aria-label={t('composer.terminal.clear')} onClick={onClearTerminalSelection}><X size={12} /></button>
+                <button type="button" className="composer-attachment__clear" aria-label={t('composer.terminal.clear')} data-tooltip={t('composer.terminal.clear')} onClick={onClearTerminalSelection}><X size={12} /></button>
               </div>
             ) : null}
             {images.map((image) => (
@@ -615,6 +616,7 @@ export const Composer = memo(function Composer({
                 <button
                   type="button"
                   aria-label={t('composer.attachment.remove', { name: image.name })}
+                  data-tooltip={t('composer.attachment.remove', { name: image.name })}
                   onClick={() => imageAttachments.remove(image.id)}
                 >
                   <X size={12} />
@@ -630,6 +632,7 @@ export const Composer = memo(function Composer({
                 <button
                   type="button"
                   aria-label={t('composer.attachment.remove', { name: file.name })}
+                  data-tooltip={t('composer.attachment.remove', { name: file.name })}
                   onClick={() => imageAttachments.remove(file.id)}
                 >
                   <X size={12} />
@@ -704,7 +707,7 @@ export const Composer = memo(function Composer({
             <ModelPicker value={model} modelsByProvider={modelsByProvider} providers={providers} onChange={onModelChange} onManageModels={onManageModels}
               effort={effort} reasoningLevels={reasoningLevels} onEffortChange={onEffortChange} />
             {busy ? (
-              <button type="button" className="send-button send-button--stop" aria-label={t('composer.stop')} onClick={() => void onStop()}>
+              <button type="button" className="send-button send-button--stop" aria-label={t('composer.stop')} data-tooltip={t('composer.stop')} onClick={() => void onStop()}>
                 <Square size={12} fill="currentColor" aria-hidden="true" />
               </button>
             ) : (
@@ -712,6 +715,7 @@ export const Composer = memo(function Composer({
                 type="button"
                 className="send-button"
                 aria-label={t('composer.send')}
+                data-tooltip={t('composer.send')}
                 disabled={(!value.trim() && images.length === 0 && unsupportedFiles.length === 0 && annotations.length === 0 && !terminalSelection?.text) || processingImages || submitting || loading || disabled}
                 onClick={() => void submit()}
               >

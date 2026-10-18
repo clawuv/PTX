@@ -304,8 +304,8 @@ export function VoiceOrb({ voice, harness, onClose, onTaskStarted, pet, focusPet
           <div className="voice-orb__core" aria-hidden="true"><i /><i /><i /></div>
           <span className="voice-orb__status">{status}</span>
           <div className="voice-orb__controls">
-            <button type="button" aria-label={muted ? t('voice.unmute') : t('voice.mute')} onClick={toggleMute}>{muted ? <MicOff size={15} /> : <Mic size={15} />}</button>
-            <button type="button" aria-label={t('voice.close')} onClick={onClose}><X size={16} /></button>
+            <button type="button" aria-label={muted ? t('voice.unmute') : t('voice.mute')} data-tooltip={muted ? t('voice.unmute') : t('voice.mute')} onClick={toggleMute}>{muted ? <MicOff size={15} /> : <Mic size={15} />}</button>
+            <button type="button" aria-label={t('voice.close')} data-tooltip={t('voice.close')} onClick={onClose}><X size={16} /></button>
           </div>
         </div>
         {error ? <p role="alert">{error}</p> : null}

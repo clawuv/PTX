@@ -426,7 +426,7 @@ describe('Composer image ingestion', () => {
     act(() => remove?.click())
     expect(container.querySelector('.composer-attachment')).toBeNull()
     expect(container.querySelector('[role="status"]')?.textContent).toBe('')
-    expect(container.querySelector('button[aria-label="Add context"]')?.getAttribute('title')).toBe('Add context')
+    expect(container.querySelector('button[aria-label="Add context"]')?.getAttribute('data-tooltip')).toBe('Add context')
   })
 
 })

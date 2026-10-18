@@ -68,7 +68,7 @@ function MarkdownCodeBlock({ children, ...props }: ComponentPropsWithoutRef<'pre
   return (
     <div className="markdown-code-block">
       <pre {...props} dir="ltr">{children}</pre>
-      <button type="button" className={`markdown-code-block__copy${copied ? ' is-copied' : ''}`} disabled={!text} aria-label={t(copied ? 'transcript.codeCopiedAria' : 'transcript.codeCopyAria')} title={t(copied ? 'transcript.copied' : 'transcript.copy')} onClick={() => void copyCode()}>
+      <button type="button" className={`markdown-code-block__copy${copied ? ' is-copied' : ''}`} disabled={!text} aria-label={t(copied ? 'transcript.codeCopiedAria' : 'transcript.codeCopyAria')} data-tooltip={t(copied ? 'transcript.copied' : 'transcript.copy')} onClick={() => void copyCode()}>
         {copied ? <Check size={13} /> : <Copy size={13} />}
       </button>
     </div>

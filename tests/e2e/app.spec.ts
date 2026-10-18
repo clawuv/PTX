@@ -803,7 +803,7 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(page.getByRole('button', { name: 'Pi Work — switch harness' })).toBeVisible()
     await expect(page.locator('.ptx-mark img')).toHaveCount(0)
     await expect(page.locator('.sidebar__footer .sidebar-update')).toHaveCount(1)
-    await expect(page.locator('.sidebar__footer button[title="Settings"]')).toBeVisible()
+    await expect(page.locator('.sidebar__footer .sidebar__settings-entry')).toBeVisible()
   })
 
   // biome-ignore lint/correctness/noEmptyPattern: Playwright derives fixture usage from this destructuring pattern
@@ -884,7 +884,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('opens General settings when the main process requests Settings', async () => {
-    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await page.getByRole('button', { name: 'Appearance', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Theme' })).toBeVisible()
 
@@ -897,7 +897,7 @@ test.describe('Pi Work desktop smoke', () => {
 
   test('returns from settings with its back button, Escape, and Ctrl+W', async () => {
     const openSettings = async () => {
-      await page.locator('.sidebar__footer button[title="Settings"]').click()
+      await page.locator('.sidebar__footer .sidebar__settings-entry').click()
       await expect(page.getByRole('heading', { name: 'General' })).toBeVisible()
     }
 
@@ -936,7 +936,7 @@ test.describe('Pi Work desktop smoke', () => {
     expect(before.max).toBeGreaterThan(400)
     expect(before.top).toBeGreaterThan(before.max - 140)
 
-    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await expect(page.getByRole('heading', { name: 'General' })).toBeVisible()
     await page.getByRole('button', { name: 'Back to session' }).click()
     await expect(page.getByRole('combobox', { name: 'Message Pi' })).toBeVisible()
@@ -945,7 +945,7 @@ test.describe('Pi Work desktop smoke', () => {
     expect(after.top).toBeGreaterThan(after.max - 140)
 
     // Re-enter settings and return through the session reload path; the pin must survive both.
-    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await expect(page.getByRole('heading', { name: 'General' })).toBeVisible()
     await page.getByRole('button', { name: 'Back to session' }).click()
     await expect(page.getByRole('combobox', { name: 'Message Pi' })).toBeVisible()
@@ -1009,7 +1009,7 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(page.locator('.voice-orb')).toHaveCount(0)
     await page.getByRole('complementary', { name: 'Realtime voice session' }).getByRole('button', { name: 'Close realtime voice' }).click()
 
-    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await page.getByRole('button', { name: 'Pets', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Pets', exact: true })).toBeVisible()
     await expect(page.getByRole('radio', { name: /^Orb Built/ })).toBeChecked()
@@ -1116,7 +1116,7 @@ test.describe('Pi Work desktop smoke', () => {
   test('persists a desktop-only OMP provider toggle and removes its models from the picker', async () => {
     await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
     await page.getByRole('button', { name: 'OMP Work — switch harness' }).click()
-    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await page.getByRole('button', { name: 'Providers', exact: true }).click()
     const voiceModelsBefore = await page.evaluate(
       async () => JSON.parse((await window.ptx.voice.executeTool({ name: 'list_models', arguments: {} }, 'omp')).output) as { models: Array<{ name: string }> },
@@ -1124,7 +1124,7 @@ test.describe('Pi Work desktop smoke', () => {
     expect(voiceModelsBefore.models.map((model) => model.name).sort()).toEqual(['Claude Fixture', 'GPT Fixture'])
     const anthropic = page.getByRole('checkbox', { name: 'Show anthropic provider' })
     await expect(anthropic).toBeChecked()
-    await page.getByTitle('Hide provider in OMP').filter({ has: anthropic }).click()
+    await page.locator('[data-tooltip="Hide provider in OMP"]').filter({ has: anthropic }).click()
     await expect(anthropic).not.toBeChecked()
     await expect.poll(() => JSON.parse(readFileSync(join(fixtureRoot, 'user-data', CURRENT_DESKTOP_STATE_FILENAME), 'utf8')).settings.ompDisabledProviders).toEqual(['anthropic'])
     const voiceModelsAfter = await page.evaluate(
@@ -1142,7 +1142,7 @@ test.describe('Pi Work desktop smoke', () => {
   test('persists an OMP model toggle and removes only that model from every picker', async () => {
     await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
     await page.getByRole('button', { name: 'OMP Work — switch harness' }).click()
-    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await page.getByRole('button', { name: 'Providers', exact: true }).click()
     await page.getByRole('tab', { name: /Models/ }).click()
 
@@ -1175,7 +1175,7 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(modelPicker.getByRole('option', { name: /GPT Fixture/ })).toHaveCount(0)
     await expect(modelPicker.getByRole('option', { name: /Claude Fixture/ })).toHaveCount(1)
 
-    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await page.getByRole('button', { name: 'Providers', exact: true }).click()
     await page.getByRole('tab', { name: /Models/ }).click()
     const hiddenToggle = page.getByRole('checkbox', { name: 'Show GPT Fixture model' })
@@ -1188,7 +1188,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('keeps Harness settings shared when changing the default while providers follow the active harness', async () => {
-    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await page.getByRole('button', { name: 'Harness', exact: true }).click()
     await expect(page.getByText('OMP approval mode', { exact: true })).toBeVisible()
     await expect(page.getByLabel('Pi executable override')).toHaveCount(0)
@@ -1235,7 +1235,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('refreshes harness discovery through the live settings and preload path', async () => {
-    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await page.getByRole('button', { name: 'Harness', exact: true }).click()
 
     const refresh = page.getByRole('button', { name: 'Refresh harnesses' })
@@ -1262,7 +1262,7 @@ test.describe('Pi Work desktop smoke', () => {
 
     const ompExecutable = join(fixtureRoot, 'omp-fixture.cjs')
     renameSync(`${ompExecutable}.pending`, ompExecutable)
-    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await page.getByRole('button', { name: 'Harness', exact: true }).click()
     await expect(page.getByText('OMP not detected', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Refresh harnesses' }).click()
@@ -1296,7 +1296,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('shows the MCP servers settings section with the Pi adapter card', async () => {
-    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await page.locator('.sidebar__settings-nav').getByRole('button', { name: 'MCP servers', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'MCP servers' })).toBeVisible()
     await expect(page.getByText('Pi MCP Adapter', { exact: true })).toBeVisible()
@@ -1363,7 +1363,7 @@ test.describe('Pi Work desktop smoke', () => {
 
     const primaryRow = page.locator('.session-row-wrap').filter({ hasText: 'Primary workspace fixture' })
     await expect(primaryRow).toHaveClass(/has-attention/)
-    const activityCount = page.locator('.sidebar__primary button[title="Activity"] .nav-count')
+    const activityCount = page.locator('.sidebar__primary button[data-tooltip="Activity"] .nav-count')
     await expect(activityCount).toHaveText('1')
     await expect(titles.nth(0)).toHaveText('Hermetic desktop fixture')
     const attentionColor = await primaryRow.evaluate(
@@ -1443,10 +1443,10 @@ test.describe('Pi Work desktop smoke', () => {
 
     const primaryRow = page.locator('.session-row-wrap').filter({ hasText: 'Primary workspace fixture' })
     await expect(primaryRow).toHaveClass(/has-attention/)
-    const activityCount = page.locator('.sidebar__primary button[title="Activity"] .nav-count')
+    const activityCount = page.locator('.sidebar__primary button[data-tooltip="Activity"] .nav-count')
     await expect(activityCount).toHaveText('1')
 
-    await primaryRow.getByTitle('Archive Primary workspace fixture').click()
+    await primaryRow.locator('[data-tooltip="Archive Primary workspace fixture"]').click()
     await primaryRow.getByTitle('Confirm archive Primary workspace fixture').click()
     await expect(primaryRow).toHaveCount(0)
     await expect(activityCount).toHaveCount(0)
@@ -1486,7 +1486,7 @@ test.describe('Pi Work desktop smoke', () => {
     const guestId = await preview.evaluate((node) => (node as HTMLElement & { getWebContentsId(): number }).getWebContentsId())
     expect(await app!.evaluate(({ webContents }, id) => Boolean(webContents.fromId(id)), guestId)).toBe(true)
 
-    await sessionRow.getByTitle('Archive Hermetic desktop fixture').click()
+    await sessionRow.locator('[data-tooltip="Archive Hermetic desktop fixture"]').click()
     await sessionRow.getByTitle('Confirm archive Hermetic desktop fixture').click()
 
     await expect(sessionRow).toHaveCount(0)
@@ -1517,7 +1517,7 @@ test.describe('Pi Work desktop smoke', () => {
     expect(serverPid).toBeGreaterThan(0)
 
     try {
-      await sessionRow.getByTitle('Archive Hermetic desktop fixture').click()
+      await sessionRow.locator('[data-tooltip="Archive Hermetic desktop fixture"]').click()
       await sessionRow.getByTitle('Confirm archive Hermetic desktop fixture').click()
 
       await expect(sessionRow).toHaveCount(0)
@@ -1771,10 +1771,10 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(page.locator('.project-row__new-session .lucide-notebook-pen')).toHaveCount(1)
     await expect(page.locator('.sidebar__section-heading .lucide-plus')).toHaveCount(1)
     await expect(page.getByTitle('New session (⌘N)')).toHaveCount(1)
-    await expect(page.getByTitle('Add project')).toHaveCount(1)
-    await expect(projectRow.getByTitle('New session in Multi-folder fixture')).toHaveCount(1)
-    // The archive affordance lives in the per-session options menu (on demand).
-    await page.locator('.session-row__more').first().click()
+    await expect(page.locator('[data-tooltip="Add project"]')).toHaveCount(1)
+    await expect(projectRow.locator('[data-tooltip="New session in Multi-folder fixture"]')).toHaveCount(1)
+    // The archive affordance lives in the per-session context menu (on demand).
+    await page.locator('.session-row').first().click({ button: 'right' })
     const sessionMenuPanel = page.getByRole('menu', { name: 'Session options' })
     await expect(sessionMenuPanel).toBeVisible()
     await expect(sessionMenuPanel.getByRole('menuitem', { name: 'Archive' })).toBeVisible()
@@ -1880,7 +1880,7 @@ test.describe('Pi Work desktop smoke', () => {
         await addDialog.getByRole('button', { name: 'Close' }).click()
       }
     }
-    await page.locator('.sidebar__footer button[title="Settings"]').click()
+    await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await expect(page.getByRole('heading', { name: 'General' })).toBeVisible()
     await page.getByRole('button', { name: 'Providers', exact: true }).click()
     await expect(page.getByLabel('Search providers')).toBeVisible()

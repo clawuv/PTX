@@ -17,7 +17,7 @@ export function TranscriptImage({ source, alt }: TranscriptImageProps) {
   useAppShellOverlay(open)
 
   return <>
-    <button type="button" className="image-part__preview" aria-label={t('transcript.imageExpand')} onClick={() => setOpen(true)}>
+    <button type="button" className="image-part__preview" aria-label={t('transcript.imageExpand')} title={t('transcript.imageExpand')} onClick={() => setOpen(true)}>
       <img className="image-part" src={source} alt={alt} />
     </button>
     {open ? createPortal(
@@ -28,7 +28,7 @@ export function TranscriptImage({ source, alt }: TranscriptImageProps) {
           if (event.target === event.currentTarget) setOpen(false)
         }}>
           <h2 id={titleId} className="sr-only">{t('transcript.imageExpanded')}</h2>
-          <button type="button" className="image-lightbox__close" aria-label={t('transcript.imageClose')} onClick={() => setOpen(false)}>
+          <button type="button" className="image-lightbox__close" aria-label={t('transcript.imageClose')} data-tooltip={t('transcript.imageClose')} onClick={() => setOpen(false)}>
             <X size={18} />
           </button>
           <img className="image-lightbox__image" src={source} alt={alt} />

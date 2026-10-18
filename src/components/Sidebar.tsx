@@ -112,10 +112,10 @@ export function boundedSidebarSessions(sessions: SessionRecord[]): SessionRecord
 function SessionStatusMark({ status, attention }: { status: SessionRecord['status']; attention: boolean }) {
   const { t } = useI18n()
   const title = status === 'failed' && !attention ? t('sidebar.failedCleared') : t(statusLabel[status])
-  if (status === 'running') return <span className="session-status-mark session-status-mark--running" title={t(statusLabel[status])}><LoaderCircle className="spin" size={13} /></span>
-  if (status === 'waiting') return <span className="session-status-mark session-status-mark--waiting" title={t(statusLabel[status])}><MessageCircleQuestion size={12} /></span>
-  if (status === 'complete') return <span className="session-status-mark session-status-mark--complete" title={t(statusLabel[status])}><CheckCircle2 size={12} /></span>
-  return <span className={`session-status-mark session-status-mark--${status}`} title={title}><span /></span>
+  if (status === 'running') return <span className="session-status-mark session-status-mark--running" data-tooltip={t(statusLabel[status])}><LoaderCircle className="spin" size={13} /></span>
+  if (status === 'waiting') return <span className="session-status-mark session-status-mark--waiting" data-tooltip={t(statusLabel[status])}><MessageCircleQuestion size={12} /></span>
+  if (status === 'complete') return <span className="session-status-mark session-status-mark--complete" data-tooltip={t(statusLabel[status])}><CheckCircle2 size={12} /></span>
+  return <span className={`session-status-mark session-status-mark--${status}`} data-tooltip={title}><span /></span>
 }
 
 const HARNESS_MARKS: Record<HarnessId, (props: { size?: number }) => ReactElement> = { omp: OmpMark, pi: PiMark }
@@ -195,7 +195,8 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
         <span className="session-row__text"><span className="session-row__title">{session.title}</span><span className="session-row__meta">{session.status === 'running' ? t('sidebar.working') : session.status === 'waiting' ? t('sidebar.needsAttention') : session.status === 'complete' ? t('sidebar.status.complete') : formatRelative(session.updatedAt)}</span></span>
         <span className="session-row__time">{formatRelative(session.updatedAt)}</span>
       </button>
-      <IconButton size="small" className="session-row__more" label={t('sidebar.sessionOptionsFor', { title: session.title })} onClick={(event) => { if (sessionMenu === session.id) setSessionMenu(null); else openSessionMenu(session.id, event.currentTarget.getBoundingClientRect()) }}><MoreHorizontal size={13}/></IconButton>
+      {/* Hover affordance kept, but no tooltip: the row title and menu items are self-explanatory. */}
+      <IconButton size="small" className="session-row__more" label={t('sidebar.sessionOptionsFor', { title: session.title })} data-tooltip={undefined} onClick={(event) => { if (sessionMenu === session.id) setSessionMenu(null); else openSessionMenu(session.id, event.currentTarget.getBoundingClientRect()) }}><MoreHorizontal size={13}/></IconButton>
       {sessionMenu === session.id && sessionMenuAt ? createPortal(<div className="session-row__menu" aria-label={t('sidebar.sessionOptions')} style={{ left: sessionMenuAt.x, top: sessionMenuAt.y }}><button type="button" onClick={() => { void copySessionUuid(session.id); setSessionMenu(null) }}><Copy size={12}/> {t('sidebar.copyUuid')}</button><button type="button" onClick={() => { setRenameTarget(session); setRenameValue(session.title); setSessionMenu(null) }}><SquarePen size={12}/> {t('sidebar.rename')}</button><button type="button" onClick={() => { setSessionMenu(null); void onArchiveSession(session) }}><Archive size={12}/> {t('sidebar.archive')}</button></div>, document.body) : null}
     </div>
   )
@@ -250,7 +251,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
               <div className="sidebar-search">
                 <Search size={13} />
                 <input id="session-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('sidebar.searchPlaceholder')} aria-label={t('sidebar.searchLabel')} />
-                {query ? <button type="button" title={t('sidebar.clearSearch')} aria-label={t('sidebar.clearSearch')} onClick={() => setQuery('')}>×</button> : null}
+                {query ? <button type="button" data-tooltip={t('sidebar.clearSearch')} aria-label={t('sidebar.clearSearch')} onClick={() => setQuery('')}>×</button> : null}
               </div>
             </div>
           ) : null}
@@ -312,7 +313,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
 
       {settingsMode ? null : (
         <div className="sidebar__footer">
-        <button type="button" title={t('nav.settings')} className={`sidebar__settings-entry${settingsMode ? ' is-active' : ''}`} onClick={() => onNavigate(settingsMode ? 'session' : 'settings')}><Settings size={15} /><span>{activeProjectName}</span><kbd>{settingsShortcut}</kbd></button>
+        <button type="button" className={`sidebar__settings-entry${settingsMode ? ' is-active' : ''}`} onClick={() => onNavigate(settingsMode ? 'session' : 'settings')}><Settings size={15} /><span>{activeProjectName}</span><kbd>{settingsShortcut}</kbd></button>
         <MobileConnectionButton onClick={() => { onNavigate('settings'); onSelectSettingsSection?.('mobile') }} />
         </div>
       )}

@@ -381,6 +381,7 @@ export function BrowserPanel({ home, navigationRequest, onNavigationRequestHandl
               <button
                 type="button"
                 aria-label={t('browserpanel.tab.close', { name: agentTabLabel(tab, t('browserpanel.tab.newTab')) })}
+                data-tooltip={t('browserpanel.tab.close', { name: agentTabLabel(tab, t('browserpanel.tab.newTab')) })}
                 onClick={(event) => {
                   event.stopPropagation()
                   onCloseAgentTab?.(tab.tabId)
@@ -412,7 +413,7 @@ export function BrowserPanel({ home, navigationRequest, onNavigationRequestHandl
         >
           <ShieldCheck size={12} />
           <input value={address} onChange={(event) => setAddress(event.target.value)} aria-label={t('browserpanel.address.aria')} spellCheck={false} />
-          <button type="button" aria-label={t('browserpanel.history.aria')} onClick={() => setHistoryOpen((value) => !value)}>
+          <button type="button" aria-label={t('browserpanel.history.aria')} data-tooltip={t('browserpanel.history.aria')} onClick={() => setHistoryOpen((value) => !value)}>
             <History size={13} />
           </button>
         </form>
@@ -465,6 +466,7 @@ export function BrowserPanel({ home, navigationRequest, onNavigationRequestHandl
                 <button
                   type="button"
                   aria-label={t('browserpanel.comment.discard')}
+                  data-tooltip={t('browserpanel.comment.discard')}
                   onClick={() => {
                     setPendingElement(null)
                     setAnnotationText('')

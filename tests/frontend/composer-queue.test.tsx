@@ -56,7 +56,7 @@ describe('composer queue tray', () => {
     expect(tray?.nextElementSibling?.classList.contains('composer')).toBe(true)
     expect(container.querySelector('.composer-context-bar')).toBeNull()
     const actions = [...(tray?.querySelectorAll<HTMLButtonElement>('.composer-queue__action') ?? [])]
-    expect(actions.map((action) => action.title)).toEqual([
+    expect(actions.map((action) => action.dataset.tooltip)).toEqual([
       'Send queued message immediately',
       'Edit queued message',
       'Delete queued message',

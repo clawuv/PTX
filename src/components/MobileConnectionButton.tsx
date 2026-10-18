@@ -22,5 +22,5 @@ export function MobileConnectionButton({ onClick }: { onClick(): void }) {
     return () => { active = false; clearInterval(timer) }
   }, [])
   const label = t(connected ? 'sidebar.mobileConnected' : 'sidebar.mobileSoon')
-  return <button type="button" className={`sidebar__mobile${connected ? ' sidebar__mobile--connected' : ''}`} onClick={onClick} title={label} aria-label={label}><Smartphone size={16} /></button>
+  return <button type="button" className={`sidebar__mobile${connected ? ' sidebar__mobile--connected' : ''}`} onClick={onClick} data-tooltip={label} aria-label={label}><Smartphone size={16} /></button>
 }

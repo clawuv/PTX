@@ -92,10 +92,10 @@ export function ProjectRunControl({ project, activeKind, onRun, onStop, onSave }
   return (
     <div ref={rootRef} className="project-run-control">
       <div className={`project-run-split ${running ? 'is-running' : ''}`}>
-        <button type="button" title={running ? (activeKind === 'setup' ? t('runctl.stopSetupTitle') : t('runctl.stopProjectTitle')) : t('runctl.runProject')} className="project-run-split__primary" aria-label={running ? t(activeKind === 'setup' ? 'runctl.stopSetupScript' : 'runctl.stopRunScript') : t('runctl.runProject')} onClick={runPrimary}>
+        <button type="button" data-tooltip={running ? (activeKind === 'setup' ? t('runctl.stopSetupTitle') : t('runctl.stopProjectTitle')) : t('runctl.runProject')} className="project-run-split__primary" aria-label={running ? t(activeKind === 'setup' ? 'runctl.stopSetupScript' : 'runctl.stopRunScript') : t('runctl.runProject')} onClick={runPrimary}>
           {running ? <Square size={11} fill="currentColor" /> : <Play size={15} />}
         </button>
-        <button type="button" title={t('runctl.configureScripts')} className="project-run-split__menu" aria-label={t('runctl.configureScripts')} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? menuId : undefined} onClick={() => setOpen((value) => !value)}>
+        <button type="button" data-tooltip={t('runctl.configureScripts')} className="project-run-split__menu" aria-label={t('runctl.configureScripts')} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? menuId : undefined} onClick={() => setOpen((value) => !value)}>
           <ChevronDown size={13} />
         </button>
       </div>

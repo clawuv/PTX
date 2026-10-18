@@ -1,7 +1,13 @@
-import { Check, ChevronDown, Folder, GitBranch, ListChecks, Monitor } from 'lucide-react'
+import { Check, ChevronDown, Code, Folder, FolderOpen, GitBranch, ListChecks, Monitor, SquareCode } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { useI18n } from '@/lib/i18n'
-import type { GitWorktree } from '@/types/api'
+import type { GitWorktree, OpenWithTargetId } from '@/types/api'
+
+const OPEN_WITH_ITEMS: Array<{ id: OpenWithTargetId; label: string; icon: React.ReactNode }> = [
+  { id: 'explorer', label: 'header.openWithExplorer', icon: <FolderOpen size={12} aria-hidden="true" /> },
+  { id: 'vscode', label: 'VS Code', icon: <Code size={12} aria-hidden="true" /> },
+  { id: 'cursor', label: 'Cursor', icon: <SquareCode size={12} aria-hidden="true" /> },
+]
 
 interface SummaryPopoverProps {
   projectName?: string
@@ -12,6 +18,9 @@ interface SummaryPopoverProps {
   worktreesLoading: boolean
   onOpenWorktree?(worktree: GitWorktree): Promise<void> | void
   onCreateWorktree?(branch: string): Promise<void> | void
+  /** Availability probe for the open-with launcher; without it the summary row stays hidden. */
+  onOpenWithTargets?(): Promise<OpenWithTargetId[]>
+  onOpenWith?(target: OpenWithTargetId): void
 }
 
 /**
@@ -19,13 +28,15 @@ interface SummaryPopoverProps {
  * worktrees) collapse behind one corner trigger so the composer stays a single
  * clean input card.
  */
-export function SummaryPopover({ projectName, checkoutLabel, worktrees, activeWorktreePath, worktreesLoading, onOpenWorktree, onCreateWorktree }: SummaryPopoverProps) {
+export function SummaryPopover({ projectName, checkoutLabel, worktrees, activeWorktreePath, worktreesLoading, onOpenWorktree, onCreateWorktree, onOpenWithTargets, onOpenWith }: SummaryPopoverProps) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [branchOpen, setBranchOpen] = useState(false)
   const [branch, setBranch] = useState('')
   const [branchError, setBranchError] = useState('')
   const [creatingWorktree, setCreatingWorktree] = useState(false)
+  const [openWithOpen, setOpenWithOpen] = useState(false)
+  const [openWithTargets, setOpenWithTargets] = useState<OpenWithTargetId[] | null>(null)
   const panelId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -73,13 +84,19 @@ export function SummaryPopover({ projectName, checkoutLabel, worktrees, activeWo
     }
   }
 
+  const toggleOpenWith = async () => {
+    const next = !openWithOpen
+    setOpenWithOpen(next)
+    if (next && onOpenWithTargets && openWithTargets === null) setOpenWithTargets(await onOpenWithTargets())
+  }
+
   return (
     <div className="summary-anchor">
       <button
         type="button"
         className="summary-anchor__trigger"
         aria-label={t('composer.summary.label')}
-        title={t('composer.summary.label')}
+        data-tooltip={t('composer.summary.label')}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         onClick={() => setOpen((value) => !value)}
@@ -174,6 +191,52 @@ export function SummaryPopover({ projectName, checkoutLabel, worktrees, activeWo
               </div>
             ) : null}
           </div>
+          {onOpenWith && onOpenWithTargets ? (
+            <div className="summary-popover__section">
+              <button
+                type="button"
+                className="summary-popover__row summary-popover__row--action"
+                aria-label={t('header.openWith')}
+                aria-expanded={openWithOpen}
+                aria-controls={openWithOpen ? `${panelId}-openwith` : undefined}
+                onClick={() => void toggleOpenWith()}
+              >
+                <Code size={13} aria-hidden="true" />
+                <span className="summary-popover__label">{t('header.openWith')}</span>
+                <ChevronDown size={12} className={`summary-popover__chevron ${openWithOpen ? 'is-open' : ''}`} aria-hidden="true" />
+              </button>
+              {openWithOpen ? (
+                <div id={`${panelId}-openwith`} className="summary-popover__worktrees" role="menu" aria-label={t('header.openWith')}>
+                  <div className="worktree-picker__options">
+                    {openWithTargets === null ? (
+                      <span className="worktree-picker__empty">{t('header.openWithLoading')}</span>
+                    ) : openWithTargets.length === 0 ? (
+                      <span className="worktree-picker__empty">{t('header.openWithNone')}</span>
+                    ) : (
+                      OPEN_WITH_ITEMS.filter((item) => openWithTargets.includes(item.id)).map((item) => (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          key={item.id}
+                          className="worktree-picker__option"
+                          onClick={() => {
+                            setOpenWithOpen(false)
+                            setOpen(false)
+                            onOpenWith(item.id)
+                          }}
+                        >
+                          <span className="worktree-picker__check">{item.icon}</span>
+                          <span className="worktree-picker__option-copy">
+                            <strong>{item.id === 'explorer' ? t(item.label) : item.label}</strong>
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

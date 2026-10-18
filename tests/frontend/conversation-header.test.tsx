@@ -33,8 +33,6 @@ function props(overrides: Record<string, unknown> = {}) {
     worktreesLoading: false,
     onOpenWorktree: vi.fn(),
     onCreateWorktree: vi.fn(),
-    onRename: vi.fn(),
-    onArchive: vi.fn(),
     ...overrides,
   }
 }
@@ -73,34 +71,13 @@ describe('conversation header', () => {
     expect(container.querySelector('.conversation-header__title')).toBeNull()
   })
 
-  it('offers copy, rename, and archive actions for the active session', async () => {
-    const onRename = vi.fn()
-    const onArchive = vi.fn()
-    const writeText = vi.fn(async () => undefined)
-    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
-    await act(async () => {
-      root.render(<ConversationHeader {...props({ onRename, onArchive })} />)
-    })
-
-    await press(container.querySelector<HTMLButtonElement>('[aria-label="Session options"]')!)
-    const menu = container.querySelector('.conversation-header__menu')!
-    expect(menu).not.toBeNull()
-
-    await press([...menu.querySelectorAll('button')].find((button) => button.textContent?.includes('Copy session UUID'))!)
-    expect(writeText).toHaveBeenCalledWith(session.id)
-
-    await press(container.querySelector<HTMLButtonElement>('[aria-label="Session options"]')!)
-    await press([...container.querySelectorAll('.conversation-header__menu button')].find((button) => button.textContent?.includes('Archive'))!)
-    expect(onArchive).toHaveBeenCalledWith(session)
-  })
-
-  it('marks the body while open so drag-region clicks can dismiss the menu', async () => {
+  it('marks the body while open so drag-region clicks can dismiss the popover', async () => {
     await act(async () => {
       root.render(<ConversationHeader {...props()} />)
     })
 
-    await press(container.querySelector<HTMLButtonElement>('[aria-label="Session options"]')!)
-    expect(container.querySelector('.conversation-header__menu')).not.toBeNull()
+    await press(container.querySelector<HTMLButtonElement>('[aria-label="Summary"]')!)
+    expect(container.querySelector('.summary-popover')).not.toBeNull()
     expect(document.body.classList.contains('has-header-popover')).toBe(true)
 
     // The header is a drag region: without the body class its mouse events are
@@ -108,49 +85,31 @@ describe('conversation header', () => {
     await act(async () => {
       document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
     })
-    expect(container.querySelector('.conversation-header__menu')).toBeNull()
+    expect(container.querySelector('.summary-popover')).toBeNull()
     expect(document.body.classList.contains('has-header-popover')).toBe(false)
   })
 
-  it('renames the session through the inline confirmation dialog', async () => {
-    const onRename = vi.fn()
-    await act(async () => {
-      root.render(<ConversationHeader {...props({ onRename })} />)
-    })
-
-    await press(container.querySelector<HTMLButtonElement>('[aria-label="Session options"]')!)
-    await press([...container.querySelectorAll('.conversation-header__menu button')].find((button) => button.textContent?.includes('Rename'))!)
-    const input = document.body.querySelector<HTMLInputElement>('[role="dialog"] input')!
-    expect(input.value).toBe(session.title)
-    await act(async () => {
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
-      setter?.call(input, '新标题')
-      input.dispatchEvent(new Event('input', { bubbles: true }))
-    })
-    await press([...document.body.querySelectorAll<HTMLButtonElement>('.modal__footer button')].find((button) => button.textContent === 'Rename')!)
-    expect(onRename).toHaveBeenCalledWith(session, '新标题')
-  })
-
-  it('offers open-with targets for the active project through a submenu', async () => {
+  it('offers open-with targets from the summary popover environment section', async () => {
     const onOpenWith = vi.fn()
     const onOpenWithTargets = vi.fn(async () => ['explorer', 'vscode'] as OpenWithTargetId[])
     await act(async () => {
       root.render(<ConversationHeader {...props({ onOpenWithTargets, onOpenWith })} />)
     })
 
-    await press(container.querySelector<HTMLButtonElement>('[aria-label="Session options"]')!)
-    await press([...container.querySelectorAll('.conversation-header__menu button')].find((button) => button.textContent?.includes('Open with'))!)
+    await press(container.querySelector<HTMLButtonElement>('[aria-label="Summary"]')!)
+    expect(container.querySelector('.summary-popover')).not.toBeNull()
+    await press([...container.querySelectorAll('.summary-popover button')].find((button) => button.textContent?.includes('Open with'))!)
     expect(onOpenWithTargets).toHaveBeenCalledOnce()
 
-    const submenu = container.querySelector('.conversation-header__submenu')!
-    expect(submenu).not.toBeNull()
-    const labels = [...submenu.querySelectorAll('button')].map((button) => button.textContent?.trim())
+    const list = container.querySelector('[role="menu"][aria-label="Open with"]')!
+    expect(list).not.toBeNull()
+    const labels = [...list.querySelectorAll('button')].map((button) => button.textContent?.trim())
     expect(labels).toEqual(['File explorer', 'VS Code'])
 
-    await press([...submenu.querySelectorAll('button')].find((button) => button.textContent?.includes('VS Code'))!)
+    await press([...list.querySelectorAll('button')].find((button) => button.textContent?.includes('VS Code'))!)
     expect(onOpenWith).toHaveBeenCalledWith('vscode')
-    // Choosing a target dismisses the whole menu.
-    expect(container.querySelector('.conversation-header__menu')).toBeNull()
+    // Choosing a target dismisses the whole popover.
+    expect(container.querySelector('.summary-popover')).toBeNull()
   })
 
   it('shows the checkout name instead of a generic Workspace label before the catalog loads', async () => {

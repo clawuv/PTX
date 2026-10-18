@@ -430,7 +430,7 @@ export const TerminalDrawer = forwardRef<TerminalDrawerHandle, TerminalDrawerPro
                 <span>{tab.label ?? `${tab.shellName} ${tab.number}`}</span>
                 <span className={`terminal-live-dot ${tab.connected ? 'is-connected' : ''}`}/>
               </button>
-              <button type="button" className="terminal-tab__close" aria-label={t('termdraw.tab.close', { count: tab.number })} onClick={() => closeTerminal(tab.id)}><X size={11}/></button>
+              <button type="button" className="terminal-tab__close" aria-label={t('termdraw.tab.close', { count: tab.number })} data-tooltip={t('termdraw.tab.close', { count: tab.number })} onClick={() => closeTerminal(tab.id)}><X size={11}/></button>
             </div>
           ))}
           <IconButton label={t('termdraw.action.new')} size="small" disabled={tabs.length >= MAX_TERMINAL_TABS} onClick={addTerminal}><Plus size={14}/></IconButton>

@@ -4,6 +4,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Plus } from 'lucide-react'
 import { activityNotificationSignature, readClearedActivity, readClearedAttention, sessionCompanionNotificationSignature } from '@/app/session-attention'
 import { turnAnchorId } from '@/app/turn-anchor'
+import { installTooltips } from '@/lib/tooltip'
 import { AgentBrowserLayer, type AgentSlotRect } from '@/components/AgentBrowserLayer'
 import { Composer } from '@/components/Composer'
 import { ConversationHeader } from '@/components/ConversationHeader'
@@ -196,6 +197,8 @@ export default function App() {
     [bridge],
   )
   const appUpdates = useAppUpdates(bridge, reportError)
+  // Fast hover tooltips for icon buttons (native title delay is not configurable).
+  useEffect(() => installTooltips(), [])
   useEffect(() => {
     const setFocused = () => setWindowFocused(true)
     const setBlurred = () => setWindowFocused(false)
@@ -1067,8 +1070,6 @@ export default function App() {
                 worktreesLoading={worktreesLoading}
                 onOpenWorktree={bridge && activeProject && !activeProject.inferred && worktrees.length > 0 ? openWorktree : undefined}
                 onCreateWorktree={bridge && activeProject && !activeProject.inferred && worktrees.length > 0 ? createWorktree : undefined}
-                onRename={renameSession}
-                onArchive={(target) => setSessionArchived(target, true)}
                 inspectorOpen={inspectorVisible}
                 onToggleInspector={toggleInspector}
                 onOpenWithTargets={openWithTargets}
@@ -1348,7 +1349,7 @@ export default function App() {
         {toast ? (
           <div className="toast" role="status">
             {toast}
-            <button type="button" aria-label={t('shellui.dismiss')} onClick={() => setToast(null)}>
+            <button type="button" aria-label={t('shellui.dismiss')} data-tooltip={t('shellui.dismiss')} onClick={() => setToast(null)}>
               ×
             </button>
           </div>

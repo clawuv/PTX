@@ -215,7 +215,7 @@ export function Transcript({
         </div>
       </div>
       {scrolledUp ? (
-        <button type="button" className="transcript-jump" aria-label={t('transcript.scrollToBottom')} title={t('transcript.scrollToBottom')} onClick={scrollToBottom}>
+        <button type="button" className="transcript-jump" aria-label={t('transcript.scrollToBottom')} data-tooltip={t('transcript.scrollToBottom')} onClick={scrollToBottom}>
           <ArrowDown size={15} />
         </button>
       ) : null}

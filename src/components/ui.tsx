@@ -10,7 +10,7 @@ interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export function IconButton({ label, size = 'regular', className = '', children, ...props }: IconButtonProps) {
   return (
-    <button type="button" className={`icon-button icon-button--${size} ${className}`} aria-label={label} title={label} {...props}>
+    <button type="button" className={`icon-button icon-button--${size} ${className}`} aria-label={label} data-tooltip={label} {...props}>
       {children}
     </button>
   )

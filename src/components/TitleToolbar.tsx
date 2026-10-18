@@ -118,10 +118,10 @@ export function TitleToolbar({ onToggleSidebar, onToggleSearch, searchOpen, upda
         <AppUpdateButton updateState={updateState} onUpdateAction={onUpdateAction} />
         {platform === 'darwin' || platform === 'win32' ? (
           <span className="titlebar-arrows">
-            <button type="button" className="titlebar-arrow" disabled={!canBack} aria-label={t('shellui.navigateBack')} title={t('shellui.navigateBack')} onClick={onBack}>
+            <button type="button" className="titlebar-arrow" disabled={!canBack} aria-label={t('shellui.navigateBack')} data-tooltip={t('shellui.navigateBack')} onClick={onBack}>
               <ArrowLeft size={15} />
             </button>
-            <button type="button" className="titlebar-arrow" disabled={!canForward} aria-label={t('shellui.navigateForward')} title={t('shellui.navigateForward')} onClick={onForward}>
+            <button type="button" className="titlebar-arrow" disabled={!canForward} aria-label={t('shellui.navigateForward')} data-tooltip={t('shellui.navigateForward')} onClick={onForward}>
               <ArrowRight size={15} />
             </button>
           </span>
@@ -155,9 +155,9 @@ export function TitleToolbar({ onToggleSidebar, onToggleSearch, searchOpen, upda
         ))}
       </nav> : null}
       {drawWindowControls ? <div className="titlebar-controls no-drag">
-        <button type="button" className="titlebar-control" aria-label={t('shellui.minimizeWindow')} onClick={() => { void window.ptx?.app.minimize() }}><MinimizeGlyph /></button>
-        <button type="button" className="titlebar-control" aria-label={t('shellui.maximizeWindow')} onClick={() => { void window.ptx?.app.toggleMaximize() }}><MaximizeGlyph /></button>
-        <button type="button" className="titlebar-control titlebar-control--close" aria-label={t('shellui.closeWindow')} onClick={() => { void window.ptx?.app.close() }}><CloseGlyph /></button>
+        <button type="button" className="titlebar-control" aria-label={t('shellui.minimizeWindow')} data-tooltip={t('shellui.minimizeWindow')} onClick={() => { void window.ptx?.app.minimize() }}><MinimizeGlyph /></button>
+        <button type="button" className="titlebar-control" aria-label={t('shellui.maximizeWindow')} data-tooltip={t('shellui.maximizeWindow')} onClick={() => { void window.ptx?.app.toggleMaximize() }}><MaximizeGlyph /></button>
+        <button type="button" className="titlebar-control titlebar-control--close" aria-label={t('shellui.closeWindow')} data-tooltip={t('shellui.closeWindow')} onClick={() => { void window.ptx?.app.close() }}><CloseGlyph /></button>
       </div> : null}
     </header>
   )

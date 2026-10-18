@@ -338,7 +338,7 @@ export function FilesPanel({
           type="button"
           className="tree-root"
           onClick={() => onReveal(project.primaryFolder)}
-          title={project.primaryFolder}
+          data-tooltip={project.primaryFolder}
         >
           <Folder size={14} />
           <strong>
@@ -370,7 +370,7 @@ export function FilesPanel({
                     key={node.id}
                     className="file-tree__item is-directory"
                     style={{ paddingLeft: `${8 + node.depth * 14}px` }}
-                    title={node.path || node.name}
+                    data-tooltip={node.path || node.name}
                     aria-expanded={isExpanded}
                     onClick={isSearching ? undefined : () => toggleExpand(node.id)}
                     onDoubleClick={(e) => {
@@ -414,7 +414,7 @@ export function FilesPanel({
                   key={node.id}
                   className="file-tree__item is-file"
                   style={{ paddingLeft: `${8 + node.depth * 14}px` }}
-                  title={node.path}
+                  data-tooltip={node.path}
                   onClick={() => onReveal(node.fullPath)}
                 >
                   <span className="file-tree__expander-placeholder" />

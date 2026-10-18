@@ -217,9 +217,9 @@ export function DesktopPet({ pets, petId, agentBusy, voiceActive, reduceMotion, 
       </div>
       {voiceActive && voiceStatus ? <span className="desktop-pet__voice-status" role="status">{voiceStatus}</span> : null}
       <div className="desktop-pet__voice-controls" aria-label={t('voice.controls.label')}>
-        {!voiceActive && onOpenVoice ? <button ref={voiceControlRef} type="button" aria-label={t('voice.open')} title={t('voice.open')} onClick={onOpenVoice}><AudioWaveform size={15} /></button> : null}
-        {voiceActive && onToggleVoiceMute ? <button ref={voiceControlRef} type="button" aria-label={voiceMuted ? t('voice.unmute') : t('voice.mute')} title={voiceMuted ? t('voice.unmute') : t('voice.mute')} onClick={onToggleVoiceMute}>{voiceMuted ? <MicOff size={15} /> : <Mic size={15} />}</button> : null}
-        {voiceActive && onCloseVoice ? <button type="button" aria-label={t('voice.close')} title={t('voice.close')} onClick={onCloseVoice}><X size={16} /></button> : null}
+        {!voiceActive && onOpenVoice ? <button ref={voiceControlRef} type="button" aria-label={t('voice.open')} data-tooltip={t('voice.open')} onClick={onOpenVoice}><AudioWaveform size={15} /></button> : null}
+        {voiceActive && onToggleVoiceMute ? <button ref={voiceControlRef} type="button" aria-label={voiceMuted ? t('voice.unmute') : t('voice.mute')} data-tooltip={voiceMuted ? t('voice.unmute') : t('voice.mute')} onClick={onToggleVoiceMute}>{voiceMuted ? <MicOff size={15} /> : <Mic size={15} />}</button> : null}
+        {voiceActive && onCloseVoice ? <button type="button" aria-label={t('voice.close')} data-tooltip={t('voice.close')} onClick={onCloseVoice}><X size={16} /></button> : null}
       </div>
       {voiceError ? <p className="desktop-pet__voice-error" role="alert">{voiceError}</p> : null}
       {children}

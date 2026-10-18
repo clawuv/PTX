@@ -10,11 +10,10 @@ const MAX_RENDERED_DIFF_CHARACTERS = 2 * 1024 * 1024
 const MAX_RENDERED_DIFF_LINES = 4_000
 
 function generateCommitSummary(files: GitStatus['files']): string {
-  const staged = files.filter((file) => file.staged)
-  if (!staged.length) return ''
-  const verbs = new Set(staged.map((file) => file.status[0]))
+  if (!files.length) return ''
+  const verbs = new Set(files.map((file) => file.status[0]))
   const verb = verbs.size === 1 && verbs.has('A') ? 'Add' : verbs.size === 1 && verbs.has('D') ? 'Remove' : 'Update'
-  const names = staged.map((file) => file.path)
+  const names = files.map((file) => file.path)
   const description = names.length <= 3 ? names.join(', ').replace(/, ([^,]*)$/, names.length === 2 ? ' and $1' : ', and $1') : `${names.length} files`
   return `${verb} ${description}`
 }
@@ -82,7 +81,25 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
 
   const fillCommitSummary = () => {
     setActionError('')
-    setCommitMessage(generateCommitSummary(git.files))
+    setCommitMessage(generateCommitSummary(git.files.filter((file) => file.staged)))
+  }
+
+  /** One click: stage the listed files, summarize them into a commit message, and commit. */
+  const commitAll = async () => {
+    if (readOnly || !cwd || !window.ptx || !visibleFiles.length) return
+    setActionError('')
+    try {
+      if (scope === 'unstaged') {
+        const staged = await window.ptx.git.stage(cwd, visibleFiles.map((file) => file.path))
+        if (!staged) throw new Error(t('changes.error.mutate', { action: 'stage', count: visibleFiles.length }))
+      }
+      const message = generateCommitSummary(visibleFiles)
+      const result = await window.ptx.git.commit(cwd, message)
+      if (!result.ok) throw new Error(result.output || t('changes.error.commit'))
+      await onRefreshGit()
+    } catch (error) {
+      setActionError(errorMessage(error))
+    }
   }
 
   const commit = async () => {
@@ -114,7 +131,7 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
       {actionError ? <p className="changes-error" role="alert">{actionError}</p> : null}
       <div className="changes-body">
         <div className="file-changes scroll-area">
-          <div className="file-changes__header"><span>{t('changes.count', { count: visibleFiles.length })}</span>{visibleFiles.length ? <button type="button" disabled={readOnly} onClick={() => void mutate(scope === 'staged' ? 'unstage' : 'stage', visibleFiles.map((file) => file.path))}>{scope === 'staged' ? t('changes.action.unstageAll') : t('changes.action.stageAll')}</button> : null}</div>
+          <div className="file-changes__header"><span>{t('changes.count', { count: visibleFiles.length })}</span>{visibleFiles.length ? <div><button type="button" disabled={readOnly} onClick={() => void commitAll()}>{t('changes.action.commitAll')}</button><button type="button" disabled={readOnly} onClick={() => void mutate(scope === 'staged' ? 'unstage' : 'stage', visibleFiles.map((file) => file.path))}>{scope === 'staged' ? t('changes.action.unstageAll') : t('changes.action.stageAll')}</button></div> : null}</div>
           {visibleFiles.map((file) => <button type="button" key={file.path} className={selectedPath === file.path ? 'is-selected' : ''} onClick={() => setSelectedPath(file.path)}><File size={13} /><span title={file.path}>{file.path}</span><small className="additions">+{file.additions}</small><small className="deletions">−{file.deletions}</small><span className="file-status">{file.status}</span></button>)}
           {visibleFiles.length === 0 ? <p className="file-changes__empty">{scope === 'staged' ? t('changes.empty.staged') : t('changes.empty.unstaged')}</p> : null}
         </div>

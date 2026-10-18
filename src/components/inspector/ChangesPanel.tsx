@@ -1,10 +1,12 @@
-import { ArrowDownToLine, File, FileCode2, GitBranch, LoaderCircle, RefreshCw, Sparkles, Undo2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ArrowDownToLine, File, FileCode2, GitBranch, LoaderCircle, RefreshCw, Sparkles, Undo2, Upload } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { errorMessage } from '@/lib/errors'
 import { useI18n } from '@/lib/i18n'
 import type { GitStatus } from '@/types/api'
 import { boundLines } from '@/lib/render-bounds'
 import { EmptyState, IconButton, Modal, Segmented } from '../ui'
+
+interface AheadCommit { hash: string; subject: string; date: string }
 
 const MAX_RENDERED_DIFF_CHARACTERS = 2 * 1024 * 1024
 const MAX_RENDERED_DIFF_LINES = 4_000
@@ -35,6 +37,11 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
   const [commitMessage, setCommitMessage] = useState('')
   const [confirmUndo, setConfirmUndo] = useState<string | null>(null)
   const [actionError, setActionError] = useState('')
+  const [pushing, setPushing] = useState(false)
+  const [aheadOpen, setAheadOpen] = useState(false)
+  const [aheadList, setAheadList] = useState<AheadCommit[]>([])
+  const [undoingHash, setUndoingHash] = useState<string | null>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
   const visibleFiles = git.files.filter((file) => scope === 'staged' ? file.staged : !file.staged)
   const activeSelectedPath = visibleFiles.some((file) => file.path === selectedPath) ? selectedPath : undefined
 
@@ -81,36 +88,84 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
 
   const fillCommitSummary = () => {
     setActionError('')
-    setCommitMessage(generateCommitSummary(git.files.filter((file) => file.staged)))
+    setCommitMessage(generateCommitSummary(visibleFiles))
   }
 
-  /** One click: stage the listed files, summarize them into a commit message, and commit. */
-  const commitAll = async () => {
-    if (readOnly || !cwd || !window.ptx || !visibleFiles.length) return
+  /** One flow for both scopes: unstaged listings are staged first, then the modal message commits. */
+  const commit = async () => {
+    if (readOnly || !cwd || !window.ptx || !commitMessage.trim() || !visibleFiles.length) return
     setActionError('')
     try {
       if (scope === 'unstaged') {
         const staged = await window.ptx.git.stage(cwd, visibleFiles.map((file) => file.path))
         if (!staged) throw new Error(t('changes.error.mutate', { action: 'stage', count: visibleFiles.length }))
       }
-      const message = generateCommitSummary(visibleFiles)
-      const result = await window.ptx.git.commit(cwd, message)
+      const result = await window.ptx.git.commit(cwd, commitMessage.trim())
       if (!result.ok) throw new Error(result.output || t('changes.error.commit'))
-      await onRefreshGit()
+      setCommitOpen(false); setCommitMessage(''); await onRefreshGit()
     } catch (error) {
       setActionError(errorMessage(error))
     }
   }
 
-  const commit = async () => {
-    if (readOnly || !cwd || !commitMessage.trim() || !window.ptx) return
+  const pushCommits = async () => {
+    if (readOnly || !cwd || !window.ptx || pushing) return
     setActionError('')
+    setPushing(true)
     try {
-      const result = await window.ptx.git.commit(cwd, commitMessage.trim())
-      if (!result.ok) throw new Error(result.output || t('changes.error.commit'))
-      setCommitOpen(false); setCommitMessage(''); await onRefreshGit()
-    } catch (error) { setActionError(errorMessage(error)) }
+      const result = await window.ptx.git.push(cwd)
+      if (!result.ok) throw new Error(result.output || t('changes.error.push'))
+      await onRefreshGit()
+    } catch (error) {
+      setActionError(errorMessage(error))
+    } finally {
+      setPushing(false)
+    }
   }
+
+  const toggleAhead = async () => {
+    setActionError('')
+    if (aheadOpen) { setAheadOpen(false); return }
+    setAheadOpen(true)
+    if (!cwd || !window.ptx) return
+    try { setAheadList(await window.ptx.git.aheadCommits(cwd)) } catch { setAheadList([]) }
+  }
+
+  /** Soft-resets to the commit's parent, so it and any newer unpushed commits return to the staged index. */
+  const undoAheadCommit = async (hash: string) => {
+    if (readOnly || !cwd || !window.ptx || undoingHash) return
+    setActionError('')
+    setUndoingHash(hash)
+    try {
+      const result = await window.ptx.git.undoCommit(cwd, hash)
+      if (!result.ok) throw new Error(result.output || t('changes.error.undoCommit'))
+      setAheadList((list) => list.slice(list.findIndex((entry) => entry.hash === hash) + 1))
+      await onRefreshGit()
+    } catch (error) {
+      setActionError(errorMessage(error))
+    } finally {
+      setUndoingHash(null)
+    }
+  }
+
+  useEffect(() => {
+    if (!aheadOpen) return
+    const dismiss = (event: MouseEvent) => {
+      const target = event.target
+      if (!(target instanceof Node) || popoverRef.current?.contains(target)) return
+      if (target instanceof Element && target.closest('.ahead-toggle')) return
+      setAheadOpen(false)
+    }
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setAheadOpen(false)
+    }
+    document.addEventListener('mousedown', dismiss)
+    document.addEventListener('keydown', dismissOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', dismiss)
+      document.removeEventListener('keydown', dismissOnEscape)
+    }
+  }, [aheadOpen])
 
   if (!git.isRepo) return <EmptyState icon={<GitBranch size={24} />} title={t('changes.empty.title')}>{t('changes.empty.description')}</EmptyState>
   if (git.error) {
@@ -123,15 +178,26 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
   return (
     <div className="changes-panel">
       <div className="changes-toolbar">
-        <div><strong><GitBranch size={13} /> {git.branch ?? t('changes.branch.fallback')}</strong>{git.ahead ? <small>{t('changes.ahead', { count: git.ahead })}</small> : null}</div>
-        <IconButton label={t('changes.action.refresh')} onClick={() => void onRefreshGit()}><RefreshCw size={14} /></IconButton>
+        <div><strong><GitBranch size={13} /> {git.branch ?? t('changes.branch.fallback')}</strong>{git.ahead ? <button type="button" className="ahead-toggle" aria-expanded={aheadOpen} onClick={() => void toggleAhead()}>{t('changes.ahead', { count: git.ahead })}</button> : null}</div>
+        <div className="changes-toolbar__actions">
+          {git.ahead ? <IconButton label={t('changes.action.push')} disabled={pushing} onClick={() => void pushCommits()}><Upload size={14} /></IconButton> : null}
+          <IconButton label={t('changes.action.refresh')} onClick={() => void onRefreshGit()}><RefreshCw size={14} /></IconButton>
+        </div>
       </div>
+      {aheadOpen && git.ahead ? <div ref={popoverRef} className="ahead-popover" role="group" aria-label={t('changes.ahead.title')}>
+        <div className="ahead-popover__heading">{t('changes.ahead.title')}</div>
+        {aheadList.length ? aheadList.map((entry) => <div key={entry.hash}>
+          <span className="ahead-popover__hash">{entry.hash.slice(0, 7)}</span>
+          <span className="ahead-popover__subject" title={entry.subject}>{entry.subject}</span>
+          <button type="button" disabled={readOnly || undoingHash !== null} onClick={() => void undoAheadCommit(entry.hash)}>{t('changes.action.undoCommit')}</button>
+        </div>) : <p className="ahead-popover__empty">{t('changes.ahead.loading')}</p>}
+      </div> : null}
       {readOnly ? <div className="changes-read-only" role="note"><span>{t('changes.readOnly.notice')}</span>{onGrantProject ? <button type="button" className="button button--compact" onClick={() => void onGrantProject()}>{t('changes.action.addProject')}</button> : null}</div> : null}
-      <div className="changes-scopes"><Segmented value={scope} label={t('changes.scope.label')} options={[{ value: 'unstaged', label: t('changes.scope.unstaged') }, { value: 'staged', label: t('changes.scope.staged') }]} onChange={(value) => { setActionError(''); setScope(value as 'unstaged' | 'staged') }} /><button type="button" className="button button--compact" disabled={readOnly || !git.files.some((file) => file.staged)} onClick={() => setCommitOpen(true)}>{t('changes.action.commit')}</button></div>
+      <div className="changes-scopes"><Segmented value={scope} label={t('changes.scope.label')} options={[{ value: 'unstaged', label: t('changes.scope.unstaged') }, { value: 'staged', label: t('changes.scope.staged') }]} onChange={(value) => { setActionError(''); setScope(value as 'unstaged' | 'staged') }} /><button type="button" className="button button--compact" disabled={readOnly || !visibleFiles.length} onClick={() => setCommitOpen(true)}>{t('changes.action.commit')}</button></div>
       {actionError ? <p className="changes-error" role="alert">{actionError}</p> : null}
       <div className="changes-body">
         <div className="file-changes scroll-area">
-          <div className="file-changes__header"><span>{t('changes.count', { count: visibleFiles.length })}</span>{visibleFiles.length ? <div><button type="button" disabled={readOnly} onClick={() => void commitAll()}>{t('changes.action.commitAll')}</button><button type="button" disabled={readOnly} onClick={() => void mutate(scope === 'staged' ? 'unstage' : 'stage', visibleFiles.map((file) => file.path))}>{scope === 'staged' ? t('changes.action.unstageAll') : t('changes.action.stageAll')}</button></div> : null}</div>
+          <div className="file-changes__header"><span>{t('changes.count', { count: visibleFiles.length })}</span>{visibleFiles.length ? <button type="button" disabled={readOnly} onClick={() => void mutate(scope === 'staged' ? 'unstage' : 'stage', visibleFiles.map((file) => file.path))}>{scope === 'staged' ? t('changes.action.unstageAll') : t('changes.action.stageAll')}</button> : null}</div>
           {visibleFiles.map((file) => <button type="button" key={file.path} className={selectedPath === file.path ? 'is-selected' : ''} onClick={() => setSelectedPath(file.path)}><File size={13} /><span title={file.path}>{file.path}</span><small className="additions">+{file.additions}</small><small className="deletions">−{file.deletions}</small><span className="file-status">{file.status}</span></button>)}
           {visibleFiles.length === 0 ? <p className="file-changes__empty">{scope === 'staged' ? t('changes.empty.staged') : t('changes.empty.unstaged')}</p> : null}
         </div>

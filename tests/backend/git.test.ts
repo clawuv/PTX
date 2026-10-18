@@ -105,6 +105,72 @@ describe('GitService', () => {
     }
   })
 
+  it('pushes committed history to the configured upstream and reports missing-upstream failures', async () => {
+    const cwd = repository('prime-work-git-push-')
+    const remote = mkdtempSync(join(tmpdir(), 'prime-work-git-push-origin-'))
+    dirs.push(remote)
+    git(remote, 'init', '-q', '--bare')
+    git(cwd, 'remote', 'add', 'origin', remote)
+    const branch = spawnSync('git', ['symbolic-ref', '--short', 'HEAD'], { cwd, encoding: 'utf8' }).stdout.trim()
+    git(cwd, 'config', `branch.${branch}.remote`, 'origin')
+    git(cwd, 'config', `branch.${branch}.merge`, `refs/heads/${branch}`)
+    const service = new GitService(async () => cwd)
+
+    const pushed = await service.push(cwd)
+    expect(pushed.ok).toBe(true)
+    const remoteLog = spawnSync('git', ['log', '--oneline', '-1'], { cwd: remote, encoding: 'utf8' })
+    expect(remoteLog.stdout).toContain('base')
+
+    writeFileSync(join(cwd, 'file.txt'), 'unpushed\n')
+    git(cwd, 'commit', '-qam', 'second')
+    expect((await service.push(cwd)).ok).toBe(true)
+    const remoteHead = spawnSync('git', ['log', '--oneline', '-1'], { cwd: remote, encoding: 'utf8' })
+    expect(remoteHead.stdout).toContain('second')
+
+    const orphan = repository('prime-work-git-push-noupstream-')
+    const failed = await new GitService(async () => orphan).push(orphan)
+    expect(failed.ok).toBe(false)
+    expect(failed.output.length).toBeGreaterThan(0)
+  }, 20_000)
+
+  it('lists unpushed commits and undoes them back into the staged index', async () => {
+    const cwd = repository('prime-work-git-ahead-')
+    const remote = mkdtempSync(join(tmpdir(), 'prime-work-git-ahead-origin-'))
+    dirs.push(remote)
+    git(remote, 'init', '-q', '--bare')
+    git(cwd, 'remote', 'add', 'origin', remote)
+    const branch = spawnSync('git', ['symbolic-ref', '--short', 'HEAD'], { cwd, encoding: 'utf8' }).stdout.trim()
+    git(cwd, 'config', `branch.${branch}.remote`, 'origin')
+    git(cwd, 'config', `branch.${branch}.merge`, `refs/heads/${branch}`)
+    git(cwd, 'push', '-q')
+    const service = new GitService(async () => cwd)
+
+    expect(await service.aheadCommits(cwd)).toEqual([])
+
+    writeFileSync(join(cwd, 'file.txt'), 'base\nsecond\n')
+    git(cwd, 'commit', '-qam', 'second')
+    writeFileSync(join(cwd, 'file.txt'), 'base\nsecond\nthird\n')
+    git(cwd, 'commit', '-qam', 'third')
+    const commits = await service.aheadCommits(cwd)
+    expect(commits.map((entry) => entry.subject)).toEqual(['third', 'second'])
+
+    const undone = await service.undoCommit(cwd, commits[0]!.hash)
+    expect(undone.ok).toBe(true)
+    expect((await service.aheadCommits(cwd)).map((entry) => entry.subject)).toEqual(['second'])
+    const status = await service.status(cwd)
+    expect(status.files.find((file) => file.path === 'file.txt')).toMatchObject({ staged: true, status: 'M' })
+    expect(spawnSync('git', ['show', '-s', '--format=%s', 'HEAD'], { cwd, encoding: 'utf8' }).stdout.trim()).toBe('second')
+
+    // Undoing the last remaining commit is legal (HEAD lands on the pushed root); only the root itself is refused.
+    const second = (await service.aheadCommits(cwd))[0]!
+    expect((await service.undoCommit(cwd, second.hash)).ok).toBe(true)
+    expect(await service.aheadCommits(cwd)).toEqual([])
+    const rootHash = spawnSync('git', ['rev-parse', 'HEAD'], { cwd, encoding: 'utf8' }).stdout.trim()
+    const refused = await service.undoCommit(cwd, rootHash)
+    expect(refused.ok).toBe(false)
+    expect(refused.output).toContain('first commit')
+  }, 20_000)
+
   it('identifies a detached HEAD as a repository branch label', async () => {
     const cwd = repository('prime-work-git-detached-')
     git(cwd, 'checkout', '-q', '--detach')

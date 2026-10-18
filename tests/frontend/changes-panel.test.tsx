@@ -119,7 +119,34 @@ describe('ChangesPanel status states', () => {
     expect(onRefreshGit).toHaveBeenCalledTimes(1)
   })
 
-  it('commits all listed files with a generated message from one click', async () => {
+  it('lists unpushed commits behind the ahead label and undoes one on demand', async () => {
+    const aheadCommits = vi.fn(async () => [
+      { hash: 'abc1234567890abcdef', subject: 'second', date: '2026-10-18T10:00:00+08:00' },
+      { hash: 'def1234567890abcdef', subject: 'first', date: '2026-10-18T09:00:00+08:00' },
+    ])
+    const undoCommit = vi.fn(async () => ({ ok: true, output: '' }))
+    Object.defineProperty(window, 'ptx', { configurable: true, value: { git: { aheadCommits, undoCommit } } })
+    const onRefreshGit = vi.fn(async () => undefined)
+
+    await act(async () => {
+      root.render(<ChangesPanel cwd="/project" git={{ isRepo: true, branch: 'main', ahead: 2, files: [] }} onRefreshGit={onRefreshGit} />)
+      await Promise.resolve()
+    })
+
+    const aheadToggle = [...container.querySelectorAll<HTMLButtonElement>('button')].find((candidate) => candidate.textContent === '2 ahead')!
+    await act(async () => { aheadToggle.click(); await Promise.resolve() })
+    expect(aheadCommits).toHaveBeenCalledWith('/project')
+    expect(container.textContent).toContain('second')
+    expect(container.textContent).toContain('abc1234')
+
+    const undo = [...container.querySelectorAll<HTMLButtonElement>('.ahead-popover button')].find((candidate) => candidate.textContent === 'Undo')!
+    await act(async () => { undo.click(); await Promise.resolve() })
+    expect(undoCommit).toHaveBeenCalledWith('/project', 'abc1234567890abcdef')
+    expect(onRefreshGit).toHaveBeenCalledTimes(1)
+    expect(container.textContent).not.toContain('second')
+  })
+
+  it('commits the listed files with a generated message through the commit dialog', async () => {
     const diff = vi.fn(async () => ({ path: 'file.txt', staged: false, text: '', truncated: false }))
     const stage = vi.fn(async () => true)
     const commit = vi.fn(async () => ({ ok: true, output: '' }))
@@ -135,7 +162,13 @@ describe('ChangesPanel status states', () => {
     })
 
     const button = (label: string) => [...container.querySelectorAll<HTMLButtonElement>('button')].find((candidate) => candidate.textContent?.trim() === label)!
-    await act(async () => { button('Commit all').click(); await Promise.resolve() })
+    expect(button('Commit').disabled).toBe(false)
+    act(() => { button('Commit').click() })
+    act(() => { [...document.body.querySelectorAll<HTMLButtonElement>('button')].find((candidate) => candidate.textContent?.includes('Generate summary'))!.click() })
+    await act(async () => {
+      [...document.body.querySelectorAll<HTMLButtonElement>('.modal__footer button')].find((candidate) => candidate.textContent === 'Commit changes')!.click()
+      await Promise.resolve()
+    })
     expect(stage).toHaveBeenCalledWith('/project', ['file.txt', 'other.txt'])
     expect(commit).toHaveBeenCalledWith('/project', 'Update file.txt and other.txt')
     expect(onRefreshGit).toHaveBeenCalledTimes(1)

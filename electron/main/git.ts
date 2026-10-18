@@ -528,6 +528,46 @@ export class GitService {
     return { ok: true, output: output || 'Commit created.' }
   }
 
+  async push(cwdValue: unknown): Promise<ProcessOutcome> {
+    // Push sends already-created commits over the network; the hardened git
+    // environment (hooksPath=/dev/null, restricted env) keeps it argv-only.
+    const context = await this.withRepositoryGuards(cwdValue)
+    const result = await runGit(context.cwd, ['push'], { timeoutMs: 5 * 60_000, maxBytes: 1024 * 1024 }, context.overrides)
+    if (result.outputExceeded) return { ok: false, reason: 'overflow', output: 'Git push output exceeded the safety limit; the push result is unknown. Refresh status before retrying.' }
+    if (result.timedOut) return { ok: false, reason: 'timeout', output: 'Git push timed out; the push result is unknown. Refresh status before retrying.' }
+    const output = stripAnsi(`${result.stdout}${result.stderr}`).trim()
+    if (result.code !== 0) return { ok: false, reason: 'exit', output: output || processError('Git push', result).message }
+    return { ok: true, output: output || 'Pushed.' }
+  }
+
+  /** Unpushed commits on the current branch, newest first; empty when no upstream is configured. */
+  async aheadCommits(cwdValue: unknown): Promise<Array<{ hash: string; subject: string; date: string }>> {
+    try {
+      const context = await this.withRepositoryGuards(cwdValue, undefined, { readOnly: true })
+      const result = await runGit(context.cwd, ['log', '--max-count=50', '--format=%H%x1f%cI%x1f%s', '@{upstream}..HEAD'], { timeoutMs: 10_000, maxBytes: 256 * 1024 }, context.overrides)
+      if (result.code !== 0 || result.timedOut || result.outputExceeded) return []
+      return result.stdout.split('\n').flatMap((line) => {
+        const [hash, date, subject] = line.split('\x1f')
+        return hash && date && subject ? [{ hash, subject, date }] : []
+      })
+    } catch { return [] }
+  }
+
+  async undoCommit(cwdValue: unknown, hashValue: unknown): Promise<ProcessOutcome> {
+    const hash = requireString(hashValue, 'commit hash', { min: 7, max: 64 })
+    if (!/^[0-9a-f]{7,64}$/i.test(hash)) throw new TypeError('commit hash must be a hexadecimal revision')
+    const context = await this.withRepositoryGuards(cwdValue)
+    const parent = await runGit(context.cwd, ['rev-parse', '--verify', '--quiet', `${hash}^`], { timeoutMs: 5_000, maxBytes: 64 * 1024 }, context.overrides)
+    if (parent.code !== 0 || parent.timedOut || parent.outputExceeded) return { ok: false, reason: 'exit', output: 'The first commit of a repository cannot be undone.' }
+    // Soft reset: the undone commits return to the staged index, no worktree content changes.
+    const result = await runGit(context.cwd, ['reset', '--soft', `${hash}^`], { timeoutMs: 30_000, maxBytes: 64 * 1024 }, context.overrides)
+    if (result.outputExceeded) return { ok: false, reason: 'overflow', output: 'Git undo output exceeded the safety limit; the result is unknown. Refresh status before retrying.' }
+    if (result.timedOut) return { ok: false, reason: 'timeout', output: 'Git undo timed out; the result is unknown. Refresh status before retrying.' }
+    const output = stripAnsi(`${result.stdout}${result.stderr}`).trim()
+    if (result.code !== 0) return { ok: false, reason: 'exit', output: output || processError('Git undo commit', result).message }
+    return { ok: true, output: output || 'Commit undone; its changes are staged.' }
+  }
+
   private async repositoryCwd(
     value: string,
     authorizer: (cwd: string) => Promise<string> = this.authorizeCwd,

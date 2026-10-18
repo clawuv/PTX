@@ -107,12 +107,12 @@ describe('ChangesPanel status states', () => {
       await Promise.resolve()
     })
     act(() => {
-      [...container.querySelectorAll<HTMLButtonElement>('.diff-header button')].find((button) => button.textContent?.includes('Undo changes'))!.click()
+      [...container.querySelectorAll<HTMLButtonElement>('.diff-header button')].find((button) => button.textContent?.includes('Undo'))!.click()
     })
     expect(document.body.textContent).toContain('This discards the staged and unstaged changes')
 
     await act(async () => {
-      [...document.body.querySelectorAll<HTMLButtonElement>('.modal__footer button')].find((button) => button.textContent === 'Undo changes')!.click()
+      [...document.body.querySelectorAll<HTMLButtonElement>('.modal__footer button')].find((button) => button.textContent === 'Undo')!.click()
       await Promise.resolve()
     })
     expect(restore).toHaveBeenCalledWith('/project', ['file.txt'])
@@ -140,7 +140,7 @@ describe('ChangesPanel status states', () => {
     const button = (label: string) => [...container.querySelectorAll<HTMLButtonElement>('button')].find((candidate) => candidate.textContent?.trim() === label)!
     expect(button('Stage').disabled).toBe(true)
     expect(button('Stage all').disabled).toBe(true)
-    expect(button('Undo changes').disabled).toBe(true)
+    expect(button('Undo').disabled).toBe(true)
     expect(button('Commit').disabled).toBe(true)
     await act(async () => { button('Add project').click(); await Promise.resolve() })
     expect(onGrantProject).toHaveBeenCalledTimes(1)
@@ -169,7 +169,7 @@ describe('ChangesPanel status states', () => {
     const button = (label: string) => [...container.querySelectorAll<HTMLButtonElement>('button')].find((candidate) => candidate.textContent?.trim() === label)!
     expect(button('Stage').disabled).toBe(false)
     expect(button('Stage all').disabled).toBe(false)
-    expect(button('Undo changes').disabled).toBe(false)
+    expect(button('Undo').disabled).toBe(false)
     expect(button('Commit').disabled).toBe(false)
     act(() => { button('Staged').click() })
     expect(button('Unstage').disabled).toBe(false)

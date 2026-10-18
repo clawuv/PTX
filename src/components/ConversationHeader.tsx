@@ -1,4 +1,4 @@
-import { Archive, ChevronRight, Code, Copy, FolderOpen, MessageSquare, MoreHorizontal, PanelRight, SquareCode, SquarePen } from 'lucide-react'
+import { Archive, ChevronRight, Code, Copy, Folder, FolderOpen, MoreHorizontal, PanelRight, SquareCode, SquarePen } from 'lucide-react'
 import { type ReactElement, useEffect, useRef, useState } from 'react'
 import { useI18n } from '@/lib/i18n'
 import type { GitWorktree, OpenWithTargetId, ProjectRecord, SessionRecord } from '@/types/api'
@@ -115,7 +115,7 @@ export function ConversationHeader({
       {session ? (
         <>
           <div className="conversation-header__title-row" title={fullTitle}>
-            <MessageSquare size={14} className="conversation-header__icon" aria-hidden="true" />
+            <Folder size={14} className="conversation-header__icon" aria-hidden="true" />
             <span className="conversation-header__title">{title}</span>
           </div>
           <div className="conversation-header__menu-wrap" ref={menuRef}>

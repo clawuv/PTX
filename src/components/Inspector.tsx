@@ -1,4 +1,3 @@
-import { X } from 'lucide-react'
 import type { BrowserAnnotationsApi } from '@/hooks/useBrowserAnnotations'
 import type { StampedPointerEvent } from '@/hooks/useAgentBrowserTabs'
 import { useI18n, type MessageKey } from '@/lib/i18n'
@@ -8,7 +7,7 @@ import { BrowserPanel } from './inspector/BrowserPanel'
 import { ChangesPanel } from './inspector/ChangesPanel'
 import { FilesPanel } from './inspector/FilesPanel'
 import { SummaryPanel } from './inspector/SummaryPanel'
-import { IconButton, useFocusTrap } from './ui'
+import { useFocusTrap } from './ui'
 
 interface InspectorProps {
   platform?: NodeJS.Platform
@@ -67,8 +66,6 @@ export function Inspector({ activeTab, onTabChange, onClose, agentName, shortNam
   return <aside ref={inspectorRef} className="inspector" aria-label={t('inspector.title')} tabIndex={overlay ? -1 : undefined}>
     <div className="inspector__tabs" role="tablist" aria-label={t('inspector.views')}>
       {tabs.map((tab, index) => <button id={`inspector-tab-${tab.id}`} type="button" role="tab" aria-selected={activeTab === tab.id} aria-controls={`inspector-panel-${tab.id}`} tabIndex={activeTab === tab.id ? 0 : -1} className={activeTab === tab.id ? 'is-active' : ''} key={tab.id} onKeyDown={(event) => { if (['ArrowRight','ArrowLeft','Home','End'].includes(event.key)) { event.preventDefault(); moveTab(index, event.key) } }} onClick={() => onTabChange(tab.id)}>{t(tab.label)}{tab.id === 'changes' && git.files.length ? <span>{git.files.length}</span> : null}</button>)}
-      <span className="inspector__tab-spacer"/>
-      <IconButton label={t('inspector.close')} onClick={onClose}><X size={15}/></IconButton>
     </div>
     <div id={`inspector-panel-${activeTab}`} className="inspector__body" role="tabpanel" aria-labelledby={`inspector-tab-${activeTab}`} tabIndex={0}>
       {activeTab === 'summary' ? <SummaryPanel agentName={agentName} shortName={shortName} project={project} runtime={runtime} messages={messages} git={git} automations={automations} onOpenAutomation={onOpenAutomation}/> : null}

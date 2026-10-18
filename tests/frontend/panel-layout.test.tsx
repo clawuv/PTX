@@ -82,21 +82,20 @@ describe('panel layout inspector width', () => {
     container.remove()
   })
 
-  it('proportions the untouched inspector width to the window and keeps following resizes', async () => {
+  it('opens the untouched inspector at the fixed compact default and keeps it across resizes', async () => {
     await act(async () => {
       root.render(<Harness />)
     })
     await rowResized(1200)
-    // 30% of a 1200px row, above the 340px floor.
-    expect(latest?.inspectorWidth).toBe(360)
+    expect(latest?.inspectorWidth).toBe(240)
 
     await rowResized(1600)
-    expect(latest?.inspectorWidth).toBe(480)
-    // Double-click reset is a fixed width, matching the sidebar default.
-    expect(latest?.inspectorDefault).toBe(360)
+    // The default does not scale with the window; only a drag pins a custom width.
+    expect(latest?.inspectorWidth).toBe(240)
+    expect(latest?.inspectorDefault).toBe(240)
   })
 
-  it('pins the width once the user drags the handle', async () => {
+  it('pins the width once the user drags the handle and caps it at half the content row', async () => {
     await act(async () => {
       root.render(<Harness />)
     })
@@ -107,9 +106,13 @@ describe('panel layout inspector width', () => {
       latest?.setInspectorWidth(700)
     })
     await rowResized(1600)
-    // The user's choice survives resizes and reloads; double-click still resets to the fixed default.
+    // The user's choice survives resizes while it fits within half of the row.
     expect(latest?.inspectorWidth).toBe(700)
-    expect(latest?.inspectorDefault).toBe(360)
+
+    // Half of a 1000px row is 500px: the pinned width clamps down with the cap.
+    await rowResized(1000)
+    expect(latest?.inspectorWidth).toBe(500)
+    expect(latest?.inspectorDefault).toBe(240)
     expect(window.localStorage.getItem('prime-work.inspector-width-user-set')).toBe('1')
   })
 })

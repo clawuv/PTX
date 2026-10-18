@@ -1268,7 +1268,7 @@ export default function App() {
                       />
                     </Suspense>
                   ) : null}
-                  {inspectorVisible ? <button type="button" className="panel-scrim panel-scrim--inspector" aria-label={t('shellui.closeInspector')} onClick={toggleInspector} /> : null}
+                  {inspectorVisible && layout.compactLayout ? <button type="button" className="panel-scrim panel-scrim--inspector" aria-label={t('shellui.closeInspector')} onClick={toggleInspector} /> : null}
                 </div>
               ) : (
                 <Suspense fallback={<LoadingPanel label={view} />}>{page}</Suspense>

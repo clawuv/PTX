@@ -4,7 +4,6 @@ const en = {
   // Inspector shell (Inspector.tsx)
   'inspector.title': 'Session inspector',
   'inspector.views': 'Inspector views',
-  'inspector.close': 'Close inspector',
   'inspector.tab.summary': 'Summary',
   'inspector.tab.changes': 'Changes',
   'inspector.tab.browser': 'Browser',
@@ -152,7 +151,6 @@ const en = {
 export const inspectorCatalog = defineCatalog(en, {
   'inspector.title': '会话检查器',
   'inspector.views': '检查器视图',
-  'inspector.close': '关闭检查器',
   'inspector.tab.summary': '摘要',
   'inspector.tab.changes': '更改',
   'inspector.tab.browser': '浏览器',

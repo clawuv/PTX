@@ -82,7 +82,9 @@
 /* Dock width mirrors the transcript content frame (both var(--conversation-width), inset 48px total) so the composer edges align with the messages. */
 .conversation-bottom-dock {
   position: absolute;
-  z-index: 10;
+  /* Above the floating .transcript-jump control (z-index 30): composer menus open
+     upward into the transcript area and must stay clickable over the jump button. */
+  z-index: 40;
   left: 0;
   right: 0;
   bottom: 16px;
@@ -154,6 +156,16 @@
 .app-shell__body > .resize-handle:hover > span,
 .app-shell__body > .resize-handle:focus-visible > span,
 .app-shell__body > .resize-handle[data-resizing="true"] > span {
+  background: var(--border);
+  box-shadow: none;
+}
+/* Inspector: the divider comes from the inspector's own left border, so keep the drag handle's line invisible at rest to avoid a doubled divider. Hover, focus, and dragging just reveal the line, matching the sidebar handle. */
+.session-workspace > .resize-handle--vertical > span {
+  background: transparent;
+}
+.session-workspace > .resize-handle:hover > span,
+.session-workspace > .resize-handle:focus-visible > span,
+.session-workspace > .resize-handle[data-resizing="true"] > span {
   background: var(--border);
   box-shadow: none;
 }

@@ -14,6 +14,17 @@
   .select-menu--compact .select-menu__value, .select-menu--compact .select-menu__chevron { display: none; }
   .fast-mode-toggle { width: 28px; justify-content: center; padding-inline: 0; }
   .fast-mode-toggle__label { display: none; }
+  .composer-plan-mode { width: 28px; justify-content: center; padding-inline: 0; }
+  .composer-plan-mode__label { display: none; }
+}
+
+/* Split-pane floor: the conversation column squeezed beside the inspector at
+   narrow windows. Tighter frame insets keep messages and the composer aligned
+   without horizontal clipping; the dock inset mirrors the transcript padding. */
+@container (max-width: 380px) {
+  .transcript__inner { padding-inline: 14px; }
+  .conversation-bottom-dock { width: calc(100% - 28px); }
+  .composer-summary { width: min(200px, calc(100% - 14px)); }
 }
 
 @media (max-width: 720px) {
@@ -30,16 +41,18 @@
 }
 
 @media (max-width: 980px) {
-  .panel-scrim { position: fixed; z-index: 20; inset: var(--toolbar-height, 36px) 0 0; display: block; padding: 0; background: rgba(10,10,9,.18); }
-  .inspector { position: fixed; z-index: 80; top: var(--toolbar-height, 36px); right: 0; bottom: 0; width: min(620px, 88vw); min-width: 0; flex-basis: auto; box-shadow: -12px 0 30px rgba(0,0,0,.14); }
-  .panel-scrim--inspector { z-index: 70; }
-  .session-workspace > .resize-handle--vertical { display: none; }
+  /* The inspector keeps splitting the workspace row down to the smallest
+     breakpoint; only the conversation floor relaxes so both panes fit. */
   .conversation-pane { min-width: 0; }
   .title-toolbar__identity { justify-content: center; }
 }
 
 @media (max-width: 720px) {
 
+  .panel-scrim { position: fixed; z-index: 20; inset: var(--toolbar-height, 36px) 0 0; display: block; padding: 0; background: rgba(10,10,9,.18); }
+  .inspector { position: fixed; z-index: 80; top: var(--toolbar-height, 36px); left: 0; width: 100vw; max-width: none; min-width: 0; flex-basis: auto; box-shadow: -12px 0 30px rgba(0,0,0,.14); }
+  .panel-scrim--inspector { z-index: 70; }
+  .session-workspace > .resize-handle--vertical { display: none; }
   .native-heartbeats__header { align-items: flex-start; flex-direction: column; gap: 3px; }
   .native-heartbeat { grid-template-columns: 32px minmax(0, 1fr); }
   .native-heartbeat__actions { grid-column: 2; }
@@ -50,7 +63,6 @@
   .branch-pill, .title-toolbar__actions .button, .toolbar-divider { display: none; }
   .icon-button { width: 36px; height: 36px; }
   .sidebar .icon-button { width: 32px; height: 32px; }
-  .inspector { top: var(--toolbar-height, 36px); left: 0; width: 100vw; max-width: none; }
   .inspector__tabs { height: 45px; padding-left: 6px; overflow-x: auto; }
   .inspector__tabs > button:not(.icon-button) { min-width: 60px; min-height: 44px; padding-inline: 5px; }
   .transcript { padding-top: 20px; padding-bottom: calc(var(--clear-base) + 14px); }

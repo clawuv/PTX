@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { WorkspaceView } from '@/types/api'
 
-export const INSPECTOR_MIN = 340
-export const INSPECTOR_DEFAULT = 360
-export const CHAT_MIN = 360
+export const INSPECTOR_MIN = 240
+export const INSPECTOR_DEFAULT = 240
 export const TERMINAL_MIN = 170
 export const TERMINAL_DEFAULT = 310
 export const WORKSPACE_ROW_MIN = 220
@@ -11,10 +10,8 @@ export const SIDEBAR_MIN = 240
 export const SIDEBAR_MAX = 400
 export const SIDEBAR_DEFAULT = 240
 export const SMALLEST_LAYOUT_BREAKPOINT = 720
-/** Untouched inspector width tracks this share of the workspace row, so the panel scales with the window. */
-export const INSPECTOR_ROW_RATIO = 0.3
 /** Double-clicking the divider resets to the compact inspector default. */
-export const INSPECTOR_RESET_WIDTH = 360
+export const INSPECTOR_RESET_WIDTH = INSPECTOR_DEFAULT
 const INSPECTOR_WIDTH_KEY = 'prime-work.inspector-width'
 const INSPECTOR_USER_SET_KEY = 'prime-work.inspector-width-user-set'
 
@@ -37,7 +34,9 @@ export function usePanelLayout({
   terminalOpen,
   view,
 }: UsePanelLayoutOptions) {
-  const [compactLayout, setCompactLayout] = useState(() => window.matchMedia('(max-width: 980px)').matches)
+  // Overlay takeover only happens at the smallest breakpoint; above it the inspector
+  // always splits the workspace row as an inline pane that pushes the conversation.
+  const [compactLayout, setCompactLayout] = useState(() => window.matchMedia(`(max-width: ${SMALLEST_LAYOUT_BREAKPOINT}px)`).matches)
   const [smallestLayout, setSmallestLayout] = useState(() => window.matchMedia(`(max-width: ${SMALLEST_LAYOUT_BREAKPOINT}px)`).matches)
   const [smallestInspectorAllowed, setSmallestInspectorAllowed] = useState(false)
   // A drag on the resize handle pins the width in pixels; until then it follows the window proportionally.
@@ -47,12 +46,12 @@ export function usePanelLayout({
   const [inspectorWidth, setInspectorWidth] = useState(() => {
     if (typeof window === 'undefined') return INSPECTOR_DEFAULT
     if (window.localStorage.getItem(INSPECTOR_USER_SET_KEY) === '1') return readPanelSize(INSPECTOR_WIDTH_KEY, INSPECTOR_DEFAULT)
-    const sidebar = readPanelSize('prime-work.sidebar-width', SIDEBAR_DEFAULT)
-    return Math.max(INSPECTOR_MIN, Math.round((window.innerWidth - sidebar) * INSPECTOR_ROW_RATIO))
+    // The untouched default is the fixed compact width, not a window proportion.
+    return INSPECTOR_DEFAULT
   })
   const [terminalHeight, setTerminalHeight] = useState(() => readPanelSize('prime-work.terminal-height', TERMINAL_DEFAULT))
   const [sidebarWidth, setSidebarWidth] = useState(() => readPanelSize('prime-work.sidebar-width', SIDEBAR_DEFAULT))
-  const [inspectorMax, setInspectorMax] = useState(660)
+  const [inspectorMax, setInspectorMax] = useState(() => (typeof window === 'undefined' ? INSPECTOR_MIN : Math.max(INSPECTOR_MIN, Math.floor(window.innerWidth / 2))))
   const [terminalMax, setTerminalMax] = useState(520)
   const workspaceRowRef = useRef<HTMLDivElement>(null)
   const sessionWorkspaceRef = useRef<HTMLDivElement>(null)
@@ -68,7 +67,7 @@ export function usePanelLayout({
   useEffect(() => {
     const sync = () => {
       const smallestLayout = window.innerWidth <= SMALLEST_LAYOUT_BREAKPOINT
-      setCompactLayout(window.innerWidth <= 980)
+      setCompactLayout(smallestLayout)
       setSmallestLayout(smallestLayout)
       if (smallestLayout) setSmallestInspectorAllowed(false)
     }
@@ -84,10 +83,7 @@ export function usePanelLayout({
 
   useEffect(() => {
     if (!compactLayout || !visibleInspectorOpen) return
-    const selectors = window.innerWidth <= SMALLEST_LAYOUT_BREAKPOINT
-      ? '.conversation-pane, .terminal-drawer, .session-workspace > .resize-handle'
-      : '.title-toolbar, .conversation-pane, .terminal-drawer, .session-workspace > .resize-handle'
-    const targets = [...document.querySelectorAll<HTMLElement>(selectors)]
+    const targets = [...document.querySelectorAll<HTMLElement>('.conversation-pane, .terminal-drawer, .session-workspace > .resize-handle')]
     for (const target of targets) target.inert = true
     return () => { for (const target of targets) target.inert = false }
   }, [compactLayout, terminalOpen, visibleInspectorOpen])
@@ -97,12 +93,12 @@ export function usePanelLayout({
     const workspace = sessionWorkspaceRef.current
     if (!row || !workspace) return
     const syncBounds = () => {
-      if (!window.matchMedia('(max-width: 980px)').matches) {
-        const max = Math.max(INSPECTOR_MIN, row.clientWidth - CHAT_MIN)
+      if (!window.matchMedia(`(max-width: ${SMALLEST_LAYOUT_BREAKPOINT}px)`).matches) {
+        // The panel never claims more than half of the content row, so the
+        // conversation column always keeps the majority of the workspace.
+        const max = Math.max(INSPECTOR_MIN, Math.floor(row.clientWidth / 2))
         setInspectorMax(max)
-        // Without a user-pinned width, the panel scales with the window.
-        const fallback = Math.min(max, Math.max(INSPECTOR_MIN, Math.round(row.clientWidth * INSPECTOR_ROW_RATIO)))
-        if (!inspectorUserSetRef.current) setInspectorWidth(fallback)
+        if (!inspectorUserSetRef.current) setInspectorWidth(Math.min(max, INSPECTOR_DEFAULT))
       }
       setTerminalMax(Math.max(TERMINAL_MIN, workspace.clientHeight - WORKSPACE_ROW_MIN))
     }

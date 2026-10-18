@@ -1,6 +1,13 @@
 /* Inspector */
 .inspector { position: relative; z-index: 10; container-type: inline-size; width: var(--inspector-width, 240px); min-width: 240px; flex: 0 0 var(--inspector-width, 240px); display: flex; flex-direction: column; border-left: 1px solid var(--border); background: var(--canvas); animation: panel-in 150ms ease-out; }
 .inspector__tabs { height: 40px; flex: 0 0 40px; display: flex; align-items: stretch; gap: 2px; padding: 0 7px 0 9px; border-bottom: 1px solid var(--border); background: var(--canvas); }
+/* macOS: the workbench reserves a 40px band for the conversation header, so the tab bar rides it above the panel; other platforms already sit beside the header at the panel top. */
+.app-shell[data-platform="darwin"] .inspector__tabs { position: absolute; top: -40px; right: 0; left: 0; }
+/* The lifted bar floats over the header's drag band: its empty space drags the window, the tab buttons stay clickable. */
+.inspector__tabs { -webkit-app-region: drag; }
+.inspector__tabs > button { -webkit-app-region: no-drag; }
+/* A short tick on the divider's line marks the seam between the header controls and the tabs, like .toolbar-divider. */
+.inspector__tabs::before { content: ""; position: absolute; left: 0; top: 12px; width: 1px; height: 16px; background: var(--border); }
 .inspector__tabs > button:not(.icon-button) { position: relative; min-width: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 7px; color: var(--text-secondary); background: transparent; font-size: 11px; }
 .inspector__tabs > button:not(.icon-button):hover { color: var(--text); }
 .inspector__tabs > button.is-active { color: var(--text); font-weight: 550; }
@@ -33,7 +40,7 @@
 
 /* Changes */
 .changes-panel { height: 100%; display: flex; flex-direction: column; min-height: 0; }
-.changes-toolbar { min-height: 45px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 14px; border-bottom: 1px solid var(--border); }
+.changes-toolbar { min-height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 14px; border-bottom: 1px solid var(--border); }
 .changes-toolbar > div { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .changes-toolbar strong { display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 550; }
 .changes-toolbar small { padding-left: 8px; border-left: 1px solid var(--border); color: var(--text-tertiary); font-size: 10.5px; }
@@ -84,7 +91,7 @@
 
 /* Browser */
 .browser-panel { position: relative; height: 100%; display: flex; flex-direction: column; min-height: 0; }
-.browser-toolbar { height: 43px; flex: 0 0 43px; display: flex; align-items: center; gap: 2px; padding: 0 7px; border-bottom: 1px solid var(--border); background: var(--surface-subtle); }
+.browser-toolbar { height: 40px; flex: 0 0 40px; display: flex; align-items: center; gap: 2px; padding: 0 7px; border-bottom: 1px solid var(--border); background: var(--surface-subtle); }
 .address-field { min-width: 80px; height: 29px; flex: 1; display: flex; align-items: center; gap: 6px; margin: 0 4px; padding: 0 6px 0 9px; border: 1px solid var(--border); border-radius: 7px; color: var(--text-tertiary); background: var(--canvas); }
 .address-field:focus-within { border-color: var(--focus); }
 .address-field input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; font-size: 11px; text-align: center; }
@@ -151,7 +158,7 @@
 
 /* Files */
 .files-panel { height: 100%; display: flex; flex-direction: column; }
-.files-search { height: 43px; flex: 0 0 43px; display: flex; align-items: center; gap: 6px; padding: 0 12px; border-bottom: 1px solid var(--border); color: var(--text-tertiary); }
+.files-search { height: 40px; flex: 0 0 40px; display: flex; align-items: center; gap: 6px; padding: 0 12px; border-bottom: 1px solid var(--border); color: var(--text-tertiary); }
 .files-search input { min-width: 0; flex: 1; width: auto; height: 28px; border: 0; outline: 0; background: transparent; font-size: 11.5px; }
 .file-tree { flex: 1; overflow: auto; padding: 7px; }
 .tree-root { width: 100%; height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 7px; border: 0; border-radius: 6px; color: var(--text); background: transparent; text-align: left; cursor: pointer; }

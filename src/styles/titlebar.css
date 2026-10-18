@@ -324,7 +324,6 @@
 /* macOS: the title rides in the top drag band but starts on the content column's left edge (the transcript/composer centering), so it clears the traffic lights; when the title strip floats over the workbench (sidebar closed, or narrower than the strip) the inset floors at the strip's controls. Interactive buttons inherit the no-drag rule from .drag-region. */
 .app-shell[data-platform="darwin"] .conversation-header {
   --header-inset: max(calc(260px - var(--sidebar-width, 265px) - 12px), 12px);
-  --inspector-flow: 0px;
   /* Keep the title anchored to the workbench edge as the window grows. */
   padding-left: max(var(--header-inset), 24px);
 }
@@ -346,14 +345,9 @@
   z-index: 1;
   pointer-events: auto;
 }
-/* The open inspector squeezes the content column; in narrow layouts it floats above the pane instead of squeezing it. */
-.app-shell[data-platform="darwin"][data-inspector-open="true"] .conversation-header {
-  --inspector-flow: calc(var(--inspector-width, 460px) + 1px);
-}
-@media (max-width: 980px) {
-  .app-shell[data-platform="darwin"][data-inspector-open="true"] .conversation-header {
-    --inspector-flow: 0px;
-  }
+/* The inspector tab bar rides the header band above the panel, so the header's own controls stop at the divider instead of running beneath it. */
+.app-shell[data-inspector-open="true"] .conversation-header {
+  right: calc(var(--inspector-width, 240px) + 1px);
 }
 .app-shell[data-platform="darwin"][data-sidebar-open="false"] .conversation-header {
   left: 218px;

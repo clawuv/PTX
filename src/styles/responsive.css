@@ -63,8 +63,11 @@
   .branch-pill, .title-toolbar__actions .button, .toolbar-divider { display: none; }
   .icon-button { width: 36px; height: 36px; }
   .sidebar .icon-button { width: 32px; height: 32px; }
-  .inspector__tabs { height: 45px; padding-left: 6px; overflow-x: auto; }
+  .inspector__tabs { position: static; height: 45px; padding-left: 6px; overflow-x: auto; }
+  .inspector__tabs::before { display: none; }
   .inspector__tabs > button:not(.icon-button) { min-width: 60px; min-height: 44px; padding-inline: 5px; }
+  /* The compact inspector overlays the pane, so the header keeps the full band width. */
+  .app-shell[data-inspector-open="true"] .conversation-header { right: 0; }
   .transcript { padding-top: 20px; padding-bottom: calc(var(--clear-base) + 14px); }
   .transcript__inner { padding-inline: 20px; }
   .message--assistant { grid-template-columns: 24px minmax(0, 1fr); gap: 9px; }

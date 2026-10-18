@@ -28,8 +28,11 @@ export function ResizeHandle({ orientation, label, value, min, max, defaultValue
   const readCoordinate = (event: Pick<PointerEvent, 'clientX' | 'clientY'>) => orientation === 'vertical' ? event.clientX : event.clientY
   const reset = (target: HTMLDivElement) => {
     const workspace = target.closest<HTMLElement>(liveScope?.selector ?? '.session-workspace')
+    const appShell = target.closest<HTMLElement>('.app-shell')
     const cssVariable = liveScope?.cssVariable ?? (orientation === 'vertical' ? '--inspector-width' : '--terminal-height')
-    workspace?.style.removeProperty(cssVariable)
+    const value = `${clamp(defaultValue, min, safeMax)}px`
+    workspace?.style.setProperty(cssVariable, value)
+    appShell?.style.setProperty(cssVariable, value)
     onChange(clamp(defaultValue, min, safeMax))
   }
 
@@ -69,7 +72,15 @@ export function ResizeHandle({ orientation, label, value, min, max, defaultValue
     const startCoordinate = readCoordinate(event.nativeEvent)
     const startValue = value
     const workspace = target.closest<HTMLElement>(liveScope?.selector ?? '.session-workspace')
+    // Header/strip chrome reads the same variable off .app-shell (React-owned),
+    // so write both roots to keep everything glued to the divider mid-drag.
+    const appShell = target.closest<HTMLElement>('.app-shell')
     const cssVariable = liveScope?.cssVariable ?? (orientation === 'vertical' ? '--inspector-width' : '--terminal-height')
+    const applyValue = (px: number) => {
+      const value = `${px}px`
+      workspace?.style.setProperty(cssVariable, value)
+      appShell?.style.setProperty(cssVariable, value)
+    }
     let latestValue = startValue
     target.dataset.resizing = 'true'
     document.body.classList.add(`is-resizing-${orientation}`)
@@ -79,7 +90,7 @@ export function ResizeHandle({ orientation, label, value, min, max, defaultValue
       if (moveEvent.pointerId !== pointerId) return
       moveEvent.preventDefault()
       latestValue = clamp(startValue + (invert ? 1 : -1) * (readCoordinate(moveEvent) - startCoordinate), min, safeMax)
-      workspace?.style.setProperty(cssVariable, `${latestValue}px`)
+      applyValue(latestValue)
     }
     const finish = (finishEvent?: PointerEvent, commit = true) => {
       if (finishEvent && finishEvent.pointerId !== pointerId) return
@@ -91,7 +102,7 @@ export function ResizeHandle({ orientation, label, value, min, max, defaultValue
       window.removeEventListener('pointercancel', cancel)
       cleanupRef.current = null
       if (commit && latestValue !== startValue) onChange(latestValue)
-      else if (!commit) workspace?.style.setProperty(cssVariable, `${startValue}px`)
+      else if (!commit) applyValue(startValue)
     }
     const cancel = (cancelEvent: PointerEvent) => finish(cancelEvent, false)
     cleanupRef.current = () => finish(undefined, false)

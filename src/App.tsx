@@ -335,7 +335,9 @@ export default function App() {
     const folder = activeProject?.primaryFolder
     if (!bridge || !folder) return []
     try {
-      return (await bridge.app.openWithTargets(folder)).filter((target) => target.available).map((target) => target.id)
+      const targets: OpenWithTargetId[] = (await bridge.app.openWithTargets(folder)).filter((target) => target.available).map((target) => target.id)
+      // The in-app terminal drawer is always available and is handled entirely in the renderer.
+      return [...targets, 'terminal' as const]
     } catch {
       return []
     }
@@ -1101,7 +1103,14 @@ export default function App() {
                 inspectorOpen={inspectorVisible}
                 onToggleInspector={toggleInspector}
                 onOpenWithTargets={openWithTargets}
-                onOpenWith={openWith}
+                onOpenWith={(target) => {
+                  if (target === 'terminal') {
+                    // Open the bottom terminal drawer; no-op when it is already visible.
+                    if (!activeTerminalSession) void toggleTerminal()
+                    return
+                  }
+                  openWith(target)
+                }}
               />
             ) : <div className="workbench-titlebar-drag-region drag-region" aria-hidden="true" />}
             {view === 'projects' ? (

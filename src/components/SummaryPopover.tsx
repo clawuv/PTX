@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Code, FolderGit2, FolderOpen, GitBranch, ListChecks, LoaderCircle, SquareCode } from 'lucide-react'
+import { Check, ChevronDown, Code, FolderGit2, FolderOpen, GitBranch, ListChecks, LoaderCircle, SquareCode, Terminal as TerminalIcon } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { errorMessage } from '@/lib/errors'
 import { useI18n } from '@/lib/i18n'
@@ -8,6 +8,7 @@ const OPEN_WITH_ITEMS: Array<{ id: OpenWithTargetId; label: string; icon: React.
   { id: 'explorer', label: 'header.openWithExplorer', icon: <FolderOpen size={12} aria-hidden="true" /> },
   { id: 'vscode', label: 'VS Code', icon: <Code size={12} aria-hidden="true" /> },
   { id: 'cursor', label: 'Cursor', icon: <SquareCode size={12} aria-hidden="true" /> },
+  { id: 'terminal', label: 'header.openWithTerminal', icon: <TerminalIcon size={12} aria-hidden="true" /> },
 ]
 
 interface SummaryPopoverProps {
@@ -365,7 +366,7 @@ export function SummaryPopover({ checkoutLabel, worktrees, activeWorktreePath, w
                         >
                           <span className="worktree-picker__check">{item.icon}</span>
                           <span className="worktree-picker__option-copy">
-                            <strong>{item.id === 'explorer' ? t(item.label) : item.label}</strong>
+                            <strong>{item.id === 'vscode' || item.id === 'cursor' ? item.label : t(item.label)}</strong>
                           </span>
                         </button>
                       ))

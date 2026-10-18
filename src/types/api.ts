@@ -16,8 +16,11 @@ export type SessionStatus = 'idle' | 'running' | 'waiting' | 'complete' | 'faile
 export const HARNESS_IDS = ['omp', 'pi'] as const
 export type HarnessId = (typeof HARNESS_IDS)[number]
 
-/** Targets for the header's "open with" launcher; the folder is always an authorized project path. */
-export const OPEN_WITH_TARGET_IDS = ['explorer', 'vscode', 'cursor'] as const
+/**
+ * Targets for the header's "open with" launcher; the folder is always an authorized project path.
+ * 'terminal' is renderer-only: it opens the in-app terminal drawer and never reaches the main process.
+ */
+export const OPEN_WITH_TARGET_IDS = ['explorer', 'vscode', 'cursor', 'terminal'] as const
 export type OpenWithTargetId = (typeof OPEN_WITH_TARGET_IDS)[number]
 
 /**

@@ -436,7 +436,6 @@ export const TerminalDrawer = forwardRef<TerminalDrawerHandle, TerminalDrawerPro
           <IconButton label={t('termdraw.action.new')} size="small" disabled={tabs.length >= MAX_TERMINAL_TABS} onClick={addTerminal}><Plus size={14}/></IconButton>
         </div>
         <div className="terminal-actions">
-          <span className="terminal-cwd" title={cwd}>{cwd?.split('/').at(-1) ?? t('termdraw.cwd.none')}</span>
           <IconButton label={t('termdraw.action.clear')} onClick={() => viewRefs.current.get(activeTabId)?.clear()}><Trash2 size={13}/></IconButton>
           <IconButton label={maximized ? t('termdraw.action.restore') : t('termdraw.action.maximize')} onClick={() => setMaximized((value) => !value)}>{maximized ? <Minimize2 size={13}/> : <Maximize2 size={13}/>}</IconButton>
           <IconButton label={t('termdraw.action.close')} onClick={onClose}><X size={14}/></IconButton>

@@ -1,4 +1,4 @@
-import { ArrowUp, AtSign, ChevronDown, Clock3, Command, Edit3, MessageCirclePlus, Paperclip, Plus, Route, Square, SquareTerminal, Trash2, X, Zap } from 'lucide-react'
+import { ArrowUp, AtSign, ChevronDown, Clock3, Command, Edit3, MessageCirclePlus, Paperclip, Plus, Square, SquareTerminal, Trash2, X, Zap } from 'lucide-react'
 import { memo, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type {
   BrowserAnnotation,
@@ -688,7 +688,7 @@ export const Composer = memo(function Composer({
                 requestAnimationFrame(() => textareaRef.current?.focus())
               }}
             >
-              <Route size={12} aria-hidden="true" /> <span className="composer-plan-mode__label">{t('composer.planMode.label')}</span> <ChevronDown size={12} aria-hidden="true" />
+              <span className="composer-plan-mode__label">{t('composer.planMode.label')}</span> <ChevronDown size={12} aria-hidden="true" />
             </button>
             {fastSupported ? (
               <button

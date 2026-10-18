@@ -159,6 +159,9 @@ export const ModelPicker = memo(function ModelPicker({ value, modelsByProvider, 
       >
         <Brain size={13} />
         <span>{selected?.name ?? t('modelpicker.noModel')}</span>
+        {onEffortChange && effort && (reasoningLevels?.length ?? 0) > 1 ? (
+          <span className="model-picker__trigger-effort">{t(reasoningLabels[effort])}</span>
+        ) : null}
         <ChevronDown size={13} aria-hidden="true" />
       </button>
       {open ? (

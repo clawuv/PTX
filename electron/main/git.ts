@@ -418,6 +418,29 @@ export class GitService {
     } catch { return undefined }
   }
 
+  /** Lists local branch names through a read-only, argv-only ref walk. */
+  async branches(cwdValue: unknown): Promise<string[]> {
+    const { cwd, overrides } = await this.withRepositoryGuards(cwdValue, undefined, { readOnly: true })
+    const result = await runGit(cwd, ['for-each-ref', '--format=%(refname:short)', 'refs/heads'], { timeoutMs: 15_000, maxBytes: GIT_STATUS_OUTPUT_LIMIT }, overrides)
+    requireProcessSuccess('Git branch list', result)
+    const branches = [...new Set(result.stdout.split('\n').map((line) => line.trim()).filter(Boolean))]
+    if (branches.length > GIT_WORKTREE_LIMIT) throw new Error('Git branch list exceeded the safety limit')
+    return branches
+  }
+
+  /**
+   * Switches the working copy to an existing local branch. `switch` cannot
+   * take pathspecs, so the branch argument can never be reinterpreted as one;
+   * failures (unknown branch, conflicting local changes) surface as errors.
+   */
+  async switchBranch(cwdValue: unknown, branchValue: unknown): Promise<boolean> {
+    const branch = requireString(branchValue, 'branch', { min: 1, max: 255, trim: true })
+    const { cwd, overrides } = await this.withRepositoryGuards(cwdValue)
+    const result = await runGit(cwd, ['switch', branch], { timeoutMs: 2 * 60_000, maxBytes: 1024 * 1024 }, overrides)
+    requireProcessSuccess('Git branch switch', result)
+    return true
+  }
+
   async status(cwdValue: unknown): Promise<GitStatus> {
     try {
       const { cwd, overrides } = await this.withRepositoryGuards(cwdValue, undefined, { readOnly: true })

@@ -830,6 +830,8 @@ export interface PtxApi {
     push(cwd: string): Promise<ProcessOutcome>
     aheadCommits(cwd: string): Promise<Array<{ hash: string; subject: string; date: string }>>
     undoCommit(cwd: string, hash: string): Promise<ProcessOutcome>
+    branches(cwd: string): Promise<string[]>
+    switchBranch(cwd: string, branch: string): Promise<boolean>
   }
   plugins: {
     list(projectPath?: string, harness?: HarnessId): Promise<PluginCatalog>

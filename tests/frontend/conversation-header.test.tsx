@@ -76,7 +76,7 @@ describe('conversation header', () => {
       root.render(<ConversationHeader {...props()} />)
     })
 
-    await press(container.querySelector<HTMLButtonElement>('[aria-label="Summary"]')!)
+    await press(container.querySelector<HTMLButtonElement>('[aria-label="Project menu"]')!)
     expect(container.querySelector('.summary-popover')).not.toBeNull()
     expect(document.body.classList.contains('has-header-popover')).toBe(true)
 
@@ -89,6 +89,29 @@ describe('conversation header', () => {
     expect(document.body.classList.contains('has-header-popover')).toBe(false)
   })
 
+  it('lists local branches inside the checkout panel and switches from there', async () => {
+    const onSwitchBranch = vi.fn(async () => undefined)
+    const onBranches = vi.fn(async () => ['main', 'feature/next'])
+    await act(async () => {
+      root.render(<ConversationHeader {...props({ checkoutLabel: 'main', onBranches, onSwitchBranch })} />)
+    })
+
+    await press(container.querySelector<HTMLButtonElement>('[aria-label="Project menu"]')!)
+    await press(container.querySelector<HTMLButtonElement>('[aria-label="Checkout: main"]')!)
+    expect(onBranches).toHaveBeenCalledOnce()
+
+    const headings = [...container.querySelectorAll('.worktree-picker__heading')].map((node) => node.textContent)
+    expect(headings).toEqual(['Checkouts', 'Switch branch'])
+    const branchOption = [...container.querySelectorAll('[role="menuitemradio"]')].find((button) => button.textContent?.includes('feature/next'))!
+    expect(branchOption).not.toBeNull()
+    expect(branchOption.getAttribute('aria-checked')).toBe('false')
+
+    await press(branchOption)
+    expect(onSwitchBranch).toHaveBeenCalledWith('feature/next')
+    // A finished switch collapses the whole popover.
+    expect(container.querySelector('.summary-popover')).toBeNull()
+  })
+
   it('offers open-with targets from the summary popover environment section', async () => {
     const onOpenWith = vi.fn()
     const onOpenWithTargets = vi.fn(async () => ['explorer', 'vscode'] as OpenWithTargetId[])
@@ -96,7 +119,7 @@ describe('conversation header', () => {
       root.render(<ConversationHeader {...props({ onOpenWithTargets, onOpenWith })} />)
     })
 
-    await press(container.querySelector<HTMLButtonElement>('[aria-label="Summary"]')!)
+    await press(container.querySelector<HTMLButtonElement>('[aria-label="Project menu"]')!)
     expect(container.querySelector('.summary-popover')).not.toBeNull()
     await press([...container.querySelectorAll('.summary-popover button')].find((button) => button.textContent?.includes('Open with'))!)
     expect(onOpenWithTargets).toHaveBeenCalledOnce()
@@ -117,7 +140,7 @@ describe('conversation header', () => {
       root.render(<ConversationHeader {...props({ worktrees: [], activeWorktreePath: undefined, checkoutLabel: 'feature/current' })} />)
     })
 
-    await press(container.querySelector<HTMLButtonElement>('[aria-label="Summary"]')!)
+    await press(container.querySelector<HTMLButtonElement>('[aria-label="Project menu"]')!)
     const trigger = container.querySelector<HTMLButtonElement>('[aria-label="Checkout: feature/current"]')
     expect(trigger?.textContent).toContain('feature/current')
     expect(trigger?.textContent).not.toBe('Workspace')
@@ -145,7 +168,7 @@ describe('conversation header', () => {
       root.render(<ConversationHeader {...props({ onOpenWorktree })} />)
     })
 
-    await press(container.querySelector<HTMLButtonElement>('[aria-label="Summary"]')!)
+    await press(container.querySelector<HTMLButtonElement>('[aria-label="Project menu"]')!)
     const trigger = container.querySelector<HTMLButtonElement>('[aria-label="Checkout: main"]')
     expect(trigger).not.toBeNull()
     // The checkout row names the branch; "Local" only appears as its own summary row.
@@ -168,7 +191,7 @@ describe('conversation header', () => {
     await act(async () => {
       root.render(<ConversationHeader {...props({ onCreateWorktree })} />)
     })
-    await press(container.querySelector<HTMLButtonElement>('[aria-label="Summary"]')!)
+    await press(container.querySelector<HTMLButtonElement>('[aria-label="Project menu"]')!)
     await press(container.querySelector<HTMLButtonElement>('[aria-label="Checkout: main"]')!)
 
     const input = container.querySelector<HTMLInputElement>('[placeholder="New branch name"]')!

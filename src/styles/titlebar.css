@@ -461,6 +461,7 @@ button.summary-popover__row[aria-expanded="true"] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.summary-popover__error { display: block; padding: 4px 7px 6px; color: var(--danger); font-size: 10.5px; }
 .summary-popover__chevron {
   flex: 0 0 auto;
   transition: transform 120ms ease;

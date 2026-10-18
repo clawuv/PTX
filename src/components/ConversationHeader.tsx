@@ -18,6 +18,9 @@ interface ConversationHeaderProps {
   /** Availability probe for the open-with launcher; without it the summary row stays hidden. */
   onOpenWithTargets?(): Promise<OpenWithTargetId[]>
   onOpenWith?(target: OpenWithTargetId): void
+  /** Local branch list for the project menu's switcher; without it the section stays hidden. */
+  onBranches?(): Promise<string[]>
+  onSwitchBranch?(branch: string): Promise<void> | void
 }
 
 /**
@@ -38,6 +41,8 @@ export function ConversationHeader({
   onToggleInspector,
   onOpenWithTargets,
   onOpenWith,
+  onBranches,
+  onSwitchBranch,
 }: ConversationHeaderProps) {
   const { t } = useI18n()
 
@@ -55,7 +60,6 @@ export function ConversationHeader({
       ) : null}
       <span className="conversation-header__spacer" />
       <SummaryPopover
-        projectName={project?.name}
         checkoutLabel={checkoutLabel}
         worktrees={worktrees}
         activeWorktreePath={activeWorktreePath}
@@ -64,6 +68,8 @@ export function ConversationHeader({
         onCreateWorktree={onCreateWorktree}
         onOpenWithTargets={onOpenWithTargets}
         onOpenWith={onOpenWith}
+        onBranches={onBranches}
+        onSwitchBranch={onSwitchBranch}
       />
       <button
         type="button"

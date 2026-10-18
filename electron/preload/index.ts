@@ -167,6 +167,8 @@ const api: PtxApi = {
     push: (cwd) => invoke('git:push', cwd),
     aheadCommits: (cwd) => invoke('git:ahead-commits', cwd),
     undoCommit: (cwd, hash) => invoke('git:undo-commit', cwd, hash),
+    branches: (cwd) => invoke('git:branches', cwd),
+    switchBranch: (cwd, branch) => invoke('git:switch-branch', cwd, branch),
   },
   plugins: {
     list: (projectPath, harness) => invoke('plugins:list', projectPath, harness),

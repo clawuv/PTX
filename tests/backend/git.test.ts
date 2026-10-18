@@ -396,6 +396,23 @@ printf 'mutated by filter\n'
     await expect(createGitWorktree(cwd, `${cwd}-invalid`, '../unsafe')).rejects.toThrow(/branch validation/i)
   })
 
+  it('lists local branches and switches the working copy through argv-only commands', async () => {
+    const cwd = repository('prime-work-git-branches-')
+    const service = new GitService(async () => cwd)
+    const initial = await service.branch(cwd)
+    expect(initial).toBeTruthy()
+    git(cwd, 'checkout', '-qb', 'feature/next')
+
+    const branches = await service.branches(cwd)
+    expect(branches).toContain('feature/next')
+    expect(branches).toHaveLength(2)
+
+    expect(await service.switchBranch(cwd, initial!)).toBe(true)
+    expect(await service.branch(cwd)).toBe(initial)
+    await expect(service.switchBranch(cwd, 'missing-branch')).rejects.toThrow(/branch switch/i)
+    await expect(service.switchBranch(cwd, '')).rejects.toThrow('branch')
+  }, 20_000)
+
   it('reports isRepo false only for a genuine not-a-repository failure', async () => {
     const cwd = mkdtempSync(join(tmpdir(), 'prime-work-git-norepo-')); dirs.push(cwd)
     const service = new GitService(async () => cwd)

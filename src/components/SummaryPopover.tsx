@@ -1,5 +1,6 @@
-import { Check, ChevronDown, Code, Folder, FolderOpen, GitBranch, ListChecks, Monitor, SquareCode } from 'lucide-react'
+import { Check, ChevronDown, Code, FolderOpen, GitBranch, ListChecks, LoaderCircle, SquareCode } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
+import { errorMessage } from '@/lib/errors'
 import { useI18n } from '@/lib/i18n'
 import type { GitWorktree, OpenWithTargetId } from '@/types/api'
 
@@ -10,7 +11,6 @@ const OPEN_WITH_ITEMS: Array<{ id: OpenWithTargetId; label: string; icon: React.
 ]
 
 interface SummaryPopoverProps {
-  projectName?: string
   /** Branch/worktree name shown before or without the linked-worktree catalog. */
   checkoutLabel?: string
   worktrees: GitWorktree[]
@@ -21,6 +21,9 @@ interface SummaryPopoverProps {
   /** Availability probe for the open-with launcher; without it the summary row stays hidden. */
   onOpenWithTargets?(): Promise<OpenWithTargetId[]>
   onOpenWith?(target: OpenWithTargetId): void
+  /** Local branch list for the switcher; without it the section stays hidden. */
+  onBranches?(): Promise<string[]>
+  onSwitchBranch?(branch: string): Promise<void> | void
 }
 
 /**
@@ -28,7 +31,7 @@ interface SummaryPopoverProps {
  * worktrees) collapse behind one corner trigger so the composer stays a single
  * clean input card.
  */
-export function SummaryPopover({ projectName, checkoutLabel, worktrees, activeWorktreePath, worktreesLoading, onOpenWorktree, onCreateWorktree, onOpenWithTargets, onOpenWith }: SummaryPopoverProps) {
+export function SummaryPopover({ checkoutLabel, worktrees, activeWorktreePath, worktreesLoading, onOpenWorktree, onCreateWorktree, onOpenWithTargets, onOpenWith, onBranches, onSwitchBranch }: SummaryPopoverProps) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [branchOpen, setBranchOpen] = useState(false)
@@ -37,6 +40,9 @@ export function SummaryPopover({ projectName, checkoutLabel, worktrees, activeWo
   const [creatingWorktree, setCreatingWorktree] = useState(false)
   const [openWithOpen, setOpenWithOpen] = useState(false)
   const [openWithTargets, setOpenWithTargets] = useState<OpenWithTargetId[] | null>(null)
+  const [branchNames, setBranchNames] = useState<string[] | null>(null)
+  const [switchingBranch, setSwitchingBranch] = useState<string | null>(null)
+  const [switchError, setSwitchError] = useState('')
   const panelId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -90,6 +96,33 @@ export function SummaryPopover({ projectName, checkoutLabel, worktrees, activeWo
     if (next && onOpenWithTargets && openWithTargets === null) setOpenWithTargets(await onOpenWithTargets())
   }
 
+  const toggleCheckout = async () => {
+    const next = !branchOpen
+    setBranchOpen(next)
+    if (next && onBranches && branchNames === null) {
+      try {
+        setBranchNames(await onBranches())
+      } catch {
+        setBranchNames([])
+      }
+    }
+  }
+
+  const switchBranch = async (branch: string) => {
+    if (!onSwitchBranch || switchingBranch) return
+    setSwitchingBranch(branch)
+    setSwitchError('')
+    try {
+      await onSwitchBranch(branch)
+      setBranchOpen(false)
+      setOpen(false)
+    } catch (error) {
+      setSwitchError(errorMessage(error))
+    } finally {
+      setSwitchingBranch(null)
+    }
+  }
+
   return (
     <div className="summary-anchor">
       <button
@@ -105,15 +138,6 @@ export function SummaryPopover({ projectName, checkoutLabel, worktrees, activeWo
       </button>
       {open ? (
         <div ref={panelRef} id={panelId} className="summary-popover" role="group" aria-label={t('composer.summary.aria')}>
-          <div className="summary-popover__heading">{t('composer.context.environment')}</div>
-          <span className="summary-popover__row" title={projectName ?? checkoutLabel}>
-            <Folder size={13} aria-hidden="true" />
-            <span className="summary-popover__label">{projectName ?? checkoutLabel ?? '—'}</span>
-          </span>
-          <span className="summary-popover__row">
-            <Monitor size={13} aria-hidden="true" />
-            <span className="summary-popover__label">{t('composer.local')}</span>
-          </span>
           <div className="summary-popover__section">
             <button
               type="button"
@@ -121,7 +145,7 @@ export function SummaryPopover({ projectName, checkoutLabel, worktrees, activeWo
               aria-label={t('composer.worktree.checkoutAria', { name: worktreeLabel })}
               aria-expanded={branchOpen}
               aria-controls={branchOpen ? `${panelId}-worktrees` : undefined}
-              onClick={() => setBranchOpen((value) => !value)}
+              onClick={() => void toggleCheckout()}
             >
               <GitBranch size={13} aria-hidden="true" />
               <span className="summary-popover__label">{worktreeLabel}</span>
@@ -162,6 +186,40 @@ export function SummaryPopover({ projectName, checkoutLabel, worktrees, activeWo
                     })
                   )}
                 </div>
+                {onSwitchBranch && onBranches ? (
+                  <>
+                    <div className="worktree-picker__heading">{t('composer.branches.title')}</div>
+                    <div className="worktree-picker__options">
+                      {branchNames === null ? (
+                        <span className="worktree-picker__empty">{t('composer.worktree.loading')}</span>
+                      ) : branchNames.length === 0 ? (
+                        <span className="worktree-picker__empty">{t('composer.worktree.empty')}</span>
+                      ) : (
+                        branchNames.map((name) => {
+                          const current = name === checkoutLabel
+                          const busy = switchingBranch === name
+                          return (
+                            <button
+                              type="button"
+                              key={name}
+                              role="menuitemradio"
+                              aria-checked={current}
+                              className={`worktree-picker__option ${current ? 'is-active' : ''}`}
+                              disabled={switchingBranch !== null}
+                              onClick={() => void switchBranch(name)}
+                            >
+                              <span className="worktree-picker__check">{current ? <Check size={13} /> : busy ? <LoaderCircle className="spin" size={13} /> : null}</span>
+                              <span className="worktree-picker__option-copy">
+                                <strong>{name}</strong>
+                              </span>
+                            </button>
+                          )
+                        })
+                      )}
+                    </div>
+                    {switchError ? <span className="summary-popover__error" role="alert">{switchError}</span> : null}
+                  </>
+                ) : null}
                 {onCreateWorktree ? (
                   <form
                     className="worktree-picker__create"

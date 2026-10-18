@@ -4,6 +4,7 @@ import type { HarnessRuntimeMap } from '../harness-runtime'
 import type { FeishuConfig } from '../../../src/types/feishu'
 import type { RuntimeInfo, SessionRecord } from '../../../src/types/api'
 import { assertNoMcpAuthenticationCommand } from '../../../src/lib/mcp-policy'
+import type { SessionImage } from './image'
 
 export type ConversationHarness = {
   projects: Pick<HarnessRuntimeMap['pi']['projects'], 'list' | 'authorizeCwd'>
@@ -87,7 +88,7 @@ export class FeishuConversations {
     return Boolean(runtime?.isStreaming || runtime?.isCompacting || this.deliveries.get(binding.sessionFile))
   }
 
-  async send(config: FeishuConfig, binding: MobileConversation, prompt: string): Promise<void> {
+  async send(config: FeishuConfig, binding: MobileConversation, prompt: string, images?: SessionImage[]): Promise<void> {
     assertNoMcpAuthenticationCommand(prompt, config.harness)
     const session = await this.require(config, binding)
     const agents = this.harnesses[config.harness].agents
@@ -98,12 +99,18 @@ export class FeishuConversations {
     if (runtime.harness !== config.harness || runtime.sessionFile !== binding.sessionFile) throw new FeishuConversationError('会话恢复不一致，未发送消息')
     this.deliveries.set(binding.sessionFile, count + 1)
     this.failures.delete(binding.sessionFile)
+    const payload = images?.length ? { images } : {}
     // The harness owns the queue. Do not block the incoming /stop command on completion.
     void agents.command(runtime.runtimeId, runtime.isStreaming || runtime.isCompacting || count > 0
-      ? { type: 'follow_up', message: prompt }
-      : { type: 'prompt', message: prompt, streamingBehavior: 'followUp' }).then((response) => {
+      ? { type: 'follow_up', message: prompt, ...payload }
+      : { type: 'prompt', message: prompt, streamingBehavior: 'followUp', ...payload }).then((response) => {
       if (response.success === false) throw new FeishuConversationError('消息被引擎拒绝')
-    }).catch(() => { this.failures.set(binding.sessionFile, '消息执行失败或被中断，请在电脑查看会话；不会自动重发。') })
+    }).catch((error: unknown) => {
+      // Surface the engine's reason (e.g. "the active model does not accept images")
+      // instead of a generic hint the mobile user cannot act on.
+      const reason = error instanceof Error && error.message ? error.message : '请在电脑查看会话'
+      this.failures.set(binding.sessionFile, `消息执行失败或被中断：${reason}；不会自动重发。`)
+    })
       .finally(() => {
         const remaining = (this.deliveries.get(binding.sessionFile) ?? 1) - 1
         if (remaining > 0) this.deliveries.set(binding.sessionFile, remaining)

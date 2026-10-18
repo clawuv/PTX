@@ -75,10 +75,10 @@
 }
 .title-toolbar__nav .icon-button {
   width: 26px;
-  height: 22px;
+  height: 26px;
   min-width: 26px;
   padding: 0;
-  border-radius: 11px;
+  border-radius: 5px;
   color: var(--navigation-ink);
 }
 .title-toolbar__nav .icon-button:hover {
@@ -114,9 +114,9 @@
 }
 .app-shell[data-platform="darwin"] .title-toolbar__nav .icon-button {
   width: 26px;
-  height: 22px;
+  height: 26px;
   min-width: 26px;
-  border-radius: 11px;
+  border-radius: 8px;
   order: 1;
   margin-left: 0;
 }
@@ -382,6 +382,12 @@
   position: relative;
   display: inline-flex;
 }
+/* Header ⋯ matches the strip's arrow-style hit chip: 26×26, 8px radius, same hover fill. */
+.conversation-header .conversation-header__more {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+}
 .conversation-header__menu {
   position: absolute;
   z-index: 90;
@@ -474,12 +480,12 @@
 }
 .summary-anchor__trigger {
   width: 26px;
-  height: 22px;
+  height: 26px;
   display: grid;
   place-items: center;
   padding: 0;
   border: 0;
-  border-radius: 11px;
+  border-radius: 8px;
   color: var(--text-tertiary);
   background: transparent;
   cursor: pointer;

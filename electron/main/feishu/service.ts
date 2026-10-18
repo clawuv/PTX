@@ -8,10 +8,11 @@ import { assertNoMcpAuthenticationCommand } from '../../../src/lib/mcp-policy'
 import type { HarnessRuntimeMap } from '../harness-runtime'
 import { requireRecord, rejectUnknownKeys, requireString } from '../validation'
 import { admittedMessage, parseCommand, parseConfig, type FeishuMessage } from './protocol'
+import { prepareSessionImage, type SessionImage } from './image'
 import type { FeishuRecord, FeishuStore } from './store'
 import { createFeishuTransport, type FeishuTransport } from './transport'
 
-const HELP = 'PTX 飞书会话\n直接发文字即可继续当前会话，电脑端同步可见。\n/新建：开始新会话\n/会话：列出当前项目会话\n/切换 会话ID：切换会话\n/状态：查看当前会话\n/结果：查看最新回复\n/停止：停止当前会话并清除引擎队列\n电脑需保持运行，交互确认请在电脑处理。'
+const HELP = 'PTX 飞书会话\n直接发文字或图片即可继续当前会话，电脑端同步可见。\n/新建：开始新会话\n/会话：列出当前项目会话\n/切换 会话ID：切换会话\n/状态：查看当前会话\n/结果：查看最新回复\n/发图 图片路径：把电脑上的本地图片发到本聊天\n/停止：停止当前会话并清除引擎队列\n电脑需保持运行，交互确认请在电脑处理。'
 type Projects = Pick<HarnessRuntimeMap['pi']['projects'], 'list' | 'authorizeCwd'>
 
 
@@ -125,6 +126,11 @@ export class FeishuService {
     void transport.start(async (raw) => {
       if (generation !== this.generation || this.configuring) return
       const message = admittedMessage(raw, record.config.allowedOpenId)
+      if (!message) {
+        const type = (raw as { message?: { message_type?: string } })?.message?.message_type
+        console.warn('[feishu] event dropped:', type, JSON.stringify(raw).slice(0, 400))
+        return
+      }
       if (!message || this.record?.seen.some((receipt) => receipt.id === message.id)) return
       if (this.pending >= 32) { this.error = '飞书消息过于频繁，请稍后重试。'; return }
       this.pending++
@@ -178,8 +184,22 @@ export class FeishuService {
     const seen = this.record.seen.filter((receipt) => Date.now() - receipt.at < 6 * 60_000)
     if (seen.length >= 1000) throw new Error('Message receipt capacity reached')
     this.persist({ ...this.record, seen: [...seen, { id: message.id, at: Date.now() }] })
+    if (message.imageKey) { await this.receiveImage(message, transport, generation); return }
     const command = parseCommand(message.text)
     if (command.kind === 'help') { await this.reply(transport, message, HELP); return }
+    if (command.kind === 'sendImage') {
+      if (!command.path) { await this.reply(transport, message, '用法：/发图 图片绝对路径，例如 /发图 /tmp/ptx-window.png'); return }
+      if (!/\.(png|jpe?g|webp|gif)$/i.test(command.path)) { await this.reply(transport, message, '仅支持 png / jpg / jpeg / webp / gif 图片。'); return }
+      try {
+        await transport.sendImage(message.chatId, command.path, createHash('sha256').update(`${message.id}:image`).digest('hex').slice(0, 32))
+        await this.reply(transport, message, '图片已发送。')
+      } catch (error) {
+        const reason = error instanceof Error && error.message ? error.message : '图片发送失败。'
+        this.error = reason
+        await this.reply(transport, message, reason).catch(() => undefined)
+      }
+      return
+    }
     const config = this.record.config
     const project = await this.project(config)
     if (generation !== this.generation) return
@@ -237,6 +257,34 @@ export class FeishuService {
       const result = (await this.conversations.replies(config, binding)).at(-1)
       await this.reply(transport, message, result?.text ?? '暂时没有助手文字回复。')
     } else await this.reply(transport, message, `会话：${binding.title}\nID：${binding.sessionId}\n项目：${project.name}\n引擎：${config.harness}\n状态：${this.conversations.busy(config, binding) ? '运行中或等待确认' : '空闲'}`)
+  }
+
+  private async receiveImage(message: FeishuMessage, transport: FeishuTransport, generation: number): Promise<void> {
+    if (!this.record || !message.imageKey) return
+    const config = this.record.config
+    if (!this.record.conversation) {
+      const project = await this.project(config)
+      const conversation = await this.conversations.create(config, project.primaryFolder, message.chatId)
+      this.persist({ ...this.record, conversation })
+    }
+    if (generation !== this.generation) return
+    const binding = this.record.conversation
+    if (!binding) return
+    if (binding.chatId !== message.chatId) throw new Error('会话聊天身份不一致')
+    await this.conversations.require(config, binding)
+    let image: SessionImage | { error: string }
+    try {
+      image = prepareSessionImage(await transport.downloadImage(message.id, message.imageKey))
+    } catch (error) {
+      const reason = error instanceof Error && error.message ? error.message : '图片下载失败。'
+      await this.reply(transport, message, reason).catch(() => undefined)
+      return
+    }
+    if ('error' in image) { await this.reply(transport, message, image.error); return }
+    const queued = this.conversations.busy(config, binding)
+    await this.conversations.send(config, binding, message.text || '[图片]', [image])
+    try { await this.reply(transport, message, queued ? '图片已加入当前会话队列。' : '图片已发送到当前会话。') }
+    catch { this.error = '图片已提交，但飞书回执失败。请通过 /状态 查询，勿重复提交。' }
   }
 
   private async notify(transport: FeishuTransport, generation: number, admitted = false): Promise<void> {

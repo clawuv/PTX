@@ -176,7 +176,7 @@ export function FeishuSettings() {
         <h2>在飞书开放平台配置</h2>
         <ol>
           <li>创建企业自建应用并启用机器人。</li>
-          <li>开通单聊消息读取权限 im:message.p2p_msg:readonly 、发送权限 im:message:send_as_bot，以及流式卡片权限 cardkit:card:write。</li>
+          <li>开通单聊消息读取权限 im:message.p2p_msg:readonly 、消息资源读取权限 im:message:readonly（接收图片必需）、发送权限 im:message:send_as_bot，以及流式卡片权限 cardkit:card:write。</li>
           <li>在这里保存并连接，再在飞书选择长连接接收事件，订阅 im.message.receive_v1。</li>
           <li>发布应用，确认你的账号在可用范围内。同一应用仅连接一台电脑。</li>
         </ol>

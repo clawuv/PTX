@@ -1,4 +1,4 @@
-import { ArrowUp, AtSign, ChevronDown, Clock3, Command, Edit3, ImageIcon, MessageCirclePlus, Paperclip, Plus, Square, SquareTerminal, Trash2, X, Zap } from 'lucide-react'
+import { ArrowUp, AtSign, ChevronDown, Clock3, Command, Edit3, MessageCirclePlus, Paperclip, Plus, Square, SquareTerminal, Trash2, X, Zap } from 'lucide-react'
 import { memo, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type {
   BrowserAnnotation,
@@ -610,12 +610,8 @@ export const Composer = memo(function Composer({
               </div>
             ) : null}
             {images.map((image) => (
-              <div className="composer-attachment" key={image.id}>
+              <div className="composer-attachment composer-attachment--image" key={image.id}>
                 <img src={`data:${image.mimeType};base64,${image.data}`} alt="" />
-                <span>
-                  <ImageIcon size={12} />
-                  {image.name}
-                </span>
                 <button
                   type="button"
                   aria-label={t('composer.attachment.remove', { name: image.name })}

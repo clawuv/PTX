@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, writeFileSync, rmSync, statSync } from 'node
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+vi.mock('electron', () => ({ nativeImage: { createFromBuffer: vi.fn(() => ({ isEmpty: () => true })) } }))
 import { FeishuService } from '../../electron/main/feishu/service'
 import { FeishuStore } from '../../electron/main/feishu/store'
 import { admittedMessage, parseCommand, parseConfig } from '../../electron/main/feishu/protocol'
@@ -18,6 +19,12 @@ function event(text: string, id = 'message-1') {
   return { sender: { sender_type: 'user', sender_id: { open_id: 'ou_owner' } }, message: {
     message_id: id, chat_id: 'chat-1', chat_type: 'p2p', message_type: 'text', create_time: String(Date.now()), content: JSON.stringify({ text }),
   } }
+}
+function imageEvent(imageKey: string, id = 'image-1') {
+  const raw = event('', id)
+  raw.message.message_type = 'image'
+  raw.message.content = JSON.stringify({ image_key: imageKey })
+  return raw
 }
 function fixture() {
   const file = join(root, 'feishu.enc')
@@ -64,7 +71,7 @@ function fixture() {
   const createCard = vi.fn(async (_reply: ReplyCard) => `card-${createCard.mock.calls.length}`)
   const sendCard = vi.fn(async (_chatId: string, _cardId: string, _uuid: string) => {})
   const updateCard = vi.fn(async (_id: string, _reply: ReplyCard, _sequence: number, _done: boolean) => {})
-  const transport = { createCard, sendCard, updateCard, start: vi.fn(async (callback: typeof receive) => { receive = callback }), close, state: () => 'connected' as const, send }
+  const transport = { createCard, sendCard, updateCard, start: vi.fn(async (callback: typeof receive) => { receive = callback }), close, state: () => 'connected' as const, send, sendImage: vi.fn(async (_chatId: string, _filePath: string, _uuid: string) => {}), downloadImage: vi.fn(async (_messageId: string, _fileKey: string) => Buffer.from('')) }
   const make = () => {
     const service = new FeishuService(store, { pi: harness, omp: harness }, { pi: projects, omp: projects }, () => transport)
     services.push(service)
@@ -92,9 +99,25 @@ describe('Feishu admission', () => {
     expect(admittedMessage(image, 'ou_owner')).toBeNull()
     expect(admittedMessage({ message: { content: '{' } }, 'ou_owner')).toBeNull()
   })
+  it('admits image messages only with a valid key in a private chat', () => {
+    const admitted = admittedMessage(imageEvent('img_v2_key'), 'ou_owner')
+    expect(admitted).toMatchObject({ id: 'image-1', chatId: 'chat-1', text: '', imageKey: 'img_v2_key' })
+    const group = imageEvent('img_v2_key'); group.message.chat_type = 'group'
+    expect(admittedMessage(group, 'ou_owner')).toBeNull()
+    const other = imageEvent('img_v2_key', 'image-2'); other.sender.sender_id.open_id = 'ou_other'
+    expect(admittedMessage(other, 'ou_owner')).toBeNull()
+    const noKey = imageEvent('img_v2_key', 'image-3'); noKey.message.content = JSON.stringify({})
+    expect(admittedMessage(noKey, 'ou_owner')).toBeNull()
+    const stale = imageEvent('img_v2_key', 'image-4'); stale.message.create_time = String(Date.now() - 301_000)
+    expect(admittedMessage(stale, 'ou_owner')).toBeNull()
+  })
   it('requires an explicit task command and rejects extra configuration keys', () => {
     expect(parseCommand('continue this')).toEqual({ kind: 'message', prompt: 'continue this' })
     expect(parseCommand('/任务 修复测试')).toEqual({ kind: 'message', prompt: '修复测试' })
+    expect(parseCommand('/发图 /tmp/shot.png')).toEqual({ kind: 'sendImage', path: '/tmp/shot.png' })
+    expect(parseCommand('/img /tmp/shot.png')).toEqual({ kind: 'sendImage', path: '/tmp/shot.png' })
+    expect(parseCommand('/发图')).toEqual({ kind: 'sendImage', path: '' })
+    expect(parseCommand('/发图abc')).toEqual({ kind: 'help' })
     expect(() => parseConfig({ ...config, cwd: '/' })).toThrow()
     expect(() => parseConfig({ ...config, harness: 'other' })).toThrow()
   })
@@ -177,6 +200,46 @@ describe('Feishu local execution', () => {
     await f.receive(event('/切换 session', 'switch'))
     expect(f.store.load()?.conversation?.delivered).toEqual(['answer'])
     expect(f.agents.start).not.toHaveBeenCalled()
+  })
+  it('sends local images to the requesting chat and reports failures without touching the conversation', async () => {
+    const f = fixture()
+    await f.service.save(config, 'secret')
+    await f.service.connect()
+    await f.receive(event('/发图', 'usage'))
+    expect(f.send.mock.calls.at(-1)?.[1]).toContain('用法：/发图')
+    await f.receive(event('/发图 /tmp/notes.txt', 'txt'))
+    expect(f.send.mock.calls.at(-1)?.[1]).toContain('仅支持')
+    expect(f.transport.sendImage).not.toHaveBeenCalled()
+    await f.receive(event('/发图 /tmp/shot.png', 'img'))
+    expect(f.transport.sendImage).toHaveBeenCalledWith('chat-1', '/tmp/shot.png', expect.any(String))
+    expect(f.send.mock.calls.at(-1)?.[1]).toContain('图片已发送')
+    f.transport.sendImage.mockRejectedValueOnce(new Error('图片上传失败，请确认飞书应用已开通 im:resource（上传图片）权限。'))
+    await f.receive(event('/发图 /tmp/shot.png', 'fail'))
+    expect(f.send.mock.calls.at(-1)?.[1]).toContain('im:resource')
+    expect(f.store.load()?.conversation).toBeUndefined()
+  })
+  it('injects received images into the bound session and reports download problems', async () => {
+    const f = fixture()
+    await f.service.save(config, 'secret')
+    await f.service.connect()
+    await f.receive(event('开始'))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const png = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex')
+    f.transport.downloadImage.mockResolvedValueOnce(png)
+    await f.receive(imageEvent('img_v2_key'))
+    expect(f.transport.downloadImage).toHaveBeenCalledWith('image-1', 'img_v2_key')
+    expect(f.agents.command).toHaveBeenCalledWith('runtime', expect.objectContaining({
+      type: 'prompt', message: '[图片]', images: [{ type: 'image', data: png.toString('base64'), mimeType: 'image/png' }],
+    }))
+    expect(f.send.mock.calls.at(-1)?.[1]).toContain('图片已发送')
+    f.transport.downloadImage.mockRejectedValueOnce(new Error('图片下载失败，请确认飞书应用已开通读取消息（im:message:readonly）权限。'))
+    await f.receive(imageEvent('img_v2_key', 'image-2'))
+    expect(f.send.mock.calls.at(-1)?.[1]).toContain('im:message:readonly')
+    const riff = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBPWEBP'.slice(0, 4), 'latin1'), Buffer.alloc(2048 * 1024)])
+    f.transport.downloadImage.mockResolvedValueOnce(riff)
+    await f.receive(imageEvent('img_v2_key', 'image-3'))
+    expect(f.send.mock.calls.at(-1)?.[1]).toContain('无法自动压缩')
+    expect(f.agents.command).not.toHaveBeenCalledWith('runtime', expect.objectContaining({ type: 'follow_up', images: expect.anything() }))
   })
   it('queues ordinary messages through the harness and stops the shared runtime', async () => {
     const f = fixture()

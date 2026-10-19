@@ -133,6 +133,40 @@ describe('GitService', () => {
     expect(failed.output.length).toBeGreaterThan(0)
   }, 20_000)
 
+  it('pulls upstream commits into the current branch and reports missing-upstream failures', async () => {
+    const cwd = repository('prime-work-git-pull-')
+    const remote = mkdtempSync(join(tmpdir(), 'prime-work-git-pull-origin-'))
+    dirs.push(remote)
+    git(remote, 'init', '-q', '--bare')
+    git(cwd, 'remote', 'add', 'origin', remote)
+    const branch = spawnSync('git', ['symbolic-ref', '--short', 'HEAD'], { cwd, encoding: 'utf8' }).stdout.trim()
+    git(cwd, 'config', `branch.${branch}.remote`, 'origin')
+    git(cwd, 'config', `branch.${branch}.merge`, `refs/heads/${branch}`)
+    git(cwd, 'push', '-q', 'origin', branch)
+    const service = new GitService(async () => cwd)
+
+    // A peer clone commits on the remote; pulling must fast-forward the local branch.
+    const peer = mkdtempSync(join(tmpdir(), 'prime-work-git-pull-peer-'))
+    dirs.push(peer)
+    git(peer, 'clone', '-q', remote, '.')
+    git(peer, 'config', 'user.name', 'Prime Work Test')
+    git(peer, 'config', 'user.email', 'test@example.com')
+    writeFileSync(join(peer, 'file.txt'), 'pulled\n')
+    git(peer, 'commit', '-qam', 'remote work')
+    git(peer, 'push', '-q', 'origin', branch)
+
+    const pulled = await service.pull(cwd)
+    expect(pulled.ok).toBe(true)
+    const head = spawnSync('git', ['log', '--oneline', '-1'], { cwd, encoding: 'utf8' })
+    expect(head.stdout).toContain('remote work')
+    expect(readFileSync(join(cwd, 'file.txt'), 'utf8')).toBe('pulled\n')
+
+    const orphan = repository('prime-work-git-pull-noupstream-')
+    const failed = await new GitService(async () => orphan).pull(orphan)
+    expect(failed.ok).toBe(false)
+    expect(failed.output.length).toBeGreaterThan(0)
+  }, 30_000)
+
   it('lists unpushed commits and undoes them back into the staged index', async () => {
     const cwd = repository('prime-work-git-ahead-')
     const remote = mkdtempSync(join(tmpdir(), 'prime-work-git-ahead-origin-'))

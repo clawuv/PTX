@@ -572,6 +572,19 @@ export class GitService {
     return { ok: true, output: output || 'Pushed.' }
   }
 
+  async pull(cwdValue: unknown): Promise<ProcessOutcome> {
+    // Pull merges the configured upstream into the current branch. A dirty
+    // working tree or merge conflict fails safely and leaves the tree as git
+    // wrote it; the hardened environment keeps the command argv-only.
+    const context = await this.withRepositoryGuards(cwdValue)
+    const result = await runGit(context.cwd, ['pull', '--no-edit'], { timeoutMs: 5 * 60_000, maxBytes: 1024 * 1024 }, context.overrides)
+    if (result.outputExceeded) return { ok: false, reason: 'overflow', output: 'Git pull output exceeded the safety limit; the pull result is unknown. Refresh status before retrying.' }
+    if (result.timedOut) return { ok: false, reason: 'timeout', output: 'Git pull timed out; the pull result is unknown. Refresh status before retrying.' }
+    const output = stripAnsi(`${result.stdout}${result.stderr}`).trim()
+    if (result.code !== 0) return { ok: false, reason: 'exit', output: output || processError('Git pull', result).message }
+    return { ok: true, output: output || 'Already up to date.' }
+  }
+
   /** Unpushed commits on the current branch, newest first; empty when no upstream is configured. */
   async aheadCommits(cwdValue: unknown): Promise<Array<{ hash: string; subject: string; date: string }>> {
     try {

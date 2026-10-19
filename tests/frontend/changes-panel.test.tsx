@@ -119,6 +119,49 @@ describe('ChangesPanel status states', () => {
     expect(onRefreshGit).toHaveBeenCalledTimes(1)
   })
 
+  it('pulls the upstream when the branch is behind and reports failure output', async () => {
+    const pull = vi.fn()
+      .mockResolvedValueOnce({ ok: true, output: 'Fast-forward' })
+      .mockResolvedValueOnce({ ok: false, output: 'Your local changes would be overwritten by merge' })
+    Object.defineProperty(window, 'ptx', { configurable: true, value: { git: { pull } } })
+    const onRefreshGit = vi.fn(async () => undefined)
+
+    await act(async () => {
+      root.render(<ChangesPanel cwd="/project" git={{ isRepo: true, branch: 'main', upstream: 'origin/main', behind: 3, files: [] }} onRefreshGit={onRefreshGit} />)
+      await Promise.resolve()
+    })
+
+    // The pull control is only enabled while status reports behind commits.
+    const pullButton = [...container.querySelectorAll<HTMLButtonElement>('button[aria-label="Pull from remote"]')].at(-1)!
+    expect(pullButton.disabled).toBe(false)
+    await act(async () => { pullButton.click(); await Promise.resolve() })
+    expect(pull).toHaveBeenCalledWith('/project')
+    expect(onRefreshGit).toHaveBeenCalledTimes(1)
+
+    // A failed pull surfaces git's own output; the button re-enables for a retry.
+    await act(async () => { pullButton.click(); await Promise.resolve() })
+    expect(container.querySelector('.changes-error')?.textContent).toContain('Your local changes would be overwritten by merge')
+  })
+
+  it('keeps pull available without a behind count and disables it without an upstream', async () => {
+    Object.defineProperty(window, 'ptx', { configurable: true, value: { git: { pull: vi.fn(async () => ({ ok: true, output: 'Already up to date.' })) } } })
+    const onRefreshGit = vi.fn(async () => undefined)
+    // behind is a stale status snapshot, so an upstream alone keeps pull usable.
+    await act(async () => {
+      root.render(<ChangesPanel cwd="/project" git={{ isRepo: true, branch: 'main', upstream: 'origin/main', files: [] }} onRefreshGit={onRefreshGit} />)
+    })
+    const pullButton = container.querySelector<HTMLButtonElement>('button[aria-label="Pull from remote"]')!
+    expect(pullButton.disabled).toBe(false)
+    await act(async () => { pullButton.click(); await Promise.resolve() })
+    expect(container.querySelector('.changes-error')).toBeNull()
+
+    // Without a configured upstream a pull can only fail, so it stays disabled.
+    await act(async () => {
+      root.render(<ChangesPanel cwd="/project" git={{ isRepo: true, branch: 'main', ahead: 1, files: [] }} onRefreshGit={onRefreshGit} />)
+    })
+    expect(container.querySelector<HTMLButtonElement>('button[aria-label="Pull from remote"]')!.disabled).toBe(true)
+  })
+
   it('lists unpushed commits behind the ahead label and undoes one on demand', async () => {
     const aheadCommits = vi.fn(async () => [
       { hash: 'abc1234567890abcdef', subject: 'second', date: '2026-10-18T10:00:00+08:00' },

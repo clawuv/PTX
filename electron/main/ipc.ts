@@ -459,6 +459,7 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
   handle('git:restore', (_event, cwd, paths) => services.git.restore(cwd, paths))
   handle('git:commit', (_event, cwd, message) => services.git.commit(cwd, message))
   handle('git:push', (_event, cwd) => services.git.push(cwd))
+  handle('git:pull', (_event, cwd) => services.git.pull(cwd))
   handle('git:ahead-commits', (_event, cwd) => services.git.aheadCommits(cwd))
   handle('git:undo-commit', (_event, cwd, hash) => services.git.undoCommit(cwd, hash))
   handle('git:branches', (_event, cwd) => services.git.branches(cwd))

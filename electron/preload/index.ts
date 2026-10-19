@@ -166,6 +166,7 @@ const api: PtxApi = {
     restore: (cwd, paths) => invoke('git:restore', cwd, paths),
     commit: (cwd, message) => invoke('git:commit', cwd, message),
     push: (cwd) => invoke('git:push', cwd),
+    pull: (cwd) => invoke('git:pull', cwd),
     aheadCommits: (cwd) => invoke('git:ahead-commits', cwd),
     undoCommit: (cwd, hash) => invoke('git:undo-commit', cwd, hash),
     branches: (cwd) => invoke('git:branches', cwd),

@@ -859,6 +859,7 @@ export interface PtxApi {
     restore(cwd: string, paths: string[]): Promise<boolean>
     commit(cwd: string, message: string): Promise<ProcessOutcome>
     push(cwd: string): Promise<ProcessOutcome>
+    pull(cwd: string): Promise<ProcessOutcome>
     aheadCommits(cwd: string): Promise<Array<{ hash: string; subject: string; date: string }>>
     undoCommit(cwd: string, hash: string): Promise<ProcessOutcome>
     branches(cwd: string): Promise<string[]>

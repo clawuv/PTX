@@ -1,4 +1,4 @@
-import { ArrowDownToLine, File, FileCode2, GitBranch, LoaderCircle, RefreshCw, Sparkles, Undo2, Upload } from 'lucide-react'
+import { ArrowDownToLine, Download, File, FileCode2, GitBranch, LoaderCircle, RefreshCw, Sparkles, Undo2, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { errorMessage } from '@/lib/errors'
 import { useI18n } from '@/lib/i18n'
@@ -38,6 +38,7 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
   const [confirmUndo, setConfirmUndo] = useState<string | null>(null)
   const [actionError, setActionError] = useState('')
   const [pushing, setPushing] = useState(false)
+  const [pulling, setPulling] = useState(false)
   const [aheadOpen, setAheadOpen] = useState(false)
   const [aheadList, setAheadList] = useState<AheadCommit[]>([])
   const [undoingHash, setUndoingHash] = useState<string | null>(null)
@@ -123,6 +124,22 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
     }
   }
 
+  /** Pulls the configured upstream into the current branch, then refreshes the divergence counts. */
+  const pullBranch = async () => {
+    if (readOnly || !cwd || !window.ptx || pulling) return
+    setActionError('')
+    setPulling(true)
+    try {
+      const result = await window.ptx.git.pull(cwd)
+      if (!result.ok) throw new Error(result.output || t('changes.error.pull'))
+      await onRefreshGit()
+    } catch (error) {
+      setActionError(errorMessage(error))
+    } finally {
+      setPulling(false)
+    }
+  }
+
   const toggleAhead = async () => {
     setActionError('')
     if (aheadOpen) { setAheadOpen(false); return }
@@ -181,6 +198,7 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
         <div><strong><GitBranch size={13} /> {git.branch ?? t('changes.branch.fallback')}</strong><button type="button" className="ahead-toggle" aria-expanded={aheadOpen} disabled={readOnly || !git.ahead} title={git.ahead ? undefined : t('changes.ahead.none')} onClick={() => void toggleAhead()}>{t('changes.ahead', { count: git.ahead ?? 0 })}</button></div>
         <div className="changes-toolbar__actions">
           <IconButton label={t('changes.action.push')} disabled={readOnly || pushing || !git.ahead} onClick={() => void pushCommits()}><Upload size={14} /></IconButton>
+          <IconButton label={t('changes.action.pull')} disabled={readOnly || pulling || !git.upstream} onClick={() => void pullBranch()}><Download size={14} /></IconButton>
           <IconButton label={t('changes.action.refresh')} onClick={() => void onRefreshGit()}><RefreshCw size={14} /></IconButton>
         </div>
       </div>

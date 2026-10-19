@@ -216,17 +216,19 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
       <div className="changes-scopes"><Segmented value={scope} label={t('changes.scope.label')} options={[{ value: 'unstaged', label: t('changes.scope.unstaged') }, { value: 'staged', label: t('changes.scope.staged') }]} onChange={(value) => { setActionError(''); setScope(value as 'unstaged' | 'staged') }} /><button type="button" className="button button--compact" disabled={readOnly || !visibleFiles.length} onClick={() => setCommitOpen(true)}>{t('changes.action.commit')}</button></div>
       {actionError ? <p className="changes-error" role="alert">{actionError}</p> : null}
       <div className="changes-body">
-        <div className="file-changes scroll-area">
+        <div className="file-changes">
           <div className="file-changes__header"><span>{t('changes.count', { count: visibleFiles.length })}</span>{visibleFiles.length ? <span className="file-changes__header-actions">
             <button type="button" disabled={readOnly} onClick={() => void mutate(scope === 'staged' ? 'unstage' : 'stage', visibleFiles.map((file) => file.path))}>{scope === 'staged' ? t('changes.action.unstageAll') : t('changes.action.stageAll')}</button>
             <button type="button" className="danger-action" disabled={readOnly} onClick={() => setConfirmUndoAll(true)}>{t('changes.action.undoAll')}</button>
           </span> : null}</div>
-          {visibleFiles.map((file) => <button type="button" key={file.path} className={selectedPath === file.path ? 'is-selected' : ''} onClick={() => setSelectedPath(file.path)}><File size={13} /><span title={file.path}>{file.path}</span><small className="additions">+{file.additions}</small><small className="deletions">−{file.deletions}</small><span className="file-status">{file.status}</span></button>)}
-          {visibleFiles.length === 0 ? <p className="file-changes__empty">{scope === 'staged' ? t('changes.empty.staged') : t('changes.empty.unstaged')}</p> : null}
+          <div className="file-changes__list scroll-area">
+            {visibleFiles.map((file) => <button type="button" key={file.path} className={selectedPath === file.path ? 'is-selected' : ''} onClick={() => setSelectedPath(file.path)}><File size={13} /><span title={file.path}>{file.path}</span><small className="additions">+{file.additions}</small><small className="deletions">−{file.deletions}</small><span className="file-status">{file.status}</span></button>)}
+            {visibleFiles.length === 0 ? <p className="file-changes__empty">{scope === 'staged' ? t('changes.empty.staged') : t('changes.empty.unstaged')}</p> : null}
+          </div>
         </div>
-        <div className="diff-pane scroll-area">
+        <div className="diff-pane">
           {selectedPath ? <div className="diff-header"><div><span title={selectedPath}>{selectedPath.split('/').pop()}</span></div><div>{scope === 'unstaged' ? <button type="button" disabled={readOnly} onClick={() => void mutate('stage', [selectedPath])}><ArrowDownToLine size={12} /> {t('changes.action.stage')}</button> : <button type="button" disabled={readOnly} onClick={() => void mutate('unstage', [selectedPath])}><Undo2 size={12} /> {t('changes.action.unstage')}</button>}<button type="button" className="danger-action" disabled={readOnly} onClick={() => setConfirmUndo(selectedPath)}><Undo2 size={12} /> {t('changes.action.undo')}</button></div></div> : null}
-          {loading ? <div className="diff-loading"><LoaderCircle className="spin" size={15} /> {t('changes.diff.loading')}</div> : <DiffView text={diff} />}
+          <div className="diff-pane__scroll scroll-area">{loading ? <div className="diff-loading"><LoaderCircle className="spin" size={15} /> {t('changes.diff.loading')}</div> : <DiffView text={diff} />}</div>
         </div>
       </div>
       {commitOpen ? <Modal title={t('changes.commit.title')} onClose={() => setCommitOpen(false)} footer={<><button className="button" type="button" onClick={() => setCommitOpen(false)}>{t('changes.action.cancel')}</button><button className="button button--primary" type="button" disabled={readOnly || !commitMessage.trim()} onClick={() => void commit()}>{t('changes.commit.action')}</button></>}><label className="field"><span>{t('changes.commit.message')}</span><div className="commit-message-input"><input autoFocus value={commitMessage} onChange={(event) => setCommitMessage(event.target.value)} placeholder={t('changes.commit.placeholder')} /><button type="button" className="button button--compact" onClick={fillCommitSummary} title={t('changes.commit.generateTitle')}><Sparkles size={13} /> {t('changes.commit.generate')}</button></div></label><p className="muted-copy">{t('changes.commit.body.before')}<code>{git.branch}</code>{t('changes.commit.body.after')}</p></Modal> : null}

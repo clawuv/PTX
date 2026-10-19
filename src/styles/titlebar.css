@@ -80,7 +80,7 @@
   min-width: 26px;
   padding: 0;
   border-radius: 5px;
-  color: var(--navigation-ink);
+  color: var(--text);
 }
 .title-toolbar__nav .icon-button:hover {
   background: var(--surface-hover);

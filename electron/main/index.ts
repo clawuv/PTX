@@ -315,12 +315,9 @@ export function mainWindowChromeOptions(platform: NodeJS.Platform = process.plat
     visualEffectState: 'active',
   }
   if (platform === 'win32') return {
-    // Frameless replica title bar, but keep WS_THICKFRAME so Windows paints
-    // its native window border line.
-    frame: false,
-    thickFrame: true,
-    hasShadow: false,
-    accentColor: false,
+    // Hidden native title bar, but keep the real window frame so Windows
+    // paints its border on all four edges (frame:false + thickFrame only
+    // borders the three edges with an invisible resize area).
     titleBarStyle: 'hidden',
     autoHideMenuBar: true,
   }

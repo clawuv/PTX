@@ -6,7 +6,7 @@
 .sidebar__titlebar { flex: 0 0 auto; padding: 14px 12px 10px; }
 .app-shell[data-platform='linux'] .traffic-light-clearance, .app-shell[data-platform='win32'] .traffic-light-clearance { display: none; }
 .brand-switcher { display: flex; width: 100%; gap: 2px; padding: 0; border-radius: var(--sidebar-row-radius); background: var(--surface-selected); }
-.brand-switcher__segment { flex: 1; min-width: 0; height: var(--sidebar-row-height); display: flex; align-items: center; justify-content: center; gap: 7px; padding: 0 8px; border-radius: var(--sidebar-row-radius); background: transparent; color: var(--text-tertiary); font-size: var(--sidebar-row-font-size); font-weight: 400; transition: background 130ms ease-out, color 130ms ease-out; }
+.brand-switcher__segment { flex: 1; min-width: 0; height: calc(var(--sidebar-row-height) - 2px); display: flex; align-items: center; justify-content: center; gap: 7px; padding: 0 8px; border-radius: var(--sidebar-row-radius); background: transparent; color: var(--text-tertiary); font-size: var(--sidebar-row-font-size); font-weight: 400; transition: background 130ms ease-out, color 130ms ease-out; }
 .brand-switcher__segment > svg { flex: 0 0 auto; }
 .brand-switcher__segment:hover { color: var(--text); background: var(--surface-hover); }
 .brand-switcher__segment[aria-pressed='true'] { color: var(--text); background: var(--surface-raised); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
@@ -38,7 +38,7 @@
 
 .sidebar__primary { margin-top: 0; padding: 0 12px; display: flex; flex-direction: column; gap: var(--sidebar-row-spacing); }
 .sidebar__settings-nav { flex: 1; min-height: 0; overflow: auto; margin-top: 8px; padding: 0 12px 8px; display: flex; flex-direction: column; }
-.sidebar__settings-nav button { width: 100%; height: var(--sidebar-row-height); display: flex; align-items: center; gap: var(--sidebar-row-gap); padding: 0 8px; border-radius: var(--sidebar-row-radius); color: var(--sidebar-menu-ink); background: transparent; font-size: var(--sidebar-row-font-size); text-align: left; }
+.sidebar__settings-nav button { width: 100%; height: calc(var(--sidebar-row-height) - 2px); display: flex; align-items: center; gap: var(--sidebar-row-gap); padding: 0 8px; border-radius: var(--sidebar-row-radius); color: var(--sidebar-menu-ink); background: transparent; font-size: var(--sidebar-row-font-size); text-align: left; }
 .sidebar__settings-nav button:hover { color: var(--text); background: var(--sidebar-row-background); }
 .sidebar__settings-nav button.is-active { color: var(--text); background: var(--sidebar-row-background); }
 .sidebar__settings-nav button svg { color: var(--sidebar-icon-ink); }
@@ -50,7 +50,7 @@
 /* Scoped to the settings entry: a bare `.sidebar__footer > button` would also match the
    update badge and help icon-button and clobber their icon-button box model. */
 .sidebar__primary > button, .sidebar__footer > .sidebar__settings-entry { width: 100%; height: var(--sidebar-row-height); display: flex; align-items: center; gap: var(--sidebar-row-gap); padding: 0 8px; border-radius: var(--sidebar-row-radius); color: var(--sidebar-menu-ink); background: transparent; font-size: var(--sidebar-row-font-size); text-align: left; }
-.sidebar__primary > button { gap: var(--sidebar-row-gap); font-size: var(--sidebar-row-font-size); }
+.sidebar__primary > button { gap: var(--sidebar-row-gap); font-size: var(--sidebar-row-font-size); height: calc(var(--sidebar-row-height) - 2px); }
 .sidebar__primary > button:hover, .sidebar__footer > .sidebar__settings-entry:hover { color: var(--text); background: var(--sidebar-row-background); }
 .sidebar__primary > button.is-active, .sidebar__footer > .sidebar__settings-entry.is-active { color: var(--text); background: var(--sidebar-row-background); }
 .sidebar__primary > button span:not(.nav-count), .sidebar__footer > .sidebar__settings-entry span { flex: 1; }

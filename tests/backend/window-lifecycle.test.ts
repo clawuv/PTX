@@ -51,10 +51,6 @@ describe('application window lifecycle', () => {
       autoHideMenuBar: true,
     })
     expect(mainWindowChromeOptions('win32')).toEqual({
-      frame: false,
-      thickFrame: true,
-      hasShadow: false,
-      accentColor: false,
       titleBarStyle: 'hidden',
       autoHideMenuBar: true,
     })

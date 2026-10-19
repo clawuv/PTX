@@ -6,8 +6,8 @@
 /* The lifted bar floats over the header's drag band: its empty space drags the window, the tab buttons stay clickable. */
 .inspector__tabs { -webkit-app-region: drag; }
 .inspector__tabs > button { -webkit-app-region: no-drag; }
-/* A short tick on the divider's line marks the seam between the header controls and the tabs, like .toolbar-divider. */
-.inspector__tabs::before { content: ""; position: absolute; left: 0; top: 12px; width: 1px; height: 16px; background: var(--border); }
+/* A short tick on the divider's line marks the seam between the header controls and the tabs. macOS only: its lifted bar blends into the header band; on Win/Linux the in-flow bar would leave the tick as a stray fragment beside the header actions. */
+.app-shell[data-platform="darwin"] .inspector__tabs::before { content: ""; position: absolute; left: 0; top: 12px; width: 1px; height: 16px; background: var(--border); }
 .inspector__tabs > button:not(.icon-button) { position: relative; min-width: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 7px; color: var(--text-secondary); background: transparent; font-size: 11px; }
 .inspector__tabs > button:not(.icon-button):hover { color: var(--text); }
 .inspector__tabs > button.is-active { color: var(--text); font-weight: 550; }

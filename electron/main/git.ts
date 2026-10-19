@@ -39,20 +39,24 @@ function runGit(cwd: string, args: readonly string[], options: { timeoutMs: numb
 const GIT_CREDENTIAL_HELPER_LIMIT = 512
 
 /**
- * Reads the user's own global credential helpers so network operations (push,
- * pull) can authenticate. The restricted environment disables global config,
- * which otherwise hides `credential.helper` from pushes made in the app; the
- * helper values are re-applied as command-line configuration, which the
- * sandbox never disables. Values are validated and bounded.
+ * Reads the machine's credential helpers (repo, global, and system scopes —
+ * Git for Windows ships its default helper in the system config) so network
+ * operations (push, pull) can authenticate. The restricted environment
+ * disables those scopes, which otherwise hides `credential.helper` from
+ * pushes made in the app; the values are re-applied as command-line
+ * configuration, which the sandbox never disables. Values are validated and
+ * bounded, and the scopes are enabled only for this one read.
  */
-async function globalCredentialHelpers(cwd: string): Promise<string[] | undefined> {
+async function credentialHelpers(cwd: string): Promise<string[] | undefined> {
   const env = restrictedGitEnvironment()
   delete env.GIT_CONFIG_GLOBAL
+  delete env.GIT_CONFIG_NOSYSTEM
+  delete env.GIT_CONFIG_SYSTEM
   for (const name of process.platform === 'win32' ? ['USERPROFILE', 'HOME', 'XDG_CONFIG_HOME'] : ['HOME', 'XDG_CONFIG_HOME']) {
     const value = process.env[name]
     if (value !== undefined) env[name] = value
   }
-  const result = await runProcess('git', hardenedGitArgs(['config', '--global', '--no-includes', '--get-all', 'credential.helper']), {
+  const result = await runProcess('git', hardenedGitArgs(['config', '--get-all', 'credential.helper']), {
     cwd,
     timeoutMs: 5_000,
     maxBytes: GIT_CONFIG_OUTPUT_LIMIT,
@@ -591,10 +595,10 @@ export class GitService {
   async push(cwdValue: unknown): Promise<ProcessOutcome> {
     // Push sends already-created commits over the network; the hardened git
     // environment (hooksPath=/dev/null, restricted env) keeps it argv-only.
-    // The user's global credential helpers are re-admitted so remotes can
+    // The machine's credential helpers are re-admitted so remotes can
     // authenticate, and GCM may show its GUI when no credential is cached.
     const context = await this.withRepositoryGuards(cwdValue)
-    const helpers = await globalCredentialHelpers(context.cwd)
+    const helpers = await credentialHelpers(context.cwd)
     const overrides = helpers?.length ? [...context.overrides, ...helpers.map((helper) => `credential.helper=${helper}`)] : context.overrides
     const result = await runGit(context.cwd, ['push'], { timeoutMs: 5 * 60_000, maxBytes: 1024 * 1024, envOverrides: { GCM_INTERACTIVE: 'gui' } }, overrides)
     if (result.outputExceeded) return { ok: false, reason: 'overflow', output: 'Git push output exceeded the safety limit; the push result is unknown. Refresh status before retrying.' }
@@ -607,10 +611,10 @@ export class GitService {
   async pull(cwdValue: unknown): Promise<ProcessOutcome> {
     // Pull merges the configured upstream into the current branch. A dirty
     // working tree or merge conflict fails safely and leaves the tree as git
-    // wrote it; the hardened environment keeps the command argv-only. Global
-    // credential helpers are re-admitted like push.
+    // wrote it; the hardened environment keeps the command argv-only.
+    // Credential helpers are re-admitted like push.
     const context = await this.withRepositoryGuards(cwdValue)
-    const helpers = await globalCredentialHelpers(context.cwd)
+    const helpers = await credentialHelpers(context.cwd)
     const overrides = helpers?.length ? [...context.overrides, ...helpers.map((helper) => `credential.helper=${helper}`)] : context.overrides
     const result = await runGit(context.cwd, ['pull', '--no-edit'], { timeoutMs: 5 * 60_000, maxBytes: 1024 * 1024, envOverrides: { GCM_INTERACTIVE: 'gui' } }, overrides)
     if (result.outputExceeded) return { ok: false, reason: 'overflow', output: 'Git pull output exceeded the safety limit; the pull result is unknown. Refresh status before retrying.' }

@@ -127,7 +127,7 @@ describe('sidebar project context menu', () => {
     expect(container.querySelector('.sidebar__primary .lucide-message-square-plus')).not.toBeNull()
     expect(container.querySelector('.project-row__new-session .lucide-message-square-plus')).not.toBeNull()
     expect(container.querySelector('.sidebar__section-heading .lucide-plus')).not.toBeNull()
-    expect(container.querySelector('.sidebar__primary button[title="New session (⌘N)"]')).not.toBeNull()
+    expect(container.querySelector('.sidebar__primary button kbd')?.textContent).toBe('⌘N')
     expect(container.querySelector('[aria-label="New session in Project"][data-tooltip="New session in Project"]')).not.toBeNull()
     expect(container.querySelector('[aria-label="Add project"][data-tooltip="Add project"]')).not.toBeNull()
   })
@@ -153,7 +153,7 @@ describe('sidebar project context menu', () => {
       )
     })
 
-    expect(container.querySelector('.sidebar__primary button[title="New session (Ctrl+N)"]')).not.toBeNull()
+    expect(container.querySelector('.sidebar__primary button kbd')?.textContent).toBe('Ctrl+N')
     // The collapse affordances were removed: the sidebar stays visible and only Ctrl+B toggles it.
     expect(container.querySelector('[aria-label="Hide sidebar (Ctrl+B)"]')).toBeNull()
     expect(container.textContent).not.toContain('⌘')

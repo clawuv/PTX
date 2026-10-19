@@ -190,7 +190,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
   const visibleProjects = useMemo(() => projects.filter((project) => !normalized || project.name.toLowerCase().includes(normalized) || (sessionsByProject.get(project.id) ?? []).some((session) => `${session.title} ${session.preview ?? ''}`.toLowerCase().includes(normalized))), [projects, sessionsByProject, normalized])
   const renderSessionRow = (session: SessionRecord, selected: boolean) => (
     <div key={session.id} className={`session-row-wrap session-row-wrap--${session.status} ${needsAttention(session) ? 'has-attention' : ''} ${selected && activeSessionId === session.id && activeView === 'session' ? 'is-selected' : ''}`}>
-      <button type="button" title={session.title} className="session-row" onClick={() => { setSessionMenu(null); onSelectSession(session) }} onContextMenu={(event) => { event.preventDefault(); openSessionMenu(session.id, event.currentTarget.getBoundingClientRect()) }}>
+      <button type="button" className="session-row" onClick={() => { setSessionMenu(null); onSelectSession(session) }} onContextMenu={(event) => { event.preventDefault(); openSessionMenu(session.id, event.currentTarget.getBoundingClientRect()) }}>
         {session.status === 'running' || session.status === 'waiting' || session.status === 'failed' ? <SessionStatusMark status={session.status} attention={needsAttention(session)} /> : null}
         <span className="session-row__text"><span className="session-row__title">{session.title}</span><span className="session-row__meta">{session.status === 'running' ? t('sidebar.working') : session.status === 'waiting' ? t('sidebar.needsAttention') : session.status === 'complete' ? t('sidebar.status.complete') : formatRelative(session.updatedAt)}</span></span>
         <span className="session-row__time">{formatRelative(session.updatedAt)}</span>
@@ -213,7 +213,6 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
                 className="brand-switcher__segment"
                 aria-pressed={harness === activeHarness}
                 aria-label={t('sidebar.switchHarness', { name: HARNESS_PRODUCT_NAMES[harness] })}
-                title={HARNESS_PRODUCT_NAMES[harness]}
                 onClick={() => {
                   if (harnesses && !harnesses[harness].path) {
                     onNavigate('settings')
@@ -257,10 +256,10 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
           ) : null}
 
           <nav className="sidebar__primary" aria-label={t('sidebar.primaryNav')}>
-            <button type="button" className={activeView === 'session' && activeSessionId === undefined ? 'is-active' : ''} title={t('sidebar.newSessionTitle', { shortcut: newSessionShortcut })} onClick={() => onNewSession()}><MessageSquarePlus size={15} /><span>{t('sidebar.newSession')}</span><kbd>{newSessionShortcut}</kbd></button>
-            <button type="button" title={t('nav.tasks')} className={activeView === 'tasks' ? 'is-active' : ''} onClick={() => onNavigate('tasks')}><CheckCircle2 size={15} /><span>{t('nav.tasks')}</span></button>
-            <button type="button" title={t('nav.scheduled')} className={activeView === 'scheduled' ? 'is-active' : ''} onClick={() => onNavigate('scheduled')}><CalendarClock size={15} /><span>{t('nav.scheduled')}</span>{schedulesAttention > 0 ? <i className="nav-attention-badge" aria-label={t('scheduled.attentionBadge', { count: schedulesAttention })}>{schedulesAttention > 9 ? '9+' : schedulesAttention}</i> : null}</button>
-            <button type="button" title={t('nav.capabilities')} className={activeView === 'plugins' ? 'is-active' : ''} onClick={() => onNavigate('plugins')}><PackageOpen size={15} /><span>{t('nav.capabilities')}</span></button>
+            <button type="button" className={activeView === 'session' && activeSessionId === undefined ? 'is-active' : ''} onClick={() => onNewSession()}><MessageSquarePlus size={15} /><span>{t('sidebar.newSession')}</span><kbd>{newSessionShortcut}</kbd></button>
+            <button type="button" className={activeView === 'tasks' ? 'is-active' : ''} onClick={() => onNavigate('tasks')}><CheckCircle2 size={15} /><span>{t('nav.tasks')}</span></button>
+            <button type="button" className={activeView === 'scheduled' ? 'is-active' : ''} onClick={() => onNavigate('scheduled')}><CalendarClock size={15} /><span>{t('nav.scheduled')}</span>{schedulesAttention > 0 ? <i className="nav-attention-badge" aria-label={t('scheduled.attentionBadge', { count: schedulesAttention })}>{schedulesAttention > 9 ? '9+' : schedulesAttention}</i> : null}</button>
+            <button type="button" className={activeView === 'plugins' ? 'is-active' : ''} onClick={() => onNavigate('plugins')}><PackageOpen size={15} /><span>{t('nav.capabilities')}</span></button>
           </nav>
 
           <div className="sidebar__scroll scroll-area">
@@ -289,7 +288,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
                     className={`project-row${activeProjectId === project.id && activeView === 'session' && activeSessionId !== undefined && !hasSelectedSession ? ' is-selected' : ''}`}
                     onContextMenu={(event) => { event.preventDefault(); setProjectMenu(project.id) }}
                   >
-                    <button className="project-row__main" type="button" title={project.name} onClick={() => setCollapsedProjects((current) => { const next = new Set(current); if (next.has(project.id)) next.delete(project.id); else next.add(project.id); return next })}>
+                    <button className="project-row__main" type="button" onClick={() => setCollapsedProjects((current) => { const next = new Set(current); if (next.has(project.id)) next.delete(project.id); else next.add(project.id); return next })}>
                       <Folder size={15} />
                       <span>{project.name}</span>
                     </button>

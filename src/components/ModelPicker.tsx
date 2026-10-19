@@ -1,6 +1,7 @@
 import { ArrowLeft, Brain, Check, ChevronDown, ChevronRight, Search } from 'lucide-react'
 import { memo, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
-import { useI18n, type MessageKey } from '@/lib/i18n'
+import { useI18n } from '@/lib/i18n'
+import { REASONING_LABEL_KEYS as reasoningLabels } from '@/lib/reasoning'
 import type { AgentModelDescriptor, AgentProviderDescriptor, AgentThinkingLevel } from '@/types/api'
 
 interface ModelPickerProps {
@@ -17,11 +18,6 @@ interface ModelPickerProps {
 interface ModelGroup {
   provider: AgentProviderDescriptor
   models: AgentModelDescriptor[]
-}
-
-const reasoningLabels: Record<AgentThinkingLevel, MessageKey> = {
-  off: 'composer.reasoning.off', minimal: 'composer.reasoning.minimal', low: 'composer.reasoning.low',
-  medium: 'composer.reasoning.medium', high: 'composer.reasoning.high', xhigh: 'composer.reasoning.xhigh', max: 'composer.reasoning.max',
 }
 
 export const ModelPicker = memo(function ModelPicker({ value, modelsByProvider, providers, onChange, onManageModels, effort, reasoningLevels, onEffortChange }: ModelPickerProps) {

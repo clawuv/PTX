@@ -1,4 +1,4 @@
-import type { AgentModelCatalog, AgentModelDescriptor, AgentProviderDescriptor } from '../../src/types/api'
+import type { AgentModelCatalog, AgentModelDescriptor, AgentProviderDescriptor, AgentThinkingLevel } from '../../src/types/api'
 import { catalogLimitWarnings, limitCatalogRelations, type ModelCatalogProvider } from './model-catalog'
 import { withModelVisibility } from './model-visibility'
 import { resolveExecutable, runProcess, type ExecutableSource } from './process-utils'
@@ -116,14 +116,14 @@ export abstract class CliModelCatalogService implements ModelCatalogProvider {
   /** Environment for the `--version` probe; undefined inherits the runProcess default. */
   protected versionEnvironment(): NodeJS.ProcessEnv | undefined { return undefined }
 
-  async catalog(force = false, disabledProviders: ReadonlySet<string> = new Set(), disabledModels: ReadonlySet<string> = new Set()): Promise<AgentModelCatalog> {
+  async catalog(force = false, disabledProviders: ReadonlySet<string> = new Set(), disabledModels: ReadonlySet<string> = new Set(), modelEffort: ReadonlyMap<string, AgentThinkingLevel> = new Map()): Promise<AgentModelCatalog> {
     const executable = resolveExecutable(this.executable)
     this.prepareExecutable(executable)
     if (!executable) {
       return { harnessVersion: 'unknown', refreshedAt: new Date().toISOString(), models: [], providers: [], warning: this.notInstalledWarning }
     }
     if (!force && this.cachedCatalog && Date.now() - this.cachedAt < CATALOG_TTL_MS) {
-      return withModelVisibility(this.cachedCatalog, disabledProviders, disabledModels)
+      return withModelVisibility(this.cachedCatalog, disabledProviders, disabledModels, modelEffort)
     }
     // Single-flight: concurrent callers share one CLI run instead of spawning
     // duplicate subprocesses; the in-flight promise is cleared in finally.
@@ -134,7 +134,7 @@ export abstract class CliModelCatalogService implements ModelCatalogProvider {
       this.catalogRefresh = { executable, promise }
     }
     try {
-      return withModelVisibility(await this.catalogRefresh.promise, disabledProviders, disabledModels)
+      return withModelVisibility(await this.catalogRefresh.promise, disabledProviders, disabledModels, modelEffort)
     } catch (error) {
       // A failed refresh degrades to the last good catalog instead of an
       // error; first-ever loads still surface the failure.
@@ -144,7 +144,7 @@ export abstract class CliModelCatalogService implements ModelCatalogProvider {
       return withModelVisibility({
         ...this.cachedCatalog,
         warning: this.cachedCatalog.warning ? `${this.cachedCatalog.warning} ${staleWarning}` : staleWarning,
-      }, disabledProviders, disabledModels)
+      }, disabledProviders, disabledModels, modelEffort)
     }
   }
 

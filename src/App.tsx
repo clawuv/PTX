@@ -1017,6 +1017,7 @@ export default function App() {
         onSetAllProvidersEnabled={provider.setAllEnabled}
         onSetAllProvidersDisabled={provider.setAllDisabled}
         onSetModelEnabled={provider.setModelEnabled}
+        onSetModelEffort={provider.setModelEffort}
         projects={projects}
         onAddProject={() => void addProject()}
         onOpenProject={selectProject}

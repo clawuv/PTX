@@ -225,6 +225,24 @@ describe('persisted settings parsing', () => {
       pi: 'anthropic/claude-sonnet-4',
     })
   })
+
+  it('keeps well-formed reasoning defaults and drops hostile map entries', () => {
+    const { settings } = loadState({
+      version: 4,
+      settings: {
+        modelEffort: {
+          omp: { 'anthropic/claude-sonnet-4': 'high', '..': 'low', 'openai/gpt': 'turbo' },
+          pi: 'not-a-map',
+        },
+      },
+    })
+    expect(settings.modelEffort).toEqual({ omp: { 'anthropic/claude-sonnet-4': 'high' }, pi: {} })
+  })
+
+  it('defaults the reasoning map when the persisted state predates it', () => {
+    const { settings } = loadState({ version: 4, settings: {} })
+    expect(settings.modelEffort).toEqual({ omp: {}, pi: {} })
+  })
 })
 
 describe('persisted schedule parsing', () => {

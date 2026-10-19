@@ -249,6 +249,12 @@ export interface AgentModelDescriptor {
   available: boolean
   /** Ptx visibility policy for this harness; absent catalogs predate per-model controls. */
   enabled?: boolean
+  /**
+   * Ptx-owned default reasoning effort for this model. Absent when the user
+   * never configured one, or when a stored level is no longer offered; the
+   * composer then keeps the session's current level.
+   */
+  defaultThinkingLevel?: AgentThinkingLevel
 }
 
 export interface AgentProviderDescriptor {
@@ -540,6 +546,12 @@ export interface AppSettings {
   piDisabledModels: string[]
   /** Last usable model selected in each harness; blank falls back to the first usable catalog model. */
   lastSelectedModels: Record<HarnessId, string>
+  /**
+   * Ptx-owned default reasoning effort per harness and model key. Session-level
+   * composer changes never write back here; the default applies when a model is
+   * selected. Absent keys mean "follow the session's current level".
+   */
+  modelEffort: Record<HarnessId, Record<string, AgentThinkingLevel>>
   /** Harness whose workspace the renderer shows; new installs default to 'omp'. */
   activeHarness: HarnessId
   /** OMP tool-approval override; 'inherit' leaves OMP's own config in charge. */
@@ -812,6 +824,8 @@ export interface PtxApi {
     setEnabled(providerId: string, enabled: boolean, harness?: HarnessId): Promise<AgentModelCatalog>
     setDisabled(providerIds: string[], harness?: HarnessId): Promise<AgentModelCatalog>
     setModelEnabled(modelKey: string, enabled: boolean, harness?: HarnessId): Promise<AgentModelCatalog>
+    /** Stores one model's default reasoning effort; an empty level clears it. */
+    setModelEffort(modelKey: string, level: AgentThinkingLevel | '', harness?: HarnessId): Promise<AgentModelCatalog>
   }
   voice: {
     credentialStatus(): Promise<VoiceCredentialStatus>

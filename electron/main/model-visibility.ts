@@ -1,10 +1,15 @@
-import type { AgentModelCatalog } from '../../src/types/api'
+import type { AgentModelCatalog, AgentThinkingLevel } from '../../src/types/api'
 
-/** Applies Ptx's synchronized provider/model visibility policy to a raw harness catalog. */
+/**
+ * Applies Ptx's synchronized provider/model visibility policy to a raw harness
+ * catalog, and decorates each model with the user's stored default reasoning
+ * effort when that level is still offered.
+ */
 export function withModelVisibility(
   catalog: AgentModelCatalog,
   disabledProviders: ReadonlySet<string>,
   disabledModels: ReadonlySet<string>,
+  modelEffort: ReadonlyMap<string, AgentThinkingLevel> = new Map(),
 ): AgentModelCatalog {
   const modelKeysByProvider = new Map<string, string[]>()
   for (const model of catalog.models) {
@@ -21,10 +26,14 @@ export function withModelVisibility(
 
   return {
     ...catalog,
-    models: catalog.models.map((model) => ({
-      ...model,
-      enabled: providerEnabled.get(model.provider) !== false && !disabledModels.has(model.key),
-    })),
+    models: catalog.models.map((model) => {
+      const effort = modelEffort.get(model.key)
+      return {
+        ...model,
+        enabled: providerEnabled.get(model.provider) !== false && !disabledModels.has(model.key),
+        ...(effort && model.availableThinkingLevels.includes(effort) ? { defaultThinkingLevel: effort } : {}),
+      }
+    }),
     providers: catalog.providers.map((provider) => ({ ...provider, enabled: providerEnabled.get(provider.id) !== false })),
   }
 }

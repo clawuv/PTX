@@ -28,4 +28,21 @@ describe('withModelVisibility', () => {
     expect(empty.providers[0].enabled).toBe(false)
     expect(empty.models.map((model) => model.enabled)).toEqual([false, false])
   })
+
+  it('decorates only the models whose stored default is still offered', () => {
+    const reasoning: AgentModelCatalog = {
+      ...catalog,
+      models: catalog.models.map((model) => ({ ...model, availableThinkingLevels: ['off', 'low', 'high'] })),
+    }
+    const result = withModelVisibility(reasoning, new Set(), new Set(), new Map([['openai/alpha', 'high'], ['openai/beta', 'max']]))
+    expect(result.models[0].defaultThinkingLevel).toBe('high')
+    // 'max' is not in beta's vocabulary, so the stale preference is dropped
+    // instead of shipping a level the harness would reject.
+    expect(result.models[1].defaultThinkingLevel).toBeUndefined()
+  })
+
+  it('leaves catalogs untouched when no effort preference is stored', () => {
+    const result = withModelVisibility(catalog, new Set(), new Set())
+    expect(result.models.every((model) => model.defaultThinkingLevel === undefined)).toBe(true)
+  })
 })

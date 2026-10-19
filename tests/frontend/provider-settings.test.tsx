@@ -8,6 +8,11 @@ import type { HarnessId, AgentModelCatalog, PtxApi, RuntimeInfo } from '../../sr
 
 vi.mock('../../src/components/ui', () => ({
   Modal: ({ title, children, footer }: { title: string; children: ReactNode; footer?: ReactNode }) => <div role="dialog" aria-label={title}>{children}{footer}</div>,
+  SelectMenu: ({ label, value, options, onChange, disabled }: { label: string; value: string; options: Array<{ value: string; label: string }>; onChange(value: string): void; disabled?: boolean }) => (
+    <select aria-label={label} value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
+      {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+    </select>
+  ),
 }))
 
 const model = {
@@ -64,6 +69,14 @@ async function click(element: HTMLElement) {
   await act(async () => { element.click() })
 }
 
+/** React tracks the DOM value, so typing requires the native setter. */
+async function type(input: HTMLInputElement, value: string) {
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+}
+
 function deferred<T = void>() {
   let resolve!: (value: T | PromiseLike<T>) => void
   let reject!: (reason?: unknown) => void
@@ -72,9 +85,11 @@ function deferred<T = void>() {
 }
 
 describe('provider settings behavior and accessibility', () => {
+  const allProps = { onRefresh: noop, onSetEnabled: noop, onSetAllEnabled: noop, onSetAllDisabled: noop, onSetModelEnabled: noop, onSetModelEffort: noop, onOpenDocs: () => undefined }
+
   it('gives each enable checkbox a provider-specific accessible name and reports toggle failure', async () => {
     const onSetEnabled = vi.fn().mockRejectedValue(new Error('Provider policy was not saved'))
-    await render(<ProviderSettings catalog={catalog} onRefresh={noop} onSetEnabled={onSetEnabled} onSetAllEnabled={noop} onSetAllDisabled={noop} onSetModelEnabled={noop} onOpenDocs={() => undefined} />)
+    await render(<ProviderSettings catalog={catalog} {...allProps} onSetEnabled={onSetEnabled} />)
 
     const checkbox = container.querySelector<HTMLInputElement>('input[aria-label="Show Anthropic provider"]')
     expect(checkbox).not.toBeNull()
@@ -84,66 +99,104 @@ describe('provider settings behavior and accessibility', () => {
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('Provider policy was not saved')
   })
 
-  it('uses one bulk mutation and exposes the provider and model catalogue UI', async () => {
-    const onSetEnabled = vi.fn().mockResolvedValue(undefined)
+  it('browses providers on the left and the selected provider models on the right', async () => {
     const onSetAllEnabled = vi.fn().mockResolvedValue(undefined)
-    const onSetAllDisabled = vi.fn().mockResolvedValue(undefined)
-    await render(<ProviderSettings catalog={catalog} onRefresh={noop} onSetEnabled={onSetEnabled} onSetAllEnabled={onSetAllEnabled} onSetAllDisabled={onSetAllDisabled} onSetModelEnabled={noop} onOpenDocs={() => undefined} />)
+    await render(<ProviderSettings catalog={catalog} {...allProps} onSetAllEnabled={onSetAllEnabled} />)
 
     expect(container.textContent).toContain('2 providers · 3 models')
-    expect(container.textContent).toContain('ChatGPT Plus/Pro')
-    expect(container.textContent).toContain('Anthropic')
+    // Enabled providers sort first, and the first one is selected on open.
     const providerRows = [...container.querySelectorAll('.provider-row')]
     expect(providerRows[0]?.textContent).toContain('ChatGPT Plus/Pro')
     expect(providerRows[1]?.textContent).toContain('Anthropic')
-    expect(button('Credential setup')).toBeTruthy()
-    expect(container.querySelector('input[type=password]')).toBeNull()
+    expect(providerRows[0]?.classList.contains('is-selected')).toBe(true)
+    expect(container.querySelector('.provider-browser__detail')?.textContent).toContain('GPT-5.6')
+    expect(container.querySelector('.provider-browser__detail')?.textContent).not.toContain('Claude Sonnet')
+    expect(button('Provider docs')).toBeTruthy()
+
+    // Selecting another provider swaps the detail pane without losing either query.
+    const searchInput = container.querySelector<HTMLInputElement>('input[aria-label="Search providers"]')!
+    await type(searchInput, 'anth')
+    const filtered = [...container.querySelectorAll('.provider-row')]
+    expect(filtered).toHaveLength(1)
+    await click(filtered[0]!.querySelector<HTMLElement>('.provider-row__select')!)
+    expect(container.querySelector('.provider-browser__detail')?.textContent).toContain('Claude Sonnet')
+
+    await type(searchInput, '')
+    await click(button('Shown 1'))
+    expect(container.querySelectorAll('.provider-row')).toHaveLength(1)
+    expect(container.querySelector('.provider-row')?.textContent).toContain('ChatGPT Plus/Pro')
+    await click(button('Hidden 1'))
+    expect(container.querySelector('.provider-row')?.textContent).toContain('Anthropic')
+    await click(button('All 2'))
+    expect(container.querySelectorAll('.provider-row')).toHaveLength(2)
+
     await click(button('Show all'))
     expect(onSetAllEnabled).toHaveBeenCalledTimes(1)
-    expect(onSetEnabled).not.toHaveBeenCalled()
-    await click(button('Hide all'))
-    expect(onSetAllDisabled).toHaveBeenCalledTimes(1)
-    expect(onSetEnabled).not.toHaveBeenCalled()
-
-    await click(button('Models'))
-    expect(container.textContent).toContain('GPT-5.6')
-    expect(container.textContent).toContain('GPT-5.5')
-    expect(container.textContent).toContain('Claude Sonnet')
-    expect(container.querySelector('input[aria-label="Search models"]')).not.toBeNull()
-    const groups = [...container.querySelectorAll('.provider-model-group')]
-    expect(groups).toHaveLength(2)
-    expect(groups[0]?.querySelector('.provider-model-group__heading')?.textContent).toContain('ChatGPT Plus/Pro')
-    expect(groups[0]?.querySelector('.provider-model-group__heading')?.textContent).toContain('1 of 2 on')
-    expect(groups[1]?.querySelector('.provider-model-group__heading')?.textContent).toContain('Anthropic')
-    expect(groups[1]?.querySelector('.provider-model-group__heading')?.textContent).toContain('0 of 1 on')
-    const openAiModels = [...groups[0]!.querySelectorAll('.provider-model-row')]
-    expect(openAiModels[0]?.textContent).toContain('GPT-5.6')
-    expect(openAiModels[1]?.textContent).toContain('GPT-5.5')
-    const openAiHeader = groups[0]!.querySelector<HTMLButtonElement>('.provider-model-group__heading')
-    const openAiContent = groups[0]!.querySelector<HTMLElement>('.provider-model-group__models')
-    expect(openAiHeader?.getAttribute('aria-expanded')).toBe('true')
-    expect(openAiContent?.hidden).toBe(false)
-    await click(openAiHeader!)
-    expect(openAiHeader?.getAttribute('aria-expanded')).toBe('false')
-    expect(openAiContent?.hidden).toBe(true)
-    await click(openAiHeader!)
-    expect(openAiHeader?.getAttribute('aria-expanded')).toBe('true')
-    expect(openAiContent?.hidden).toBe(false)
   })
 
-  it('puts each model switch at the far right and sends the model key', async () => {
-    const onSetModelEnabled = vi.fn().mockResolvedValue(undefined)
-    await render(<ProviderSettings catalog={catalog} onRefresh={noop} onSetEnabled={noop} onSetAllEnabled={noop} onSetAllDisabled={noop} onSetModelEnabled={onSetModelEnabled} onOpenDocs={() => undefined} />)
+  it('confirms the hide-all bulk mutation instead of applying it on the first click', async () => {
+    const onSetAllDisabled = vi.fn().mockResolvedValue(undefined)
+    await render(<ProviderSettings catalog={catalog} {...allProps} onSetAllDisabled={onSetAllDisabled} />)
 
-    await click(button('Models'))
-    const row = container.querySelector('.provider-model-row')
-    const toggle = row?.querySelector<HTMLInputElement>('input[aria-label="Show GPT-5.6 model"]')
-    expect(toggle).not.toBeNull()
-    expect(row?.lastElementChild?.classList.contains('provider-model-row__toggle')).toBe(true)
-    await click(toggle!)
+    await click(button('Hide all'))
+    expect(onSetAllDisabled).not.toHaveBeenCalled()
+    // The dialog title is its accessible name; the body explains the blast radius.
+    expect(container.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Hide every OMP provider?')
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain('All 2 providers disappear')
+
+    const confirm = [...container.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].filter((item) => item.textContent === 'Hide all').at(-1)!
+    await click(confirm)
+    expect(onSetAllDisabled).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows real model capabilities and keeps the visibility switch right-most', async () => {
+    const onSetModelEnabled = vi.fn().mockResolvedValue(undefined)
+    await render(<ProviderSettings catalog={catalog} {...allProps} onSetModelEnabled={onSetModelEnabled} />)
+
+    const row = container.querySelector('.provider-model-row')!
+    expect(row.textContent).toContain('400k ctx')
+    expect(row.textContent).toContain('128k out')
+    expect(row.textContent).toContain('Reasoning')
+    expect(row.textContent).toContain('Fast')
+    expect(row.lastElementChild?.classList.contains('provider-model-row__toggle')).toBe(true)
+
+    const toggle = row.querySelector<HTMLInputElement>('input[aria-label="Show GPT-5.6 model"]')!
+    await click(toggle)
     expect(onSetModelEnabled).toHaveBeenCalledWith('openai-codex/gpt-5.6', false)
   })
 
+  it('stores a per-model default reasoning level and can clear it', async () => {
+    const onSetModelEffort = vi.fn().mockResolvedValue(undefined)
+    await render(<ProviderSettings catalog={catalog} {...allProps} onSetModelEffort={onSetModelEffort} />)
+
+    const effort = container.querySelector<HTMLSelectElement>('select[aria-label="Default reasoning level for GPT-5.6"]')
+    expect(effort).not.toBeNull()
+    // Unset means "follow the session's level"; the shipped fixture has no default.
+    expect(effort!.value).toBe('')
+    expect([...effort!.options].map((option) => option.textContent)).toEqual(['Follow session', 'Low', 'Standard', 'High'])
+
+    await act(async () => {
+      effort!.value = 'high'
+      effort!.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(onSetModelEffort).toHaveBeenCalledWith('openai-codex/gpt-5.6', 'high')
+
+    const cleared = container.querySelector<HTMLSelectElement>('select[aria-label="Default reasoning level for GPT-5.6"]')!
+    await act(async () => {
+      cleared.value = ''
+      cleared.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(onSetModelEffort).toHaveBeenLastCalledWith('openai-codex/gpt-5.6', '')
+  })
+
+  it('hides the reasoning control for models with a single level', async () => {
+    const flat: AgentModelCatalog = {
+      ...catalog,
+      models: catalog.models.map((entry) => ({ ...entry, availableThinkingLevels: ['off'] as const })),
+    }
+    await render(<ProviderSettings catalog={flat} {...allProps} />)
+    expect(container.querySelector('select[aria-label^="Default reasoning level"]')).toBeNull()
+  })
 })
 
 describe('provider runtime mutations', () => {
@@ -228,6 +281,87 @@ describe('provider runtime mutations', () => {
 
     await act(async () => { await hook.value.setAllEnabled() })
     expect(hook.setDisabled).toHaveBeenCalledWith([], 'omp')
+  })
+
+  it('applies a model stored default effort when it is selected', async () => {
+    const command = vi.fn().mockResolvedValue({})
+    const preferred = {
+      ...catalog,
+      models: catalog.models.map((entry) => entry.key === 'openai-codex/gpt-5.5' ? { ...entry, defaultThinkingLevel: 'high' as const } : entry),
+    }
+    const catalogMock = vi.fn().mockResolvedValue(preferred)
+    const bridge = {
+      agent: { command },
+      providers: { catalog: catalogMock, setModelEnabled: vi.fn(), setModelEffort: vi.fn(), setEnabled: vi.fn(), setDisabled: vi.fn() },
+    } as unknown as PtxApi
+    // Stable identities: the hook re-fetches whenever its callbacks change.
+    const syncRuntime = vi.fn().mockResolvedValue(undefined)
+    const reportError = vi.fn()
+    let value: ReturnType<typeof useProviderCatalog> | undefined
+    function Harness() {
+      value = useProviderCatalog({ bridge, runtime, syncRuntime, reportError })
+      return null
+    }
+    await render(<Harness />)
+    await act(async () => { await Promise.resolve() })
+
+    act(() => value!.changeModel('openai-codex/gpt-5.5'))
+    expect(value!.effort).toBe('high')
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(command).toHaveBeenCalledWith('runtime-1', { type: 'set_thinking_level', level: 'high' })
+  })
+
+  it('persists a cleared default without touching the live runtime', async () => {
+    const command = vi.fn().mockResolvedValue({})
+    const setModelEffort = vi.fn().mockResolvedValue(catalog)
+    const bridge = {
+      agent: { command },
+      providers: { catalog: vi.fn().mockResolvedValue(catalog), setModelEnabled: vi.fn(), setModelEffort, setEnabled: vi.fn(), setDisabled: vi.fn() },
+    } as unknown as PtxApi
+    const syncRuntime = vi.fn().mockResolvedValue(undefined)
+    const reportError = vi.fn()
+    let value: ReturnType<typeof useProviderCatalog> | undefined
+    function Harness() {
+      value = useProviderCatalog({ bridge, runtime, syncRuntime, reportError })
+      return null
+    }
+    await render(<Harness />)
+    await act(async () => { await Promise.resolve() })
+
+    await act(async () => { await value!.setModelEffort('openai-codex/gpt-5.6', '') })
+    expect(setModelEffort).toHaveBeenCalledWith('openai-codex/gpt-5.6', '', 'omp')
+    // The preference applies the next time the model is selected, never as a live command.
+    expect(command).not.toHaveBeenCalled()
+  })
+
+  it('keeps the composer choice after the stored default was applied once', async () => {
+    const command = vi.fn().mockResolvedValue({})
+    const preferred = {
+      ...catalog,
+      models: catalog.models.map((entry) => entry.key === 'openai-codex/gpt-5.6' ? { ...entry, defaultThinkingLevel: 'high' as const } : entry),
+    }
+    const catalogMock = vi.fn().mockResolvedValue(preferred)
+    const bridge = { agent: { command }, providers: { catalog: catalogMock, setModelEnabled: vi.fn(), setModelEffort: vi.fn(), setEnabled: vi.fn(), setDisabled: vi.fn() } } as unknown as PtxApi
+    const syncRuntime = vi.fn().mockResolvedValue(undefined)
+    const reportError = vi.fn()
+    let value: ReturnType<typeof useProviderCatalog> | undefined
+    function Harness() {
+      value = useProviderCatalog({ bridge, runtime, syncRuntime, reportError })
+      return null
+    }
+    await render(<Harness />)
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+
+    // The stored default reaches the agent exactly once.
+    expect(command).toHaveBeenCalledWith('runtime-1', { type: 'set_thinking_level', level: 'high' })
+    command.mockClear()
+
+    // A session-level change is authoritative and survives a catalog refresh.
+    act(() => value!.changeEffort('low'))
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    await act(async () => { await value!.refresh(true) })
+    expect(value!.effort).toBe('low')
+    expect(command.mock.calls.filter(([, body]) => (body as { level?: string }).level === 'high')).toHaveLength(0)
   })
 
   it('keeps an optimistic fast-mode toggle across a catalog refresh', async () => {

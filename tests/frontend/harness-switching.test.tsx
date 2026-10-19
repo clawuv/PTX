@@ -525,6 +525,7 @@ describe('harness settings surfaces', () => {
         onSetAllProvidersEnabled={noopAsync}
         onSetAllProvidersDisabled={noopAsync}
         onSetModelEnabled={noopAsync}
+        onSetModelEffort={noopAsync}
       />
     )
 
@@ -629,15 +630,16 @@ describe('harness settings surfaces', () => {
     }
     const noopAsync = async () => undefined
     await act(async () => {
-      root.render(<ProviderSettings harness="omp" catalog={catalog} onRefresh={noopAsync} onSetEnabled={noopAsync} onSetAllEnabled={noopAsync} onSetAllDisabled={noopAsync} onSetModelEnabled={noopAsync} onOpenDocs={() => undefined} />)
+      root.render(<ProviderSettings harness="omp" catalog={catalog} onRefresh={noopAsync} onSetEnabled={noopAsync} onSetAllEnabled={noopAsync} onSetAllDisabled={noopAsync} onSetModelEnabled={noopAsync} onSetModelEffort={noopAsync} onOpenDocs={() => undefined} />)
     })
 
     expect(container.textContent).toContain('OMP catalogue')
     expect(container.textContent).toContain('Credentials managed by the omp CLI')
-    expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(2)
+    // Two provider switches plus the selected provider's bulk model switch.
+    expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(3)
     const buttonLabels = [...container.querySelectorAll('button')].map((button) => button.textContent ?? '')
     expect(buttonLabels.some((text) => text.includes('Hide all'))).toBe(true)
-    expect(buttonLabels.some((text) => text.includes('Credential setup'))).toBe(true)
+    expect(buttonLabels.some((text) => text.includes('Provider docs'))).toBe(true)
     for (const label of ['Connect', 'Reconnect', 'Add key', 'Replace key', 'Disable all', 'Enable all']) {
       expect(buttonLabels.some((text) => text.includes(label))).toBe(false)
     }
@@ -655,22 +657,23 @@ describe('harness settings surfaces', () => {
     const noopAsync = async () => undefined
     const onSetEnabled = vi.fn(async () => undefined)
     await act(async () => {
-      root.render(<ProviderSettings harness="pi" catalog={catalog} onRefresh={noopAsync} onSetEnabled={onSetEnabled} onSetAllEnabled={noopAsync} onSetAllDisabled={noopAsync} onSetModelEnabled={noopAsync} onOpenDocs={() => undefined} />)
+      root.render(<ProviderSettings harness="pi" catalog={catalog} onRefresh={noopAsync} onSetEnabled={onSetEnabled} onSetAllEnabled={noopAsync} onSetAllDisabled={noopAsync} onSetModelEnabled={noopAsync} onSetModelEffort={noopAsync} onOpenDocs={() => undefined} />)
     })
 
     expect(container.textContent).toContain('Pi catalogue')
     expect(container.textContent).toContain('Credentials managed by the pi CLI')
     const toggles = [...container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')]
-    expect(toggles).toHaveLength(2)
+    expect(toggles).toHaveLength(3)
     const buttonLabels = [...container.querySelectorAll('button')].map((button) => button.textContent ?? '')
     expect(buttonLabels.some((text) => text.includes('Hide all'))).toBe(true)
-    expect(buttonLabels.some((text) => text.includes('Credential setup'))).toBe(true)
+    expect(buttonLabels.some((text) => text.includes('Provider docs'))).toBe(true)
     for (const label of ['Connect', 'Reconnect', 'Add key', 'Replace key', 'Disable all', 'Enable all']) {
       expect(buttonLabels.some((text) => text.includes(label))).toBe(false)
     }
 
     // Toggling a provider only asks the desktop app to hide it; auth stays with the pi CLI.
-    await click(toggles[0])
+    // Providers sort enabled-first then alphabetically, so address the row by name.
+    await click(container.querySelector<HTMLInputElement>('input[aria-label="Show OpenAI Codex provider"]')!)
     expect(onSetEnabled).toHaveBeenCalledWith('openai-codex', false)
   })
 })

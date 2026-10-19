@@ -60,8 +60,8 @@ interface Harness {
 }
 
 function buildServices() {
-  const settingsState = { disabledProviders: ['blocked'], disabledModels: [], ompDisabledProviders: ['anthropic'], ompDisabledModels: [], piDisabledProviders: ['anthropic'], piDisabledModels: [] }
-  const catalog = (from: string, disabled: ReadonlySet<string> = new Set(), disabledModels: ReadonlySet<string> = new Set()) => {
+  const settingsState = { disabledProviders: ['blocked'], disabledModels: [], ompDisabledProviders: ['anthropic'], ompDisabledModels: [], piDisabledProviders: ['anthropic'], piDisabledModels: [], modelEffort: { omp: {} as Record<string, string>, pi: {} as Record<string, string> } }
+  const catalog = (from: string, disabled: ReadonlySet<string> = new Set(), disabledModels: ReadonlySet<string> = new Set(), modelEffort: ReadonlyMap<string, string> = new Map()) => {
     const models = [
       { key: 'anthropic/claude', provider: 'anthropic', id: 'claude' },
       { key: 'openai/gpt', provider: 'openai', id: 'gpt' },
@@ -70,7 +70,12 @@ function buildServices() {
     const providerEnabled = (id: string) => !disabled.has(id) && models.some((model) => model.provider === id && !disabledModels.has(model.key))
     return {
       from,
-      models: models.map((model) => ({ ...model, enabled: providerEnabled(model.provider) && !disabledModels.has(model.key) })),
+      models: models.map((model) => ({
+        ...model,
+        availableThinkingLevels: ['off', 'low', 'medium', 'high'],
+        enabled: providerEnabled(model.provider) && !disabledModels.has(model.key),
+        ...(modelEffort.get(model.key) ? { defaultThinkingLevel: modelEffort.get(model.key) } : {}),
+      })),
       providers: ['anthropic', 'openai'].map((id) => ({ id, enabled: providerEnabled(id) })),
     }
   }
@@ -116,7 +121,7 @@ function buildServices() {
         list: vi.fn(() => [{ runtimeId: 'omp-runtime', harness: 'omp' }]),
       },
       catalog: {
-        catalog: vi.fn(async (_force, disabled, disabledModels) => catalog('omp', disabled, disabledModels)),
+        catalog: vi.fn(async (_force, disabled, disabledModels, effort) => catalog('omp', disabled, disabledModels, effort)),
       },
     },
     pi: {
@@ -310,12 +315,12 @@ describe('harness-aware IPC routing', () => {
 
   it('routes providers:catalog with independent desktop visibility per harness', async () => {
     await expect(harness.invoke('providers:catalog', true)).resolves.toMatchObject({ from: 'omp' })
-    expect(harness.services.omp.catalog.catalog).toHaveBeenCalledWith(true, new Set(['anthropic']), new Set())
+    expect(harness.services.omp.catalog.catalog).toHaveBeenCalledWith(true, new Set(['anthropic']), new Set(), new Map())
 
     await expect(harness.invoke('providers:catalog', true, 'omp')).resolves.toMatchObject({ from: 'omp' })
-    expect(harness.services.omp.catalog.catalog).toHaveBeenCalledWith(true, new Set(['anthropic']), new Set())
+    expect(harness.services.omp.catalog.catalog).toHaveBeenCalledWith(true, new Set(['anthropic']), new Set(), new Map())
     await expect(harness.invoke('providers:catalog', true, 'pi')).resolves.toMatchObject({ from: 'pi' })
-    expect(harness.services.pi.catalog.catalog).toHaveBeenCalledWith(true, new Set(['anthropic']), new Set())
+    expect(harness.services.pi.catalog.catalog).toHaveBeenCalledWith(true, new Set(['anthropic']), new Set(), new Map())
   })
 
   it('does not register MCP-specific authentication or credential cleanup channels', () => {
@@ -349,6 +354,28 @@ describe('harness-aware IPC routing', () => {
       providers: [{ id: 'anthropic', enabled: true }, { id: 'openai', enabled: false }],
     })
     expect(harness.services.settings.update).toHaveBeenLastCalledWith({ piDisabledProviders: ['openai'], piDisabledModels: [] })
+  })
+
+  it('stores a per-model default reasoning effort and rejects unknown models or levels', async () => {
+    await expect(harness.invoke('providers:set-model-effort', 'openai/gpt', 'high', 'omp')).resolves.toMatchObject({
+      from: 'omp',
+      models: expect.arrayContaining([expect.objectContaining({ key: 'openai/gpt', defaultThinkingLevel: 'high' })]),
+    })
+    expect(harness.services.settings.update).toHaveBeenLastCalledWith({ modelEffort: { omp: { 'openai/gpt': 'high' }, pi: {} } })
+
+    // An empty level clears the stored default instead of persisting a no-op.
+    await expect(harness.invoke('providers:set-model-effort', 'openai/gpt', '', 'omp')).resolves.toMatchObject({
+      models: expect.arrayContaining([expect.objectContaining({ key: 'openai/gpt' })]),
+    })
+    expect(harness.services.settings.update).toHaveBeenLastCalledWith({ modelEffort: { omp: {}, pi: {} } })
+
+    await expect(async () => harness.invoke('providers:set-model-effort', 'openai/gpt', 'turbo', 'omp')).rejects.toThrow('level must be a thinking level or an empty string')
+    await expect(async () => harness.invoke('providers:set-model-effort', 'openai/missing', 'high', 'omp')).rejects.toThrow('Model was not found')
+  })
+
+  it('scopes the stored reasoning default to the requesting harness', async () => {
+    await expect(harness.invoke('providers:set-model-effort', 'openai/gpt', 'low', 'pi')).resolves.toBeTruthy()
+    expect(harness.services.settings.update).toHaveBeenLastCalledWith({ modelEffort: { omp: {}, pi: { 'openai/gpt': 'low' } } })
   })
 
   it('keeps OMP provider and model visibility synchronized in both directions', async () => {

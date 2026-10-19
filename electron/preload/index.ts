@@ -124,6 +124,7 @@ const api: PtxApi = {
     setEnabled: (providerId, enabled, harness) => invoke('providers:set-enabled', providerId, enabled, harness),
     setDisabled: (providerIds, harness) => invoke('providers:set-disabled', providerIds, harness),
     setModelEnabled: (modelKey, enabled, harness) => invoke('providers:set-model-enabled', modelKey, enabled, harness),
+    setModelEffort: (modelKey, level, harness) => invoke('providers:set-model-effort', modelKey, level, harness),
   },
   voice: {
     credentialStatus: () => invoke('voice:credential-status'),

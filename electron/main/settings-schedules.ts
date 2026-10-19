@@ -1,8 +1,11 @@
 import { session } from 'electron'
 import { isAbsolute } from 'node:path'
-import { BROWSER_PARTITION, HARNESS_IDS, INTERFACE_FONT_SCALES, type AppSettings } from '../../src/types/api'
+import { BROWSER_PARTITION, HARNESS_IDS, INTERFACE_FONT_SCALES, AGENT_THINKING_LEVELS, type AgentThinkingLevel, type AppSettings } from '../../src/types/api'
 import type { JsonStateStore } from './store'
 import { isRecord, rejectUnknownKeys, requireBoolean, requireInteger, requireSelfHostedVoiceUrl, requireString, requireWebUrl } from './validation'
+
+/** `provider/model` key shape shared by every model-key settings field. */
+const MODEL_KEY_PATTERN = /^[a-z0-9][a-z0-9._-]{0,127}\/[a-z0-9._:/+-]{1,256}$/i
 
 export class SettingsService {
   constructor(
@@ -130,6 +133,27 @@ export class SettingsService {
         }))]
       },
       piDisabledModels: (value) => this.disabledModels(value, 'piDisabledModels'),
+      modelEffort: (value) => {
+        if (!isRecord(value)) throw new TypeError('modelEffort must be an object')
+        rejectUnknownKeys(value, HARNESS_IDS, 'modelEffort')
+        const effort = {} as AppSettings['modelEffort']
+        for (const harness of HARNESS_IDS) {
+          const entries = value[harness]
+          if (!isRecord(entries)) throw new TypeError(`modelEffort.${harness} must be an object`)
+          const keys = Object.keys(entries)
+          if (keys.length > 5_000) throw new TypeError(`modelEffort.${harness} must be a bounded map`)
+          const levels = {} as Record<string, AgentThinkingLevel>
+          for (const key of keys) {
+            const modelKey = requireString(key, `modelEffort.${harness} key`, { min: 3, max: 385, trim: true })
+            if (!MODEL_KEY_PATTERN.test(modelKey)) throw new TypeError(`modelEffort.${harness} key is not a valid model key`)
+            const level = entries[key]
+            if (typeof level !== 'string' || !(AGENT_THINKING_LEVELS as readonly string[]).includes(level)) throw new TypeError(`modelEffort.${harness}.${modelKey} is not a valid thinking level`)
+            levels[modelKey] = level as AgentThinkingLevel
+          }
+          effort[harness] = levels
+        }
+        return effort
+      },
       lastSelectedModels: (value) => {
         if (!isRecord(value)) throw new TypeError('lastSelectedModels must be an object')
         rejectUnknownKeys(value, HARNESS_IDS, 'lastSelectedModels')
@@ -170,7 +194,7 @@ export class SettingsService {
     if (!Array.isArray(value) || value.length > 5_000) throw new TypeError(`${label} must be a bounded array`)
     return [...new Set(value.map((entry, index) => {
       const key = requireString(entry, `${label}[${index}]`, { min: 3, max: 385, trim: true })
-      if (!/^[a-z0-9][a-z0-9._-]{0,127}\/[a-z0-9._:/+-]{1,256}$/i.test(key)) throw new TypeError(`${label}[${index}] is not a valid model key`)
+      if (!MODEL_KEY_PATTERN.test(key)) throw new TypeError(`${label}[${index}] is not a valid model key`)
       return key
     }))]
   }

@@ -1,7 +1,7 @@
 import type { FeishuService } from './feishu/service'
 import type { TaskService } from './tasks/service'
 import { type IpcMainEvent, type IpcMainInvokeEvent, ipcMain, shell, type WebContents } from 'electron'
-import type { ApplicationMenuCommand, ApplicationMenuName, AppMeta, HarnessId, SessionChangeEvent, ThemeMode } from '../../src/types/api'
+import { AGENT_THINKING_LEVELS, type AgentThinkingLevel, type ApplicationMenuCommand, type ApplicationMenuName, type AppMeta, type HarnessId, type SessionChangeEvent, type ThemeMode } from '../../src/types/api'
 import type { AgentRpcManager } from './agent-rpc'
 import type { AgentBrowserService } from './browser/agent-service'
 import type { CuaDriverService } from './cua-driver'
@@ -49,6 +49,11 @@ interface Services {
   harnesses: HarnessRuntimeMap
   /** Applies the persisted interface scale to every live app renderer. */
   applyInterfaceZoom?(scale: number): void
+}
+
+/** Stored model-key → level map as the read-only map the catalog decorator consumes. */
+function effortMap(effort: Record<string, AgentThinkingLevel>): ReadonlyMap<string, AgentThinkingLevel> {
+  return new Map(Object.entries(effort))
 }
 
 function requireHarness(value: unknown): HarnessId {
@@ -330,8 +335,14 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
   handle('agent:stop', (_event, runtimeId) => agentsForRuntime(runtimeId).stop(runtimeId))
   handle('agent:list', () => Object.values(harnesses).flatMap((runtime) => runtime.agents.list()))
 
-  const ompProviderCatalog = (force = false) => harnesses.omp.catalog.catalog(force, new Set(services.settings.get().ompDisabledProviders), new Set(services.settings.get().ompDisabledModels))
-  const piProviderCatalog = (force = false) => harnesses.pi.catalog.catalog(force, new Set(services.settings.get().piDisabledProviders), new Set(services.settings.get().piDisabledModels))
+  const ompProviderCatalog = (force = false) => {
+    const settings = services.settings.get()
+    return harnesses.omp.catalog.catalog(force, new Set(settings.ompDisabledProviders), new Set(settings.ompDisabledModels), effortMap(settings.modelEffort.omp))
+  }
+  const piProviderCatalog = (force = false) => {
+    const settings = services.settings.get()
+    return harnesses.pi.catalog.catalog(force, new Set(settings.piDisabledProviders), new Set(settings.piDisabledModels), effortMap(settings.modelEffort.pi))
+  }
   const providerCatalogs: Record<HarnessId, (force?: boolean) => ReturnType<ModelCatalogProvider['catalog']>> = {
     omp: ompProviderCatalog,
     pi: piProviderCatalog,
@@ -403,6 +414,23 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
       [providerSettingsKey]: [...disabledProviders].sort(),
       [modelSettingsKey]: [...disabledModels].sort(),
     })
+    return providerCatalogs[target]()
+  })
+  // A model's default reasoning effort is a Ptx preference, never a harness
+  // credential: it only decides which level Ptx asks for when the model is
+  // selected. An empty level clears the stored default.
+  handle('providers:set-model-effort', async (_event, modelKey, level, harness) => {
+    const target = requireHarness(harness)
+    const key = requireString(modelKey, 'modelKey', { min: 3, max: 385, trim: true })
+    if (level !== '' && (typeof level !== 'string' || !(AGENT_THINKING_LEVELS as readonly string[]).includes(level))) throw new TypeError('level must be a thinking level or an empty string')
+    const catalog = await providerCatalogs[target]()
+    const model = catalog.models.find((candidate) => candidate.key === key)
+    if (!model) throw new Error('Model was not found')
+    if (level && !model.availableThinkingLevels.includes(level as AgentThinkingLevel)) throw new Error(`${model.name} does not offer the ${level} reasoning level`)
+    const current = { ...services.settings.get().modelEffort[target] }
+    if (level) current[key] = level as AgentThinkingLevel
+    else delete current[key]
+    await services.settings.update({ modelEffort: { ...services.settings.get().modelEffort, [target]: current } })
     return providerCatalogs[target]()
   })
   handle('voice:credential-status', () => services.voice.credentialStatus())

@@ -43,6 +43,7 @@ export const SETTINGS_FIELD_SECTIONS = {
   piDisabledProviders: 'providers',
   piDisabledModels: 'providers',
   lastSelectedModels: 'providers',
+  modelEffort: 'providers',
   activeHarness: 'agent',
   ompApprovalMode: 'agent',
   petEnabled: 'pets',

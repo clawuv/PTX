@@ -149,8 +149,28 @@ export function useProviderCatalog({ bridge, ready = true, harness = 'omp', runt
       updateModel(effectiveModel.key)
       rememberSelectionRef.current(effectiveModel.key)
     }
+    // The runtime stays authoritative for the composer: a session-level change
+    // must survive catalog refreshes even when the model has a stored default.
     if (runtime.thinkingLevel && effectiveModel?.availableThinkingLevels.includes(runtime.thinkingLevel as AgentThinkingLevel)) updateEffort(runtime.thinkingLevel as AgentThinkingLevel)
   }, [catalog, runtime?.model?.id, runtime?.model?.provider, runtime?.thinkingLevel, updateEffort, updateModel])
+
+  // A stored per-model default has to reach the agent, not just the composer.
+  // It is queued once per (runtime, model, level); afterwards the runtime's own
+  // reported level wins, so a session-level change in the composer is never
+  // re-applied on a later render or catalog refresh.
+  const appliedDefaultRef = useRef('')
+  useEffect(() => {
+    const level = selectedModel?.defaultThinkingLevel
+    if (!bridge || !runtime || !level || !selectedModel) return
+    const stamp = `${runtime.runtimeId}:${selectedModel.key}:${level}`
+    if (appliedDefaultRef.current === stamp) return
+    appliedDefaultRef.current = stamp
+    queueRuntimeMutation(
+      runtime.runtimeId,
+      async () => { await bridge.agent.command(runtime.runtimeId, { type: 'set_thinking_level', level }) },
+      () => undefined,
+    )
+  }, [bridge, queueRuntimeMutation, runtime, selectedModel])
 
   // Scoped to the runtime's reported tier so a catalog refresh cannot revert
   // an optimistic fast-mode toggle that the runtime has not confirmed yet.
@@ -162,9 +182,13 @@ export function useProviderCatalog({ bridge, ready = true, harness = 'omp', runt
   const changeModel = useCallback((nextModelKey: string) => {
     const previous = { model: modelRef.current, effort: effortRef.current, fast: fastRef.current }
     const nextModel = catalog?.models.find((candidate) => candidate.key === nextModelKey)
-    const nextEffort = nextModel && !nextModel.availableThinkingLevels.includes(effortRef.current)
+    // A model's stored Ptx default wins; without one the session keeps its
+    // current level when the new model supports it (the pre-preference
+    // behavior). Composer changes never write back to that stored default.
+    const preferred = nextModel?.defaultThinkingLevel ?? effortRef.current
+    const nextEffort = nextModel && !nextModel.availableThinkingLevels.includes(preferred)
       ? nextModel.availableThinkingLevels.includes('medium') ? 'medium' : nextModel.availableThinkingLevels[0] ?? 'off'
-      : effortRef.current
+      : preferred
     updateModel(nextModelKey)
     updateEffort(nextEffort)
     if (!nextModel?.fastModeSupported) updateFast(false)
@@ -250,9 +274,19 @@ export function useProviderCatalog({ bridge, ready = true, harness = 'omp', runt
     }
   }, [bridge, fallbackModel, harness, rememberSelection, setCatalogFor, updateFast, updateModel])
 
+  /**
+   * Persists one model's default reasoning effort. An empty level clears it.
+   * This is a settings preference, not a live agent command: the stored default
+   * is applied the next time the model is selected.
+   */
+  const setModelEffort = useCallback(async (modelKey: string, level: AgentThinkingLevel | '') => {
+    if (!bridge) throw new Error('Models can only be configured in the desktop app.')
+    setCatalogFor(harness, await bridge.providers.setModelEffort(modelKey, level, harness))
+  }, [bridge, harness, setCatalogFor])
+
   return {
     model, effort, fast, catalog, selectedModel, reasoningLevels, modelsByProvider,
     refresh, changeModel, changeEffort, changeFast,
-    setEnabled, setAllEnabled, setAllDisabled, setModelEnabled,
+    setEnabled, setAllEnabled, setAllDisabled, setModelEnabled, setModelEffort,
   }
 }

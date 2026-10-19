@@ -3,7 +3,7 @@ import { closeSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, st
 import { open, rename, unlink } from 'node:fs/promises'
 import type { FileHandle } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join } from 'node:path'
-import { INTERFACE_FONT_SCALES, AGENT_THINKING_LEVELS, type AppSettings, type HarnessId, type ProjectRecord, type ProjectScripts, type ScheduleExecution, type AutomationScheduleRecord, type ScheduleRunRecord, type ScheduleTarget, type ScheduleTiming } from '../../src/types/api'
+import { INTERFACE_FONT_SCALES, AGENT_THINKING_LEVELS, type AgentThinkingLevel, type AppSettings, type HarnessId, type ProjectRecord, type ProjectScripts, type ScheduleExecution, type AutomationScheduleRecord, type ScheduleRunRecord, type ScheduleTarget, type ScheduleTiming } from '../../src/types/api'
 import { normalizeScheduleRunHistory } from './schedules/retention'
 import { isRecord } from './validation'
 
@@ -128,6 +128,7 @@ export function defaultSettings(): AppSettings {
     piDisabledProviders: [],
     piDisabledModels: [],
     lastSelectedModels: { omp: '', pi: '' },
+    modelEffort: { omp: {}, pi: {} },
     activeHarness: 'omp',
     ompApprovalMode: 'inherit',
     petEnabled: true,
@@ -239,6 +240,12 @@ function parseSettings(value: unknown): AppSettings {
         pi: parseLastSelectedModel(value.lastSelectedModels.pi, defaults.lastSelectedModels.pi),
       }
     : defaults.lastSelectedModels
+  const modelEffort = isRecord(value.modelEffort)
+    ? {
+        omp: parseModelEffort(value.modelEffort.omp),
+        pi: parseModelEffort(value.modelEffort.pi),
+      }
+    : defaults.modelEffort
   return {
     theme: value.theme === 'light' || value.theme === 'dark' || value.theme === 'system' ? value.theme : defaults.theme,
     locale: value.locale === 'en' || value.locale === 'zh-CN' || value.locale === 'system' ? value.locale : defaults.locale,
@@ -274,6 +281,7 @@ function parseSettings(value: unknown): AppSettings {
       : defaults.piDisabledProviders,
     piDisabledModels: parseDisabledModels(value.piDisabledModels, defaults.piDisabledModels),
     lastSelectedModels,
+    modelEffort,
     activeHarness,
     ompApprovalMode: value.ompApprovalMode === 'inherit' || value.ompApprovalMode === 'always-ask' || value.ompApprovalMode === 'write' || value.ompApprovalMode === 'yolo' ? value.ompApprovalMode : defaults.ompApprovalMode,
     petEnabled: typeof value.petEnabled === 'boolean' ? value.petEnabled : defaults.petEnabled,
@@ -298,6 +306,19 @@ function parseDisabledModels(value: unknown, fallback: string[]): string[] {
   return [...new Set(value.filter((item): item is string => (
     typeof item === 'string' && /^[a-z0-9][a-z0-9._-]{0,127}\/[a-z0-9._:/+-]{1,256}$/i.test(item)
   )))].slice(0, 5_000)
+}
+
+/** Bounded model-key → reasoning-level map; unknown keys and levels are dropped. */
+function parseModelEffort(value: unknown): Record<string, AgentThinkingLevel> {
+  if (!isRecord(value)) return {}
+  const effort: Record<string, AgentThinkingLevel> = {}
+  for (const [key, level] of Object.entries(value)) {
+    if (Object.keys(effort).length >= 5_000) break
+    if (!/^[a-z0-9][a-z0-9._-]{0,127}\/[a-z0-9._:/+-]{1,256}$/i.test(key)) continue
+    if (typeof level !== 'string' || !(AGENT_THINKING_LEVELS as readonly string[]).includes(level)) continue
+    effort[key] = level as AgentThinkingLevel
+  }
+  return effort
 }
 
 const THINKING_LEVELS: ReadonlySet<string> = new Set(['auto', ...AGENT_THINKING_LEVELS])

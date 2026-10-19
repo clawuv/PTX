@@ -1,4 +1,4 @@
-import type { AgentModelCatalog, AgentModelDescriptor, AgentProviderDescriptor } from '../../src/types/api'
+import type { AgentModelCatalog, AgentModelDescriptor, AgentProviderDescriptor, AgentThinkingLevel } from '../../src/types/api'
 import type { ProviderCatalog } from './agent-rpc'
 
 /**
@@ -8,13 +8,20 @@ import type { ProviderCatalog } from './agent-rpc'
  * - `AgentRpcManager` calls `requireAvailableModel` (start options and
  *   `set_model` validation) and `capabilities` (runtime capability decoration
  *   after model or thinking changes).
- * - The `providers:catalog` IPC handler calls `catalog(force, disabledProviders, disabledModels)`.
+ * - The `providers:catalog` IPC handler calls
+ *   `catalog(force, disabledProviders, disabledModels, modelEffort)`.
  *
  * Auth mutations (API keys, logout, OAuth flows) are intentionally excluded:
  * authentication is owned by the harness CLI itself.
  */
 export interface ModelCatalogProvider extends ProviderCatalog {
-  catalog(force?: boolean, disabledProviders?: ReadonlySet<string>, disabledModels?: ReadonlySet<string>): Promise<AgentModelCatalog>
+  catalog(
+    force?: boolean,
+    disabledProviders?: ReadonlySet<string>,
+    disabledModels?: ReadonlySet<string>,
+    /** Ptx-owned per-model default reasoning effort, keyed by model key. */
+    modelEffort?: ReadonlyMap<string, AgentThinkingLevel>,
+  ): Promise<AgentModelCatalog>
 }
 
 export const MAX_CATALOG_MODELS = 5_000

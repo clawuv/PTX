@@ -4,7 +4,7 @@ import { Modal } from '@/components/ui'
 import { errorMessage } from '@/lib/errors'
 import { useI18n } from '@/lib/i18n'
 import { detectRendererPlatform } from '@/lib/platform-shortcuts'
-import type { AgentModelCatalog, AppMeta, AppSettings, ProjectRecord, PtxApi } from '@/types/api'
+import type { AgentModelCatalog, AgentThinkingLevel, AppMeta, AppSettings, ProjectRecord, PtxApi } from '@/types/api'
 import { ProjectsPage } from './ProjectsPage'
 import { AboutSettings } from './settings/AboutSettings'
 import { AgentSettings } from './settings/AgentSettings'
@@ -37,6 +37,7 @@ interface SettingsPageProps {
   onSetAllProvidersEnabled(): Promise<void>
   onSetAllProvidersDisabled(): Promise<void>
   onSetModelEnabled(modelKey: string, enabled: boolean): Promise<void>
+  onSetModelEffort(modelKey: string, level: AgentThinkingLevel | ''): Promise<void>
   /** Project management renders inside Settings > Workspace. */
   projects: ProjectRecord[]
   onAddProject(): void
@@ -66,6 +67,7 @@ export function SettingsPage({
   onSetAllProvidersEnabled,
   onSetAllProvidersDisabled,
   onSetModelEnabled,
+  onSetModelEffort,
   projects,
   onAddProject,
   onOpenProject,
@@ -127,6 +129,7 @@ export function SettingsPage({
             onSetAllEnabled={onSetAllProvidersEnabled}
             onSetAllDisabled={onSetAllProvidersDisabled}
             onSetModelEnabled={onSetModelEnabled}
+            onSetModelEffort={onSetModelEffort}
             onOpenDocs={onOpenDocs}
           />
         )

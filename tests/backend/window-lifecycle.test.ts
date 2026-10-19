@@ -52,7 +52,7 @@ describe('application window lifecycle', () => {
     })
     expect(mainWindowChromeOptions('win32')).toEqual({
       frame: false,
-      thickFrame: false,
+      thickFrame: true,
       hasShadow: false,
       accentColor: false,
       titleBarStyle: 'hidden',

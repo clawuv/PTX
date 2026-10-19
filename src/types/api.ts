@@ -334,6 +334,20 @@ export interface McpStateInput {
   enabled: boolean
 }
 
+export interface McpProbeInput {
+  name: string
+  scope: 'user' | 'project'
+  projectPath?: string
+}
+
+export interface McpProbeResult {
+  ok: boolean
+  detail?: string
+  latencyMs?: number
+  serverName?: string
+  serverVersion?: string
+}
+
 export interface CapabilityMutationInput {
   kind: 'package' | 'mcp'
   action: 'enable' | 'disable' | 'remove'
@@ -844,6 +858,7 @@ export interface PtxApi {
     setMcpSupport(enabled: boolean, harness?: HarnessId): Promise<ProcessOutcome>
     connectMcp(input: McpConnectionInput, harness?: HarnessId): Promise<ProcessOutcome>
     setMcpEnabled(input: McpStateInput, harness?: HarnessId): Promise<ProcessOutcome>
+    probeMcp(input: McpProbeInput, harness?: HarnessId): Promise<McpProbeResult>
     mutateCapability(input: CapabilityMutationInput, harness?: HarnessId): Promise<ProcessOutcome>
     refresh(harness?: HarnessId): Promise<PluginCatalog>
   }

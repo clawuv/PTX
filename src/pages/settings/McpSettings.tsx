@@ -1,15 +1,22 @@
-import { Globe2, Plus, ShieldCheck } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Globe2, Plus, RefreshCw, ShieldCheck } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { Modal } from '@/components/ui'
 import { errorMessage } from '@/lib/errors'
 import { useI18n } from '@/lib/i18n'
-import type { HarnessId, McpConnectionInput, ProjectRecord, SkillRecord } from '@/types/api'
+import type { HarnessId, McpConnectionInput, McpProbeInput, McpProbeResult, ProjectRecord, SkillRecord } from '@/types/api'
 
 const ENGINES = [
   { id: 'pi', name: 'Pi' },
   { id: 'omp', name: 'OMP' },
 ] as const
 type Scope = 'user' | 'project'
+
+interface McpProbeState {
+  phase: 'unknown' | 'checking' | 'ok' | 'fail'
+  detail?: string
+  latencyMs?: number
+  serverLabel?: string
+}
 
 export function McpSettings({ initialHarness, projects }: { initialHarness: HarnessId; projects: ProjectRecord[] }) {
   const { t } = useI18n()
@@ -23,6 +30,9 @@ export function McpSettings({ initialHarness, projects }: { initialHarness: Harn
   const [addOpen, setAddOpen] = useState(false)
   const [editing, setEditing] = useState<SkillRecord | null>(null)
   const [form, setForm] = useState({ name: '', command: '', args: '', scope: 'user' as Scope, projectId: '' })
+  const [probes, setProbes] = useState<Record<string, McpProbeState>>({})
+  const probingAllRef = useRef(false)
+  const autoProbedRef = useRef('')
 
   const granted = projects.filter((project) => project.harness === harness && !project.inferred && !project.readOnly)
   const filterPath = granted.find((project) => project.id === projectId)?.primaryFolder
@@ -34,6 +44,47 @@ export function McpSettings({ initialHarness, projects }: { initialHarness: Harn
     setProjectId('')
     setForm((current) => ({ ...current, projectId: '' }))
   }, [harness])
+
+  const probeInput = (skill: SkillRecord): McpProbeInput => ({
+    name: skill.name,
+    scope: skill.location === 'project' ? 'project' : 'user',
+    ...(skill.location === 'project' && filterPath ? { projectPath: filterPath } : {}),
+  })
+  const probeOne = async (skill: SkillRecord): Promise<McpProbeResult> => {
+    setProbes((current) => ({ ...current, [skill.id]: { phase: 'checking' } }))
+    try {
+      const result = await window.ptx.plugins.probeMcp(probeInput(skill), harness)
+      setProbes((current) => ({
+        ...current,
+        [skill.id]: result.ok
+          ? {
+              phase: 'ok',
+              latencyMs: result.latencyMs,
+              ...(result.serverName || result.serverVersion ? { serverLabel: [result.serverName, result.serverVersion].filter(Boolean).join(' ') } : {}),
+            }
+          : { phase: 'fail', detail: result.detail },
+      }))
+      return result
+    } catch (error) {
+      const detail = errorMessage(error)
+      setProbes((current) => ({ ...current, [skill.id]: { phase: 'fail', detail } }))
+      return { ok: false, detail }
+    }
+  }
+  // One automatic status sweep per harness+scope view: statuses describe live
+  // servers, so they go stale whenever the catalog itself changes.
+  useEffect(() => {
+    const key = `${harness}:${filterPath ?? 'user'}`
+    if (loading || !servers.length || autoProbedRef.current === key || probingAllRef.current) return
+    autoProbedRef.current = key
+    probingAllRef.current = true
+    void (async () => { for (const skill of servers) await probeOne(skill) })().finally(() => { probingAllRef.current = false })
+  }, [loading, servers, harness, filterPath])
+  const refreshAll = () => {
+    if (probingAllRef.current || !servers.length) return
+    probingAllRef.current = true
+    void (async () => { for (const skill of servers) await probeOne(skill) })().finally(() => { probingAllRef.current = false })
+  }
 
   useEffect(() => {
     let live = true
@@ -161,6 +212,10 @@ export function McpSettings({ initialHarness, projects }: { initialHarness: Harn
           <h1>{t('settings.mcp')}</h1>
           <p>{t('settings.mcp.description')}</p>
         </div>
+        <button type="button" className="button" disabled={loading || !servers.length} onClick={refreshAll}>
+          <RefreshCw size={14} />
+          {t('settings.mcp.status.refresh')}
+        </button>
         <button type="button" className="button button--primary" onClick={openAdd}>
           <Plus size={14} />
           {t('settings.mcp.add.submit')}
@@ -212,6 +267,7 @@ export function McpSettings({ initialHarness, projects }: { initialHarness: Harn
         <ul className="mcp-list">
           {servers.map((skill) => {
             const blocked = rowBlocked(skill)
+            const probeState = probes[skill.id] ?? { phase: 'unknown' as const }
             return (
               <li className="mcp-row" key={skill.id}>
                 <span className="mcp-row__icon">
@@ -225,12 +281,35 @@ export function McpSettings({ initialHarness, projects }: { initialHarness: Harn
                   </small>
                   {blocked ? <small className="mcp-row__detail">{blocked}</small> : null}
                 </div>
+                {(() => {
+                  const state = probeState
+                  return (
+                    <span
+                      className={`mcp-row__status mcp-row__status--${state.phase}`}
+                      title={state.detail ?? state.serverLabel}
+                    >
+                      {state.phase === 'checking' ? <RefreshCw size={12} className="mcp-row__spin" /> : state.phase !== 'unknown' ? <span className="mcp-row__dot" /> : null}
+                      {t(`settings.mcp.status.${state.phase}`)}
+                      {state.phase === 'ok' && state.latencyMs !== undefined ? ` · ${state.latencyMs} ms` : ''}
+                    </span>
+                  )
+                })()}
                 {blocked ? (
                   <span className="mcp-row__shield" title={blocked}>
                     <ShieldCheck size={14} />
                   </span>
                 ) : (
                   <div className="mcp-row__actions">
+                    <button
+                      type="button"
+                      className="icon-button mcp-row__refresh"
+                      title={t('settings.mcp.status.refreshOne')}
+                      aria-label={t('settings.mcp.status.refreshOne')}
+                      disabled={probeState.phase === 'checking' || Boolean(busy)}
+                      onClick={() => void probeOne(skill)}
+                    >
+                      <RefreshCw size={13} />
+                    </button>
                     <button type="button" className={skill.enabled ? 'button' : 'button button--primary'} disabled={Boolean(busy)} onClick={() => setEnabled(skill, !skill.enabled)}>
                       {skill.enabled ? t('settings.mcp.disable') : t('settings.mcp.enable')}
                     </button>

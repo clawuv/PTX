@@ -322,6 +322,12 @@ const en = {
   'settings.mcp.editServer': 'Edit local stdio server',
   'settings.mcp.edit.submit': 'Save changes',
   'settings.mcp.updated': 'MCP server updated.',
+  'settings.mcp.status.refresh': 'Refresh status',
+  'settings.mcp.status.refreshOne': 'Check connection',
+  'settings.mcp.status.unknown': 'Not checked',
+  'settings.mcp.status.checking': 'Checking…',
+  'settings.mcp.status.ok': 'Connected',
+  'settings.mcp.status.fail': 'Failed',
 
   // Provider auth modal
 } as const
@@ -631,6 +637,12 @@ const zh = {
   'settings.mcp.editServer': '编辑本地 stdio 服务器',
   'settings.mcp.edit.submit': '保存修改',
   'settings.mcp.updated': 'MCP 服务器已更新。',
+  'settings.mcp.status.refresh': '刷新状态',
+  'settings.mcp.status.refreshOne': '检查连接',
+  'settings.mcp.status.unknown': '未检测',
+  'settings.mcp.status.checking': '检查中…',
+  'settings.mcp.status.ok': '已连接',
+  'settings.mcp.status.fail': '连接失败',
 }
 
 export const settingsCatalog = defineCatalog(en, zh)

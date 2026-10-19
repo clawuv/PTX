@@ -1,7 +1,7 @@
 import { realpathSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import type { HarnessId, PluginCatalog, ProcessOutcome, SkillRecord } from '../../src/types/api'
+import type { HarnessId, McpProbeResult, PluginCatalog, ProcessOutcome, SkillRecord } from '../../src/types/api'
 import { PI_MCP_ADAPTER_REQUIRED_DETAIL } from '../../src/lib/mcp-policy'
 import { HARNESSES } from './harness'
 import { createAdmissionQueue, createSingleFlight } from './lib/async'
@@ -13,6 +13,7 @@ import { acquireSettingsLock, prepareProjectSettingsPath, removeMcpDefinition, s
 import type { ProjectSettingsPath } from './plugins/mcp'
 import { executeOmpPluginAction, executeOmpPluginInstall, executePiPluginInstall, executePiPluginRemove, validatePackageSource } from './plugins/package-execution'
 import { installOmpExtension, validateExtensionInstallInput } from './plugins/extension-installation'
+import { probeMcpServer } from './plugins/mcp-probe'
 
 type PluginDiscovery = typeof discoverPlugins
 
@@ -340,6 +341,26 @@ export class PluginService {
         await releaseSettings()
       }
     }))
+  }
+
+  /** Launches the stored definition once for an MCP initialize handshake; the renderer only supplies a reference. */
+  async probeMcp(inputValue: unknown): Promise<McpProbeResult> {
+    if (!isRecord(inputValue)) throw new TypeError('MCP probe input must be an object')
+    const name = requireString(inputValue.name, 'name', { min: 1, max: 200 })
+    const scope = inputValue.scope === 'project' ? 'project' : inputValue.scope === 'user' ? 'user' : undefined
+    if (!scope) throw new TypeError('MCP probe scope must be user or project')
+    const catalog = scope === 'project'
+      ? await this.list(await this.authorizeProject(requireString(inputValue.projectPath, 'projectPath', { min: 1, max: 4096 })))
+      : await this.list()
+    const match = catalog.skills.find((skill) => skill.kind === 'mcp' && skill.name === name
+      && (scope === 'project' ? skill.location === 'project' : skill.location === 'user'))
+    const command = match?.mcpDefinition?.command
+    if (!command) {
+      return { ok: false, detail: match
+        ? 'MCP definition has no local stdio command'
+        : 'MCP server definition was not found in this scope' }
+    }
+    return await probeMcpServer({ command, args: match!.mcpDefinition?.args ?? [] })
   }
 
   async mutateCapability(inputValue: unknown): Promise<ProcessOutcome> {

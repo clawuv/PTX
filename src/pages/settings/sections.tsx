@@ -1,4 +1,4 @@
-import { AudioLines, Bot, Boxes, Folder, Info, LockKeyhole, PawPrint, Server, Settings2, Smartphone, Sun, Terminal } from 'lucide-react'
+import { Bot, Boxes, Folder, Info, LockKeyhole, Server, Settings2, Smartphone, Sun, Terminal } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { BrowserGlobe } from '@/components/ui'
 import type { MessageKey } from '@/lib/i18n'
@@ -33,8 +33,8 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
     label: 'settings.group.features',
     sections: [
       { id: 'mobile', label: 'sidebar.mobileSoon', icon: Smartphone },
-      { id: 'voice', label: 'settings.voice', icon: AudioLines },
-      { id: 'pets', label: 'settings.pets', icon: PawPrint },
+      // Voice and Pets stay implemented but are not open for use yet; restore
+      // their entries here when they ship.
       { id: 'browser', label: 'settings.browser', icon: BrowserGlobe },
       { id: 'terminal', label: 'settings.terminal', icon: Terminal },
     ],

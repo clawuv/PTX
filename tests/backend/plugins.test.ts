@@ -1578,3 +1578,44 @@ describe('PluginService Pi parity', () => {
     expect(() => service.authorizeReveal(outsideSkill)).toThrow('plugin path was not discovered')
   })
 })
+
+describe('PluginService MCP probe', () => {
+  it('probes the stored user-scope definition by reference', async () => {
+    const root = temp()
+    const agentDir = join(root, 'agent')
+    mkdirSync(agentDir)
+    const serverScript = join(root, 'mcp-server.cjs')
+    writeFileSync(serverScript, [
+      `let buffer = ''`,
+      `process.stdin.on('data', (chunk) => {`,
+      `  buffer += chunk`,
+      `  const index = buffer.indexOf('\\n')`,
+      `  if (index < 0) return`,
+      `  const request = JSON.parse(buffer.slice(0, index))`,
+      `  process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: request.id, result: { serverInfo: { name: 'referenced-mcp', version: '1.2.3' } } }) + '\\n')`,
+      `})`,
+    ].join('\n'))
+    writeFileSync(join(agentDir, 'mcp.json'), JSON.stringify({ mcpServers: {
+      'local-server': { type: 'stdio', command: process.execPath, args: [serverScript] },
+    } }))
+    const service = new PluginService(null, async (path) => realpathSync(path), { agentDir })
+
+    const result = await service.probeMcp({ name: 'local-server', scope: 'user' })
+    expect(result.ok).toBe(true)
+    expect(result.serverName).toBe('referenced-mcp')
+    expect(result.serverVersion).toBe('1.2.3')
+
+    const missing = await service.probeMcp({ name: 'other-server', scope: 'user' })
+    expect(missing.ok).toBe(false)
+    expect(missing.detail).toContain('not found')
+  }, 15_000)
+
+  it('authorizes the project scope before resolving a project definition', async () => {
+    const root = temp()
+    const agentDir = join(root, 'agent')
+    mkdirSync(agentDir)
+    const service = new PluginService(null, async () => { throw new TypeError('project is not granted') }, { agentDir })
+
+    await expect(service.probeMcp({ name: 'local-server', scope: 'project', projectPath: 'E:/somewhere' })).rejects.toThrow('project is not granted')
+  }, 15_000)
+})

@@ -178,6 +178,7 @@ const api: PtxApi = {
     setMcpSupport: (enabled, harness) => invoke('plugins:set-mcp-support', enabled, harness),
     connectMcp: (input, harness) => invoke('plugins:connect-mcp', input, harness),
     setMcpEnabled: (input, harness) => invoke('plugins:set-mcp-enabled', input, harness),
+    probeMcp: (input, harness) => invoke('plugins:probe-mcp', input, harness),
     mutateCapability: (input, harness) => invoke('plugins:mutate-capability', input, harness),
     refresh: (harness) => invoke('plugins:refresh', harness),
   },

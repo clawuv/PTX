@@ -1008,22 +1008,17 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(page.locator('.voice-orb')).toHaveCount(0)
     await page.getByRole('complementary', { name: 'Realtime voice session' }).getByRole('button', { name: 'Close realtime voice' }).click()
 
-    await page.locator('.sidebar__footer .sidebar__settings-entry').click()
-    await page.getByRole('button', { name: 'Pets', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Pets', exact: true })).toBeVisible()
-    await expect(page.getByRole('radio', { name: /^Orb Built/ })).toBeChecked()
-    await page.getByRole('radio', { name: /^Ptx Built/ }).click()
-    await expect(page.getByRole('radio', { name: /^Ptx Built/ })).toBeChecked()
-    await expect(page.getByRole('heading', { name: 'Codex Pets' })).toBeVisible()
-    const showPet = page.getByRole('checkbox', { name: 'Show desktop pet' })
-    await showPet.focus()
-    await showPet.press('Space')
-    await expect(showPet).not.toBeChecked()
-    await expect(page.locator('.desktop-pet')).toHaveCount(0)
-    await expect.poll(() => JSON.parse(readFileSync(join(fixtureRoot, 'user-data', CURRENT_DESKTOP_STATE_FILENAME), 'utf8')).settings).toMatchObject({ petEnabled: false, petId: 'pi-studio' })
-
+    // The Pets settings entry is temporarily hidden from the nav, so the
+    // persisted selection is seeded the way the Pets panel would have saved it.
+    // This happens after close so the running app cannot overwrite the file.
     await closeHermeticApp(app)
     app = undefined
+    const statePath = join(fixtureRoot, 'user-data', CURRENT_DESKTOP_STATE_FILENAME)
+    const state = JSON.parse(readFileSync(statePath, 'utf8'))
+    state.settings.petEnabled = false
+    state.settings.petId = 'pi-studio'
+    writeFileSync(statePath, JSON.stringify(state))
+
     if (!currentFixture) throw new Error('Missing hermetic fixture for relaunch')
     app = await electron.launch({
       args: ['.', `--user-data-dir=${currentFixture.userData}`],

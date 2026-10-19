@@ -315,9 +315,10 @@ export function mainWindowChromeOptions(platform: NodeJS.Platform = process.plat
     visualEffectState: 'active',
   }
   if (platform === 'win32') return {
-    // WS_THICKFRAME paints a visible border even when shadows and accents are off.
+    // Frameless replica title bar, but keep WS_THICKFRAME so Windows paints
+    // its native window border line.
     frame: false,
-    thickFrame: false,
+    thickFrame: true,
     hasShadow: false,
     accentColor: false,
     titleBarStyle: 'hidden',

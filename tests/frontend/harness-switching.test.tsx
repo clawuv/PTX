@@ -637,8 +637,8 @@ describe('harness settings surfaces', () => {
 
     expect(container.textContent).toContain('OMP catalogue')
     expect(container.textContent).toContain('Credentials managed by the omp CLI')
-    // Two provider switches plus the selected provider's bulk model switch.
-    expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(3)
+    // Two provider switches; bulk model control rides the provider switch itself.
+    expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(2)
     const buttonLabels = [...container.querySelectorAll('button')].map((button) => button.textContent ?? '')
     expect(buttonLabels.some((text) => text.includes('Hide all'))).toBe(true)
     expect(buttonLabels.some((text) => text.includes('Provider docs'))).toBe(true)
@@ -665,7 +665,7 @@ describe('harness settings surfaces', () => {
     expect(container.textContent).toContain('Pi catalogue')
     expect(container.textContent).toContain('Credentials managed by the pi CLI')
     const toggles = [...container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')]
-    expect(toggles).toHaveLength(3)
+    expect(toggles).toHaveLength(2)
     const buttonLabels = [...container.querySelectorAll('button')].map((button) => button.textContent ?? '')
     expect(buttonLabels.some((text) => text.includes('Hide all'))).toBe(true)
     expect(buttonLabels.some((text) => text.includes('Provider docs'))).toBe(true)

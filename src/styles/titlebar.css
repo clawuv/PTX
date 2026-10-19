@@ -280,12 +280,8 @@
 .app-shell:not([data-platform="darwin"]) .workbench:has(.workbench-titlebar-actions) .workbench__content {
   padding-top: 44px;
 }
-/* macOS: the title rides in the top drag band but starts on the content column's left edge (the transcript/composer centering), so it clears the traffic lights; when the title strip floats over the workbench (sidebar closed, or narrower than the strip) the inset floors at the strip's controls. Interactive buttons inherit the no-drag rule from .drag-region. */
-.app-shell[data-platform="darwin"] .conversation-header {
-  --header-inset: max(calc(260px - var(--sidebar-width, 265px) - 12px), 12px);
-  /* Keep the title anchored to the workbench edge as the window grows. */
-  padding-left: max(var(--header-inset), 24px);
-}
+/* macOS: the title sits flush with the header's base left padding, aligned with the
+   workbench edge. Interactive buttons inherit the no-drag rule from .drag-region. */
 /* The collapsed-sidebar header shares this title band. Keep the navigation
    controls above it so their hover and click regions remain reachable. */
 .app-shell[data-platform="darwin"][data-sidebar-open="false"] .title-toolbar {
@@ -315,7 +311,6 @@ body.has-header-popover .app-shell[data-platform="darwin"][data-sidebar-open="fa
 }
 .app-shell[data-platform="darwin"][data-sidebar-open="false"] .conversation-header {
   left: 218px;
-  --header-inset: 0px;
 }
 .conversation-header__title-row {
   min-width: 0;

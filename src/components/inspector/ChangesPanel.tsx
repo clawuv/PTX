@@ -199,6 +199,7 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
         <div><strong><GitBranch size={13} /> {git.branch ?? t('changes.branch.fallback')}</strong><button type="button" className="ahead-toggle" aria-expanded={aheadOpen} disabled={readOnly || !git.ahead} title={git.ahead ? undefined : t('changes.ahead.none')} onClick={() => void toggleAhead()}>{t('changes.ahead', { count: git.ahead ?? 0 })}</button></div>
         <div className="changes-toolbar__actions">
           <IconButton label={t('changes.action.push')} disabled={readOnly || pushing || !git.ahead} onClick={() => void pushCommits()}><Upload size={14} /></IconButton>
+          <span className="changes-toolbar__divider" aria-hidden="true" />
           <IconButton label={t('changes.action.pull')} disabled={readOnly || pulling || !git.upstream} onClick={() => void pullBranch()}><Download size={14} /></IconButton>
           <IconButton label={t('changes.action.refresh')} onClick={() => void onRefreshGit()}><RefreshCw size={14} /></IconButton>
         </div>

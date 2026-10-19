@@ -824,8 +824,7 @@ test.describe('Pi Work desktop smoke', () => {
     expect(Math.abs(offsets.darwin! - offsets.linux!)).toBeLessThan(1)
     expect(Math.abs(offsets.darwin! - offsets.win32!)).toBeLessThan(1)
     const arrows = page.locator('.title-toolbar .titlebar-arrows')
-    if (process.platform === 'darwin' || process.platform === 'win32') await expect(arrows).toBeVisible()
-    else await expect(arrows).toHaveCount(0)
+    await expect(arrows).toHaveCount(0)
     await expect(sidebar).toBeVisible()
     await shell.evaluate((node, value) => node.setAttribute('data-platform', value), process.platform)
     const horizontalInsets = await sidebar.evaluate((node) => {

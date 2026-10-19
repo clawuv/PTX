@@ -21,7 +21,6 @@ import { useAppUpdates } from '@/hooks/useAppUpdates'
 import { useBrowserAnnotations } from '@/hooks/useBrowserAnnotations'
 import { useExtensionUi } from '@/hooks/useExtensionUi'
 import { useHarnessWorkspace } from '@/hooks/useHarnessWorkspace'
-import { useNavHistory } from '@/hooks/useNavHistory'
 import { INSPECTOR_MIN, SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN, TERMINAL_DEFAULT, TERMINAL_MIN, usePanelLayout } from '@/hooks/usePanelLayout'
 import { usePluginSkills } from '@/hooks/usePluginSkills'
 import { useProviderCatalog } from '@/hooks/useProviderCatalog'
@@ -625,17 +624,6 @@ export default function App() {
     reportError,
   })
   // Titlebar back/forward: replays session and view selections in reverse order.
-  const { back: navigateBack, forward: navigateForward, canBack, canForward } = useNavHistory(
-    { view, sessionId: view === 'session' ? workspace.activeSessionId : null },
-    (location) => `${location.view}:${location.sessionId ?? ''}`,
-    (location) => {
-      const target = location.view === 'session' && location.sessionId
-        ? sessions.find((session) => session.id === location.sessionId)
-        : undefined
-      if (target) void selectSession(target)
-      else navigate(location.view)
-    },
-  )
   const openTerminalLink = useCallback(
     (url: string, external: boolean) => {
       if (external) {
@@ -1051,7 +1039,7 @@ export default function App() {
           setSidebarSearchOpen(!sidebarVisible || view === 'settings' || !sidebarSearchOpen)
           if (!sidebarVisible) toggleSidebar()
           if (view === 'settings') navigate('session')
-        }} onBack={navigateBack} onForward={navigateForward} canBack={canBack} canForward={canForward} />
+        }} />
         <div className="app-shell__body">
           {sidebarVisible && initialized ? (
             <Sidebar

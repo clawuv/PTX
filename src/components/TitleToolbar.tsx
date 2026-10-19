@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, PanelLeft, Search } from 'lucide-react'
+import { PanelLeft, Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { ApplicationMenuCommand, ApplicationMenuName } from '@/types/api'
 import { useI18n, type MessageKey } from '@/lib/i18n'
@@ -71,15 +71,10 @@ interface TitleToolbarProps {
   platform?: NodeJS.Platform
   /** macOS: session actions rendered into the strip's right end, inside the drag region so they stay clickable. */
   sessionActions?: ReactNode
-  /** Session/view history navigation for the back/forward arrows; the arrows stay decorative without them. */
-  onBack?(): void
-  onForward?(): void
-  canBack?: boolean
-  canForward?: boolean
 }
 
 /** The replica chrome: a full-width title strip with the sidebar toggle, history arrows, menus, and window controls. */
-export function TitleToolbar({ onToggleSidebar, onToggleSearch, searchOpen, updateState = { phase: 'unsupported' }, onUpdateAction, platform = 'darwin', sessionActions, onBack, onForward, canBack = false, canForward = false }: TitleToolbarProps) {
+export function TitleToolbar({ onToggleSidebar, onToggleSearch, searchOpen, updateState = { phase: 'unsupported' }, onUpdateAction, platform = 'darwin', sessionActions }: TitleToolbarProps) {
   const { t } = useI18n()
   const sidebarShortcut = shortcutLabel(platform, ['Primary', 'B'])
   const drawWindowControls = platform === 'win32' || platform === 'linux'
@@ -118,16 +113,6 @@ export function TitleToolbar({ onToggleSidebar, onToggleSearch, searchOpen, upda
         {/* The slot reserves the update icon's 26px cell (win32) so the menus never shift when an update appears. */}
         {/* The slot reserves the update icon's 26px cell (win32) so the menus never shift when an update appears. */}
         <span className="title-toolbar__update-slot"><AppUpdateButton updateState={updateState} onUpdateAction={onUpdateAction} /></span>
-        {platform === 'darwin' || platform === 'win32' ? (
-          <span className="titlebar-arrows">
-            <button type="button" className="titlebar-arrow" disabled={!canBack} aria-label={t('shellui.navigateBack')} data-tooltip={t('shellui.navigateBack')} onClick={onBack}>
-              <ArrowLeft size={15} />
-            </button>
-            <button type="button" className="titlebar-arrow" disabled={!canForward} aria-label={t('shellui.navigateForward')} data-tooltip={t('shellui.navigateForward')} onClick={onForward}>
-              <ArrowRight size={15} />
-            </button>
-          </span>
-        ) : null}
       </div>
       {sessionActions}
       {platform === 'win32' ? <nav ref={navRef} className="titlebar-menus no-drag" aria-label={t('shellui.appMenu')}>

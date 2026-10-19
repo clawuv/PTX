@@ -107,7 +107,7 @@ Ask User and computer control are off by default. You can enable, disable, or re
 
 ## Get started
 
-1. Install Pi, OMP, Prime Agent, or any combination of the three.
+1. Install Pi, OMP, or both.
 2. Sign in or configure a model provider through each harness's own CLI.
 3. Download Ptx from [GitHub Releases](https://github.com/clawuv/PTX/releases), or run it from source.
 4. Add a project folder and start a session.
@@ -115,6 +115,8 @@ Ask User and computer control are off by default. You can enable, disable, or re
 Ptx checks common install locations automatically. If a harness is missing, open **Settings → Harness** to refresh detection or choose its executable.
 
 GitHub Releases provides a DMG and ZIP for macOS, common Linux package formats plus AppImage, and a Windows installer and ZIP.
+
+Installed builds check for updates automatically — once shortly after launch and again every three hours. The icon at the left end of the title bar stays neutral day to day and turns into a blue badge when a new version is available; click it at any time to run a manual check.
 
 Harness provider credentials stay with the harness. Optional voice keys are encrypted with the operating system's secure storage, and local `whisper.cpp` dictation needs no API key.
 
@@ -183,7 +185,7 @@ The Queue and Steer shortcuts can be swapped in **Settings → Harness → Messa
 
 ## Local data and safety
 
-Ptx is built around local projects and local harness sessions. It does not rewrite session history or take ownership of Pi, OMP, or Prime Agent credentials.
+Ptx is built around local projects and local harness sessions. It does not rewrite session history or take ownership of Pi or OMP credentials.
 
 Remote pages open in a separate browser profile with Node access disabled. Project paths and desktop actions are checked in the main process, and third-party capabilities still run with your operating-system permissions. Review packages, commands, MCP servers, and projects before allowing them to act.
 

@@ -61,7 +61,7 @@ function Harness({ initialSessionId }: { initialSessionId?: string }) {
       onNavigate={noop}
       onNewSession={noop}
       onAddProject={noop}
-      onRemoveProject={noop}
+      onHideProject={noop}
       onOpenPalette={noop}
       onRenameSession={async () => undefined}
       onArchiveSession={async () => undefined}
@@ -96,7 +96,7 @@ describe('sidebar session selection across projects', () => {
           onNavigate={noop}
           onNewSession={noop}
           onAddProject={noop}
-          onRemoveProject={noop}
+          onHideProject={noop}
           onOpenPalette={noop}
           onRenameSession={async () => undefined}
           onArchiveSession={async () => undefined}
@@ -133,7 +133,7 @@ describe('sidebar session selection across projects', () => {
   await act(async () => root.render(<Sidebar projects={[]} sessions={[]} activeView="session" activeHarness="omp"
     harnesses={{ omp: { path: '/bin/omp', version: '1' }, pi: { path: null, version: null } }}
     onSelectHarness={select} onSelectSettingsSection={section} onNavigate={navigate}
-    onSelectProject={noop} onSelectSession={noop} onNewSession={noop} onAddProject={noop} onRemoveProject={noop}
+    onSelectProject={noop} onSelectSession={noop} onNewSession={noop} onAddProject={noop} onHideProject={noop}
     onOpenPalette={noop} onRenameSession={async () => undefined} onArchiveSession={async () => undefined} />))
   const buttons = container.querySelectorAll('.brand-switcher__segment')
   expect(buttons).toHaveLength(2)

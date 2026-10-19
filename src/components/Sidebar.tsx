@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Copy,
+  EyeOff,
   Folder,
   LoaderCircle,
   MessageCircleQuestion,
@@ -16,7 +17,6 @@ import {
   Search,
   Settings,
   SquarePen,
-  Trash2,
 } from 'lucide-react'
 import { memo, useEffect, useMemo, useState, type ReactElement } from 'react'
 import { createPortal } from 'react-dom'
@@ -45,7 +45,8 @@ export interface SidebarProps {
   onNavigate(view: WorkspaceView): void
   onNewSession(project?: ProjectRecord): void
   onAddProject(): void
-  onRemoveProject(project: ProjectRecord): void
+  /** Hides the project from the sidebar without revoking its grant. */
+  onHideProject(project: ProjectRecord): void
   onOpenPalette(): void
   onRenameSession(session: SessionRecord, title: string): Promise<void>
   onArchiveSession(session: SessionRecord): Promise<void>
@@ -150,7 +151,7 @@ async function copySessionUuid(id: string): Promise<void> {
   if (!copied) throw new Error('Copy is unavailable')
 }
 
-function SidebarView({ projects, sessions, activeProjectId, activeSessionId, activeView, activeHarness = 'omp', harnesses, clearedAttention = {}, onSelectHarness, onSelectSession, onNavigate, onNewSession, onAddProject, onRemoveProject, onRenameSession, onArchiveSession, settingsMode = false, searchOpen = false, activeSettingsSection = 'general', onSelectSettingsSection, platform = 'darwin', schedulesAttention = 0 }: SidebarProps) {
+function SidebarView({ projects, sessions, activeProjectId, activeSessionId, activeView, activeHarness = 'omp', harnesses, clearedAttention = {}, onSelectHarness, onSelectSession, onNavigate, onNewSession, onAddProject, onHideProject, onRenameSession, onArchiveSession, settingsMode = false, searchOpen = false, activeSettingsSection = 'general', onSelectSettingsSection, platform = 'darwin', schedulesAttention = 0 }: SidebarProps) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   useEffect(() => {
@@ -161,8 +162,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
   const [sessionMenuAt, setSessionMenuAt] = useState<{ x: number; y: number } | null>(null)
   const [renameTarget, setRenameTarget] = useState<SessionRecord | null>(null)
   const [renameValue, setRenameValue] = useState('')
-  const [removeTarget, setRemoveTarget] = useState<ProjectRecord | null>(null)
-  const { sessionsByProject } = useMemo(() => indexSidebarSessions(projects, sessions), [projects, sessions])
+  const { sessionsByProject } = useMemo(() => indexSidebarSessions(projects.filter((project) => !project.hidden), sessions), [projects, sessions])
   const [collapsedProjects, setCollapsedProjects] = useState<ReadonlySet<string>>(() => new Set())
   const [projectsSectionCollapsed, setProjectsSectionCollapsed] = useState(false)
   const needsAttention = (session: SessionRecord) => {
@@ -192,7 +192,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
   }
   const normalized = query.trim().toLowerCase()
   const activeProjectName = projects.find((project) => project.id === activeProjectId)?.name ?? 'Ptx'
-  const visibleProjects = useMemo(() => projects.filter((project) => !normalized || project.name.toLowerCase().includes(normalized) || (sessionsByProject.get(project.id) ?? []).some((session) => `${session.title} ${session.preview ?? ''}`.toLowerCase().includes(normalized))), [projects, sessionsByProject, normalized])
+  const visibleProjects = useMemo(() => projects.filter((project) => !project.hidden && (!normalized || project.name.toLowerCase().includes(normalized) || (sessionsByProject.get(project.id) ?? []).some((session) => `${session.title} ${session.preview ?? ''}`.toLowerCase().includes(normalized)))), [projects, sessionsByProject, normalized])
   const renderSessionRow = (session: SessionRecord, selected: boolean) => (
     <div key={session.id} className={`session-row-wrap session-row-wrap--${session.status} ${needsAttention(session) ? 'has-attention' : ''} ${selected && activeSessionId === session.id && activeView === 'session' ? 'is-selected' : ''}`}>
       <button type="button" className="session-row" onClick={() => { setSessionMenu(null); onSelectSession(session) }} onContextMenu={(event) => { event.preventDefault(); openSessionMenu(session.id, event.currentTarget.getBoundingClientRect()) }}>
@@ -297,8 +297,9 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
                       <Folder size={15} />
                       <span>{project.name}</span>
                     </button>
-                    <IconButton size="small" className="project-row__new-session row-action" label={t('sidebar.newSessionIn', { project: project.name })} onClick={() => { setProjectMenu(null); onNewSession(project) }}><MessageSquarePlus size={13} /></IconButton>
-                    {projectMenu === project.id ? <div className="project-row__menu" role="menu" aria-label={t('sidebar.projectOptions', { name: project.name })}><button type="button" role="menuitem" onClick={() => { setProjectMenu(null); setRemoveTarget(project) }}><Trash2 size={12} /> {t('sidebar.removeProject')}</button></div> : null}
+                    <IconButton size="small" className="project-row__options row-action" label={t('sidebar.projectOptions', { name: project.name })} onClick={() => setProjectMenu((current) => current === project.id ? null : project.id)}><MoreHorizontal size={13} /></IconButton>
+                    <IconButton size="small" className="project-row__new-session row-action" label={t('sidebar.newSessionIn', { project: project.name })} onClick={() => { setProjectMenu(null); onNewSession(project) }}><Plus size={13} /></IconButton>
+                    {projectMenu === project.id ? <div className="project-row__menu" role="menu" aria-label={t('sidebar.projectOptions', { name: project.name })}><button type="button" role="menuitem" onClick={() => { setProjectMenu(null); onHideProject(project) }}><EyeOff size={12} /> {t('sidebar.hideProject')}</button></div> : null}
                   </div>
                   {collapsed ? null : (
                     <div className="project-sessions">
@@ -322,7 +323,6 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
         </div>
       )}
       {renameTarget ? <Modal title={t('sidebar.renameTitle')} onClose={() => setRenameTarget(null)} footer={<><button type="button" className="button" onClick={() => setRenameTarget(null)}>{t('sidebar.cancel')}</button><button type="button" className="button button--primary" disabled={!renameValue.trim()} onClick={() => { const target = renameTarget; const title = renameValue.trim(); setRenameTarget(null); void onRenameSession(target, title) }}>{t('sidebar.rename')}</button></>}><label className="field"><span>{t('sidebar.sessionName')}</span><input autoFocus value={renameValue} maxLength={200} onChange={(event) => setRenameValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && renameValue.trim()) { event.preventDefault(); const target = renameTarget; const title = renameValue.trim(); setRenameTarget(null); void onRenameSession(target, title) } }}/></label></Modal> : null}
-      {removeTarget ? <Modal title={t('sidebar.removeProject')} onClose={() => setRemoveTarget(null)} footer={<><button type="button" className="button" onClick={() => setRemoveTarget(null)}>{t('sidebar.cancel')}</button><button type="button" className="button button--danger" onClick={() => { const target = removeTarget; setRemoveTarget(null); onRemoveProject(target) }}>{t('sidebar.remove')}</button></>}><p>{t('sidebar.removeConfirm', { name: removeTarget.name, harness: HARNESS_PRODUCT_NAMES[activeHarness] })}</p></Modal> : null}
 
     </aside>
   )
@@ -343,7 +343,6 @@ export function areSidebarPropsEqual(previous: SidebarProps, next: SidebarProps)
     && previous.onNavigate === next.onNavigate
     && previous.onNewSession === next.onNewSession
     && previous.onAddProject === next.onAddProject
-    && previous.onRemoveProject === next.onRemoveProject
     && previous.onOpenPalette === next.onOpenPalette
   && previous.onRenameSession === next.onRenameSession
   && previous.onArchiveSession === next.onArchiveSession

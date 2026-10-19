@@ -15,15 +15,29 @@ interface ResizeHandleProps {
   invert?: boolean
   /** Override the hover tooltip; pass null to disable it entirely. */
   tooltip?: string | null
+  /** Replace the double-click reset with a custom action (e.g. snap to a compact width, then collapse). */
+  onDoubleClickAction?: () => void
   /** Live-resize scope: selector of the ancestor that carries the CSS variable. Defaults to the inspector/terminal behavior. */
   liveScope?: { selector: string; cssVariable: string }
 }
 
 const clamp = (value: number, min: number, max: number) => Math.round(Math.min(Math.max(min, max), Math.max(min, value)))
 
-export function ResizeHandle({ orientation, label, value, min, max, defaultValue, onChange, invert = false, liveScope, tooltip }: ResizeHandleProps) {
+export function ResizeHandle({ orientation, label, value, min, max, defaultValue, onChange, invert = false, liveScope, tooltip, onDoubleClickAction }: ResizeHandleProps) {
   const cleanupRef = useRef<(() => void) | null>(null)
   const lastPointerDownRef = useRef<{ coordinate: number; timestamp: number } | null>(null)
+  // Both the pointerdown double-tap detection and the native dblclick can fire for one gesture;
+  // run the custom action once per double-click so two-stage actions do not jump both stages.
+  const lastActionAtRef = useRef(0)
+  const runDoubleClickAction = () => {
+    if (!onDoubleClickAction) return false
+    const now = performance.now()
+    if (now - lastActionAtRef.current >= 500) {
+      lastActionAtRef.current = now
+      onDoubleClickAction()
+    }
+    return true
+  }
   const safeMax = Math.max(min, max)
   const readCoordinate = (event: Pick<PointerEvent, 'clientX' | 'clientY'>) => orientation === 'vertical' ? event.clientX : event.clientY
   const reset = (target: HTMLDivElement) => {
@@ -61,7 +75,7 @@ export function ResizeHandle({ orientation, label, value, min, max, defaultValue
       event.preventDefault()
       cleanupRef.current?.()
       lastPointerDownRef.current = null
-      reset(event.currentTarget)
+      if (!runDoubleClickAction()) reset(event.currentTarget)
       return
     }
     lastPointerDownRef.current = { coordinate, timestamp: event.timeStamp }
@@ -122,7 +136,7 @@ export function ResizeHandle({ orientation, label, value, min, max, defaultValue
       aria-valuenow={Math.round(value)}
       tabIndex={0}
       title={tooltip === undefined ? `${label} · double-click to reset` : tooltip || undefined}
-      onDoubleClick={(event) => reset(event.currentTarget)}
+      onDoubleClick={(event) => { if (!runDoubleClickAction()) reset(event.currentTarget) }}
       onKeyDown={handleKeyDown}
       onPointerDown={beginDrag}
     ><span aria-hidden="true" /></div>

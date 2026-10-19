@@ -372,7 +372,7 @@ describe('sidebar brand switcher', () => {
           onNavigate={noop}
           onNewSession={noop}
           onAddProject={noop}
-          onRemoveProject={noop}
+        onHideProject={noop}
           onOpenPalette={noop}
           onRenameSession={async () => undefined}
           onArchiveSession={async () => undefined}
@@ -513,6 +513,8 @@ describe('harness settings surfaces', () => {
         onAddProject={noop}
         onOpenProject={noop}
         onRemoveProject={noop}
+        onShowProject={noop}
+        onHideProject={noop}
         initialSection={initialSection}
         initialSectionRequestId={initialSectionRequestId}
         onClose={noop}

@@ -95,7 +95,7 @@ const sidebarProps = (onNewSession: () => void): SidebarProps => ({
   onNavigate: () => undefined,
   onNewSession,
   onAddProject: () => undefined,
-  onRemoveProject: () => undefined,
+  onHideProject: () => undefined,
   onOpenPalette: () => undefined,
   onRenameSession: async () => undefined,
   onArchiveSession: async () => undefined,

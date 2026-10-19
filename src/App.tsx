@@ -577,6 +577,7 @@ export default function App() {
     setSessionArchived,
     addProject,
     removeProject,
+    setProjectHidden,
     sendPrompt,
     stopRuntime,
     installSkill,
@@ -879,8 +880,8 @@ export default function App() {
     onAddProject: () => {
       void addProject()
     },
-    onRemoveProject: (project) => {
-      void removeProject(project)
+    onHideProject: (project) => {
+      void setProjectHidden(project, true)
     },
     onOpenPalette: () => setPaletteOpen(true),
     onRenameSession: renameSession,
@@ -940,7 +941,7 @@ export default function App() {
   const openTaskSession = useTaskSessionNavigation({ bridge, harness: activeHarness, projects, selectHarness, selectSession, reportError })
   const page =
     view === 'projects' ? (
-      <ProjectsPage projects={projects} onAdd={() => void addProject()} onOpen={selectProject} onRemove={(project) => void removeProject(project)} showHeaderAction={false} />
+      <ProjectsPage projects={projects} activeProjectId={activeProject?.id} onAdd={() => void addProject()} onOpen={selectProject} onRemove={(project) => void removeProject(project)} onShow={(project) => void setProjectHidden(project, false)} onHide={(project) => void setProjectHidden(project, true)} showHeaderAction={false} />
     ) : view === 'tasks' ? (
       <TasksPage bridge={bridge} harness={activeHarness} onOpenSession={openTaskSession} />
     ) : view === 'activity' ? (
@@ -1007,9 +1008,12 @@ export default function App() {
         onSetModelEnabled={provider.setModelEnabled}
         onSetModelEffort={provider.setModelEffort}
         projects={projects}
+        activeProjectId={activeProject?.id}
         onAddProject={() => void addProject()}
         onOpenProject={selectProject}
         onRemoveProject={(project) => void removeProject(project)}
+        onShowProject={(project) => void setProjectHidden(project, false)}
+        onHideProject={(project) => void setProjectHidden(project, true)}
         onResetBrowser={async () => {
           if (!bridge) throw new Error(t('app.browser.desktopOnly'))
           if (!(await bridge.settings.resetBrowserData())) {
@@ -1073,6 +1077,12 @@ export default function App() {
               max={SIDEBAR_MAX}
               defaultValue={SIDEBAR_DEFAULT}
               onChange={layout.setSidebarWidth}
+              onDoubleClickAction={() => {
+                // Two-stage double-click: an expanded sidebar snaps to the compact 220px width first;
+                // already at 220px, the next double-click collapses it.
+                if (layout.sidebarWidth > SIDEBAR_MIN) layout.setSidebarWidth(SIDEBAR_MIN)
+                else void settingsState.updateSettings({ sidebarOpen: false })
+              }}
             />
           ) : null}
           <div className="workbench">

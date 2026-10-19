@@ -1,11 +1,11 @@
-import { Folder, FolderGit2, FolderPlus, GitBranch, Pin, Search, Trash2 } from 'lucide-react'
+import { Eye, EyeOff, Folder, FolderPlus, GitBranch, Pin, Search, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { EmptyState, IconButton, Modal } from '@/components/ui'
 import { formatRelative } from '@/lib/data'
 import { useI18n } from '@/lib/i18n'
 import type { ProjectRecord } from '@/types/api'
 
-export function ProjectsPage({ projects, onAdd, onOpen, onRemove, showHeaderAction = true }: { projects: ProjectRecord[]; onAdd(): void; onOpen(project: ProjectRecord): void; onRemove(project: ProjectRecord): void; showHeaderAction?: boolean }) {
+export function ProjectsPage({ projects, onAdd, onOpen, onRemove, onShow, onHide, activeProjectId, showHeaderAction = true }: { projects: ProjectRecord[]; onAdd(): void; onOpen(project: ProjectRecord): void; onRemove(project: ProjectRecord): void; onShow(project: ProjectRecord): void; onHide(project: ProjectRecord): void; activeProjectId?: string; showHeaderAction?: boolean }) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [removeTarget, setRemoveTarget] = useState<ProjectRecord | null>(null)
@@ -23,10 +23,9 @@ export function ProjectsPage({ projects, onAdd, onOpen, onRemove, showHeaderActi
         </div>
         {visible.length ? <div className="project-library">
           {visible.map((project) => (
-            <article key={project.id} className="project-item">
+            <article key={project.id} className={`project-item${project.id === activeProjectId ? ' is-active' : ''}`}>
               <button type="button" className="project-item__open" onClick={() => onOpen(project)}>
-                <span className="project-item__icon"><FolderGit2 size={10} /></span>
-                <span className="project-item__name"><h2>{project.name}</h2>{project.pinned ? <Pin size={11} fill="currentColor" /> : null}</span>
+                <span className="project-item__name" data-active-label={project.id === activeProjectId ? t('projects.active') : undefined}><h2>{project.name}</h2>{project.pinned ? <Pin size={11} fill="currentColor" /> : null}{project.hidden ? <em className="project-item__hidden">{t('projects.hidden')}</em> : null}</span>
                 <span className="project-item__path">{project.path}</span>
                 <span className="project-item__meta">
                   <span><GitBranch size={11} />{project.gitBranch ?? t('projects.noRepository')}</span>
@@ -35,6 +34,9 @@ export function ProjectsPage({ projects, onAdd, onOpen, onRemove, showHeaderActi
                 </span>
               </button>
               <div className="project-item__actions">
+                {project.hidden
+                  ? <IconButton label={t('projects.showNamed', { name: project.name })} onClick={() => onShow(project)}><Eye size={14} /></IconButton>
+                  : <IconButton label={t('projects.hideNamed', { name: project.name })} onClick={() => onHide(project)}><EyeOff size={14} /></IconButton>}
                 <IconButton label={t('projects.removeNamed', { name: project.name })} onClick={() => setRemoveTarget(project)}><Trash2 size={14} /></IconButton>
               </div>
             </article>

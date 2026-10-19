@@ -60,6 +60,7 @@ interface AuthorizationContext {
   canonicalSessionPaths: Map<string, string>
   persisted: PersistedAuthorizationContext[]
   discoveredSessionRoots: Array<{ canonical: string; identity: FolderIdentity }>
+  dismissedCanonicals: ReadonlySet<string>
 }
 
 interface SessionProjectStats {
@@ -441,7 +442,7 @@ export class ProjectService {
       this.readOnlyRoots = nextReadOnly
       this.quarantinedBroadRoots = nextQuarantinedBroadRoots
     }
-    return { sessions, canonicalSessionPaths, persisted, discoveredSessionRoots }
+    return { sessions, canonicalSessionPaths, persisted, discoveredSessionRoots, dismissedCanonicals: dismissed }
   }
 
   private refreshAuthorization(force = false): Promise<AuthorizationContext> {
@@ -464,7 +465,7 @@ export class ProjectService {
   }
 
   async list(): Promise<ProjectRecord[]> {
-    const { sessions, canonicalSessionPaths, persisted, discoveredSessionRoots } = await this.refreshAuthorization()
+    const { sessions, canonicalSessionPaths, persisted, discoveredSessionRoots, dismissedCanonicals } = await this.refreshAuthorization()
     const sessionStats = aggregateSessionProjectStats(sessions, canonicalSessionPaths)
     const records: ProjectRecord[] = []
     const branchTargets: Array<{ record: ProjectRecord; cwd: string }> = []
@@ -484,6 +485,7 @@ export class ProjectService {
         pinned: project.pinned, createdAt: project.createdAt, lastOpenedAt: project.lastOpenedAt, scripts: project.scripts ? { ...project.scripts } : undefined,
         sessionCount,
         gitBranch: undefined,
+        ...(project.hidden ? { hidden: true } : {}),
       }
       records.push(record)
       if (primaryGranted) branchTargets.push({ record, cwd: project.primaryFolder })
@@ -509,6 +511,21 @@ export class ProjectService {
       records.push(record)
     }
 
+    // Dismissed (hidden) inferred roots still list, flagged, so settings can restore them.
+    const discoveredCanonicals = new Set(discoveredSessionRoots.map(({ canonical }) => canonical))
+    for (const { project, folders } of persisted) for (const folder of folders) discoveredCanonicals.add(folder)
+    const hiddenInferred: Array<{ cwd: string; record: ProjectRecord }> = []
+    for (const canonical of dismissedCanonicals) {
+      if (!canonicalSessionPaths.get(canonical) || discoveredCanonicals.has(canonical)) continue
+      const stats = sessionStats.get(canonical)
+      hiddenInferred.push({ cwd: canonical, record: {
+        id: inferredId(canonical), harness: this.harness, name: basename(canonical) || canonical, path: canonical, folders: [canonical], primaryFolder: canonical,
+        pinned: false, createdAt: stats?.earliestCreatedAt ?? new Date().toISOString(), lastOpenedAt: stats?.latestUpdatedAt ?? new Date().toISOString(),
+        sessionCount: stats?.count ?? 0, gitBranch: undefined, inferred: true, readOnly: true, hidden: true,
+      } })
+    }
+    records.push(...hiddenInferred.map(({ record }) => record))
+
     // Branch enrichment runs after the swap: authorization must never wait on
     // git subprocesses.
     let branchLookupFailed = false
@@ -523,7 +540,7 @@ export class ProjectService {
       }
       return target
     })
-    return records.sort((a, b) => Number(b.pinned) - Number(a.pinned) || Date.parse(b.lastOpenedAt) - Date.parse(a.lastOpenedAt))
+    return records.sort((a, b) => Number(a.hidden ?? false) - Number(b.hidden ?? false) || Number(b.pinned) - Number(a.pinned) || Date.parse(b.lastOpenedAt) - Date.parse(a.lastOpenedAt))
   }
 
   async listWorktrees(cwdValue: unknown): Promise<GitWorktree[]> {
@@ -779,6 +796,40 @@ export class ProjectService {
       project.lastOpenedAt = new Date().toISOString()
       return true
     })
+  }
+
+  /** Toggles sidebar visibility. Persisted projects carry the flag; inferred ones reuse the dismissed-path list. */
+  async setHidden(idValue: unknown, hiddenValue: unknown): Promise<boolean> {
+    const id = requireId(idValue, 'project id')
+    const hidden = hiddenValue === true
+    const persisted = this.ownProjects(this.store.snapshot().projects).some((project) => project.id === id)
+    if (persisted) {
+      await this.store.update((state) => {
+        const project = state.projects.find((item) => item.id === id && item.harness === this.harness)
+        if (!project) return false
+        project.hidden = hidden || undefined
+        return true
+      })
+    } else {
+      const sessions = await this.sessionProvider()
+      let inferredPath: string | undefined
+      for (const pathValue of [...new Set(sessions.map((session) => session.projectPath).filter((p): p is string => Boolean(p)))]) {
+        try {
+          const canonical = await requireExistingDirectory(pathValue, 'session project path')
+          if (inferredId(canonical) === id && !(await this.isBroadRoot(canonical))) { inferredPath = canonical; break }
+        } catch { /* Not a hidable inferred project. */ }
+      }
+      if (!inferredPath) throw new Error('Project is not granted or discovered for this harness')
+      await this.store.update((state) => {
+        const dismissed = new Set(state.dismissedProjectPaths.map((path) => resolve(path)))
+        if (hidden) dismissed.add(inferredPath)
+        else dismissed.delete(inferredPath)
+        state.dismissedProjectPaths = [...dismissed]
+        return true
+      })
+    }
+    this.authorizationRevision += 1
+    return true
   }
 
   async updateScripts(idValue: unknown, scriptsValue: unknown): Promise<ProjectScripts> {

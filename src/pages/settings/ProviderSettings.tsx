@@ -114,10 +114,6 @@ export function ProviderSettings({ harness = 'omp', catalog, onRefresh, onSetEna
   )
   // Provider-level bulk model control rides the provider switch: enabling a
   // provider clears every sibling model's hidden flag, disabling hides them all.
-  const toggleModels = (provider: AgentProviderDescriptor) => void run(
-    `models:${provider.id}`,
-    () => onSetEnabled(provider.id, !provider.enabled),
-  )
 
   return (
     <section className="settings-group provider-settings">
@@ -141,18 +137,21 @@ export function ProviderSettings({ harness = 'omp', catalog, onRefresh, onSetEna
         {catalog?.warning ? <p className="provider-catalog-warning" role="status">{catalog.warning}</p> : null}
         {error ? <p className="settings-error" role="alert">{error}</p> : null}
         <div className="provider-browser">
-          <div className="provider-browser__pane">
+          <section className="provider-browser__pane">
+            <header className="provider-section__head">
+              <h3>{t('providers.section.providers')}</h3>
+              <div className="provider-filter" role="group" aria-label={t('providers.filter.aria')}>
+                {(Object.keys(FILTER_LABELS) as ProviderFilter[]).map((option) => (
+                  <button key={option} type="button" className={filter === option ? 'is-active' : ''} aria-pressed={filter === option} onClick={() => setFilter(option)}>
+                    {t(FILTER_LABELS[option])} <span>{filterCounts[option].toLocaleString()}</span>
+                  </button>
+                ))}
+              </div>
+            </header>
             <label className="provider-search">
               <Search size={13} />
               <input value={providerQuery} placeholder={t('providers.search.providers')} aria-label={t('providers.search.providers')} onChange={(event) => setProviderQuery(event.target.value)} />
             </label>
-            <div className="provider-filter" role="group" aria-label={t('providers.filter.aria')}>
-              {(Object.keys(FILTER_LABELS) as ProviderFilter[]).map((option) => (
-                <button key={option} type="button" className={filter === option ? 'is-active' : ''} aria-pressed={filter === option} onClick={() => setFilter(option)}>
-                  {t(FILTER_LABELS[option])} <span>{filterCounts[option].toLocaleString()}</span>
-                </button>
-              ))}
-            </div>
             <div className="provider-list" role="group" aria-label={t('providers.browser.providersAria')}>
               {visibleProviders.map((provider) => {
                 const isSelected = provider.id === selectedProvider?.id
@@ -176,23 +175,17 @@ export function ProviderSettings({ harness = 'omp', catalog, onRefresh, onSetEna
               })}
               {catalog && !visibleProviders.length ? <p className="settings-empty">{t('providers.empty.providers')}</p> : null}
             </div>
-          </div>
-          <div className="provider-browser__pane provider-browser__detail">
+          </section>
+          <section className="provider-browser__pane provider-browser__detail">
             {selectedProvider ? (
               <>
-                <div className="provider-detail__head">
-                  <div className="provider-row__identity">
-                    <strong>{selectedProvider.name}</strong>
-                    <small>{`${selectedProvider.authLabel ?? t('providers.row.managedByCli', { harness })} · ${t('providers.detail.modelsOn', { on: providerModels.filter((model) => model.enabled !== false).length.toLocaleString(), total: providerModelTotal.toLocaleString() })}`}</small>
-                  </div>
+                <header className="provider-section__head">
+                  <h3>{t('providers.section.models', { name: selectedProvider.name })}</h3>
                   <div className="provider-row__actions">
                     <button type="button" className="button" onClick={onOpenDocs}><ExternalLink size={12} /> {t('providers.action.docs')}</button>
-                    <label className="provider-row__toggle" data-tooltip={selectedProvider.enabled ? t('providers.detail.hideAllTitle', { name: selectedProvider.name }) : t('providers.detail.showAllTitle', { name: selectedProvider.name })}>
-                      <input type="checkbox" aria-label={t('providers.detail.toggleAria', { name: selectedProvider.name })} checked={selectedProvider.enabled} disabled={busy === `models:${selectedProvider.id}`} onChange={() => toggleModels(selectedProvider)} />
-                      <i aria-hidden="true"><span /></i>
-                    </label>
                   </div>
-                </div>
+                </header>
+                <p className="provider-detail__summary">{selectedProvider.authLabel ?? t('providers.row.managedByCli', { harness })} · {t('providers.detail.modelsOn', { on: providerModels.filter((model) => model.enabled !== false).length.toLocaleString(), total: providerModelTotal.toLocaleString() })}</p>
                 <label className="provider-search">
                   <Search size={13} />
                   <input value={modelQuery} placeholder={t('providers.search.models')} aria-label={t('providers.search.modelsOf', { name: selectedProvider.name })} onChange={(event) => setModelQuery(event.target.value)} />
@@ -214,7 +207,7 @@ export function ProviderSettings({ harness = 'omp', catalog, onRefresh, onSetEna
                 </div>
               </>
             ) : <p className="settings-empty">{catalog ? t('providers.empty.providers') : t('providers.summary.loading')}</p>}
-          </div>
+          </section>
         </div>
       </div>
       {confirmHideAll ? (

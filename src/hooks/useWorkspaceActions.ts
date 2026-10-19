@@ -250,6 +250,15 @@ export function createWorkspaceActions(getDeps: () => WorkspaceActionsDeps) {
     } catch (error) { reportError(error) }
   }
 
+  const setProjectHidden = async (project: ProjectRecord, hidden: boolean) => {
+    const { bridge, setProjects, setToast, reportError } = getDeps()
+    try {
+      if (!bridge || !(await bridge.projects.setHidden(project.id, hidden, project.harness))) throw new Error(t('hooks.projectHideFailed'))
+      setProjects((items) => items.map((item) => (item.id === project.id ? { ...item, hidden: hidden || undefined } : item)))
+      setToast(t(hidden ? 'hooks.projectHidden' : 'hooks.projectShown'))
+    } catch (error) { reportError(error) }
+  }
+
   const sendPrompt = async (
     prompt: string,
     images: PromptImage[] = [],
@@ -603,7 +612,7 @@ export function createWorkspaceActions(getDeps: () => WorkspaceActionsDeps) {
   return {
     grantProject, persistPanel, toggleSidebar, toggleInspector, toggleTerminal,
     selectProject, selectSession, newSession, navigate, renameSession, setSessionArchived,
-    addProject, removeProject, sendPrompt, stopRuntime, installSkill, installExtension, setMcpSupport, connectMcp, setMcpEnabled, mutateCapability,
+    addProject, removeProject, setProjectHidden, sendPrompt, stopRuntime, installSkill, installExtension, setMcpSupport, connectMcp, setMcpEnabled, mutateCapability,
     createSchedule, updateSchedule, mutateSchedule, openScheduledSession,
     openBrowser, openChanges,
   }

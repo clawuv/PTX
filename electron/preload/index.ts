@@ -100,6 +100,7 @@ const api: PtxApi = {
     add: (harness) => invoke('projects:add', harness),
     grantInferred: (path, harness) => invoke('projects:grant-inferred', path, harness),
     remove: (id, harness) => invoke('projects:remove', id, harness),
+    setHidden: (id, hidden, harness) => invoke('projects:set-hidden', id, hidden, harness),
     touch: (id, harness) => invoke('projects:touch', id, harness),
     updateScripts: (id, scripts, harness) => invoke('projects:update-scripts', id, scripts, harness),
     markSetupStarted: (id, setup, harness) => invoke('projects:mark-setup-started', id, setup, harness),

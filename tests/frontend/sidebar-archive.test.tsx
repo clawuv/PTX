@@ -56,7 +56,7 @@ describe('sidebar project context menu', () => {
       root.render(
         <Sidebar
           projects={[project]} sessions={[session]} activeView="session"
-          onSelectProject={noop} onSelectSession={noop} onNavigate={noop} onNewSession={noop} onAddProject={noop} onRemoveProject={noop}
+          onSelectProject={noop} onSelectSession={noop} onNavigate={noop} onNewSession={noop} onAddProject={noop} onHideProject={noop}
           onOpenPalette={noop} onRenameSession={async () => undefined} onArchiveSession={async () => undefined}
         />,
       )
@@ -70,7 +70,7 @@ describe('sidebar project context menu', () => {
   })
 
   it('offers a confirmed remove action without deleting the project folder', async () => {
-    const onRemoveProject = vi.fn()
+    const onHideProject = vi.fn()
     await act(async () => {
       root.render(
         <Sidebar
@@ -82,7 +82,7 @@ describe('sidebar project context menu', () => {
           onNavigate={noop}
           onNewSession={noop}
           onAddProject={noop}
-          onRemoveProject={onRemoveProject}
+          onHideProject={onHideProject}
           onOpenPalette={noop}
           onRenameSession={async () => undefined}
           onArchiveSession={async () => undefined}
@@ -91,20 +91,18 @@ describe('sidebar project context menu', () => {
     })
 
     await rightClick(container.querySelector('.project-row')!)
-    const menu = container.querySelector('[aria-label="Project options for Project"]')
+    const menu = container.querySelector('[role="menu"][aria-label="Project options for Project"]')
     expect(menu).not.toBeNull()
-    const remove = [...menu!.querySelectorAll('button')].find((button) => button.textContent?.includes('Remove project'))
-    expect(remove).toBeDefined()
-    await press(remove!)
+    const hide = [...menu!.querySelectorAll('button')].find((button) => button.textContent?.includes('Hide project'))
+    expect(hide).toBeDefined()
+    await press(hide!)
 
-    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull()
-    expect(document.body.textContent).toContain('The folder and saved sessions will not be deleted.')
-    await press(document.body.querySelector('.modal .button--danger')!)
-    expect(onRemoveProject).toHaveBeenCalledOnce()
-    expect(onRemoveProject).toHaveBeenCalledWith(project)
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+    expect(onHideProject).toHaveBeenCalledOnce()
+    expect(onHideProject).toHaveBeenCalledWith(project)
   })
 
-  it('uses message-square-plus icons for new sessions and a folder-plus icon for projects', async () => {
+  it('uses a plus icon for the project-row session action and the add-project button', async () => {
     await act(async () => {
       root.render(
         <Sidebar
@@ -116,7 +114,7 @@ describe('sidebar project context menu', () => {
           onNavigate={noop}
           onNewSession={noop}
           onAddProject={noop}
-          onRemoveProject={noop}
+          onHideProject={noop}
           onOpenPalette={noop}
           onRenameSession={async () => undefined}
           onArchiveSession={async () => undefined}
@@ -125,7 +123,7 @@ describe('sidebar project context menu', () => {
     })
 
     expect(container.querySelector('.sidebar__primary .lucide-message-square-plus')).not.toBeNull()
-    expect(container.querySelector('.project-row__new-session .lucide-message-square-plus')).not.toBeNull()
+    expect(container.querySelector('.project-row__new-session .lucide-plus')).not.toBeNull()
     expect(container.querySelector('.sidebar__section-heading .lucide-plus')).not.toBeNull()
     expect(container.querySelector('.sidebar__primary button kbd')?.textContent).toBe('⌘N')
     expect(container.querySelector('[aria-label="New session in Project"][data-tooltip="New session in Project"]')).not.toBeNull()
@@ -145,7 +143,7 @@ describe('sidebar project context menu', () => {
           onNavigate={noop}
           onNewSession={noop}
           onAddProject={noop}
-          onRemoveProject={noop}
+          onHideProject={noop}
           onOpenPalette={noop}
           onRenameSession={async () => undefined}
           onArchiveSession={async () => undefined}
@@ -174,7 +172,7 @@ describe('sidebar archive confirmation', () => {
           onNavigate={noop}
           onNewSession={noop}
           onAddProject={noop}
-          onRemoveProject={noop}
+          onHideProject={noop}
           onOpenPalette={noop}
           onRenameSession={async () => undefined}
           onArchiveSession={onArchiveSession}
@@ -207,7 +205,7 @@ describe('sidebar session notifications', () => {
       onNavigate: noop,
       onNewSession: noop,
       onAddProject: noop,
-      onRemoveProject: noop,
+      onHideProject: noop,
       onOpenPalette: noop,
       onRenameSession: async () => undefined,
       onArchiveSession: async () => undefined,
@@ -230,7 +228,7 @@ describe('sidebar session notifications', () => {
       onNavigate: noop,
       onNewSession: noop,
       onAddProject: noop,
-      onRemoveProject: noop,
+      onHideProject: noop,
       onOpenPalette: noop,
       onRenameSession: async () => undefined,
       onArchiveSession: async () => undefined,

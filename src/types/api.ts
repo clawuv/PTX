@@ -99,6 +99,8 @@ export interface ProjectRecord {
   gitBranch?: string
   inferred?: boolean
   readOnly?: boolean
+  /** Sidebar visibility preference; hidden projects stay authorized and list in settings. */
+  hidden?: boolean
   scripts?: ProjectScripts
 }
 
@@ -800,6 +802,7 @@ export interface PtxApi {
     add(harness?: HarnessId): Promise<ProjectRecord | null>
     grantInferred(path: string, harness?: HarnessId): Promise<ProjectRecord>
     remove(id: string, harness?: HarnessId): Promise<boolean>
+    setHidden(id: string, hidden: boolean, harness?: HarnessId): Promise<boolean>
     touch(id: string, harness?: HarnessId): Promise<boolean>
     updateScripts(id: string, scripts: Pick<ProjectScripts, 'setup' | 'run'>, harness?: HarnessId): Promise<ProjectScripts>
     markSetupStarted(id: string, setup: string, harness?: HarnessId): Promise<ProjectScripts>

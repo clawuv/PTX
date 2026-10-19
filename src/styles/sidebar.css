@@ -73,13 +73,16 @@
 .sidebar__section-heading { padding-left: 8px; font-size: var(--sidebar-row-font-size); font-weight: 400; letter-spacing: .05em; }
 .sidebar__empty { margin-left: 8px; }
 .project-group { margin-bottom: var(--sidebar-row-spacing); }
-.project-row { position: relative; height: var(--sidebar-row-height); display: flex; align-items: center; padding: 0 4px 0 8px; border-radius: var(--sidebar-row-radius); color: var(--sidebar-menu-ink); }
+.project-row { position: relative; height: var(--sidebar-row-height); display: flex; align-items: center; gap: 2px; padding: 0 4px 0 8px; border-radius: var(--sidebar-row-radius); color: var(--sidebar-menu-ink); }
 .project-row:hover { color: var(--text); background: var(--sidebar-row-background); }
 .project-row.is-selected { color: var(--text); background: var(--sidebar-row-background); }
 .project-row__main { min-width: 0; height: 100%; flex: 1; display: flex; align-items: center; gap: var(--sidebar-row-gap); padding: 0; color: inherit; background: transparent; font-size: var(--sidebar-row-font-size); text-align: left; }
 .project-row__main svg { flex: 0 0 auto; color: var(--text-tertiary); }
 .project-row__main span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; }
 .row-action { opacity: 0; transition: opacity 130ms ease-out; }
+/* Row hover fills the whole row with the icon-hover token, so hovered icons need a
+   distinct chip or the feedback disappears into the row background. */
+.project-row:hover .row-action:hover, .project-row:focus-within .row-action:hover { background: color-mix(in srgb, var(--text) 10%, transparent); }
 .project-row:hover .row-action, .project-row:focus-within .row-action { opacity: 1; }
 .project-row__new-session { flex: 0 0 auto; color: var(--text-tertiary); }
 .project-row__menu { position: absolute; z-index: 120; top: 33px; right: 2px; width: 154px; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-raised); box-shadow: var(--shadow-popover); }

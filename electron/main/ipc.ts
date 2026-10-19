@@ -305,6 +305,7 @@ export function registerIpc(services: Services, expectedRendererUrl: string): Ip
   handle('projects:add', (_event, harness) => projectsFor(requireHarness(harness)).add())
   handle('projects:grant-inferred', (_event, path, harness) => projectsFor(requireHarness(harness)).grantInferred(path))
   handle('projects:remove', (_event, id, harness) => projectsFor(requireHarness(harness)).remove(id))
+  handle('projects:set-hidden', (_event, id, hidden, harness) => projectsFor(requireHarness(harness)).setHidden(id, hidden))
   handle('projects:touch', (_event, id, harness) => projectsFor(requireHarness(harness)).touch(id))
   handle('projects:update-scripts', (_event, id, scripts, harness) => projectsFor(requireHarness(harness)).updateScripts(id, scripts))
   handle('projects:mark-setup-started', (_event, id, setup, harness) => projectsFor(requireHarness(harness)).markSetupStarted(id, setup))

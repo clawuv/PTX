@@ -40,9 +40,14 @@ interface SettingsPageProps {
   onSetModelEffort(modelKey: string, level: AgentThinkingLevel | ''): Promise<void>
   /** Project management renders inside Settings > Workspace. */
   projects: ProjectRecord[]
+  activeProjectId?: string
   onAddProject(): void
   onOpenProject(project: ProjectRecord): void
   onRemoveProject(project: ProjectRecord): void
+  /** Restores a hidden project to the sidebar. */
+  onShowProject(project: ProjectRecord): void
+  /** Hides a project from the sidebar without revoking its grant. */
+  onHideProject(project: ProjectRecord): void
   initialSection?: SettingsSection
   /** Re-applies initialSection for repeated navigation requests to the same section. */
   initialSectionRequestId?: number
@@ -69,9 +74,12 @@ export function SettingsPage({
   onSetModelEnabled,
   onSetModelEffort,
   projects,
+  activeProjectId,
   onAddProject,
   onOpenProject,
   onRemoveProject,
+  onShowProject,
+  onHideProject,
   initialSection = 'general',
   initialSectionRequestId = 0,
   section: controlledSection,
@@ -116,7 +124,7 @@ export function SettingsPage({
       case 'appearance':
         return <AppearanceSettings settings={settings} onUpdate={onUpdate} />
       case 'projects':
-        return <ProjectsPage projects={projects} onAdd={onAddProject} onOpen={onOpenProject} onRemove={onRemoveProject} showHeaderAction={false} />
+        return <ProjectsPage projects={projects} activeProjectId={activeProjectId} onAdd={onAddProject} onOpen={onOpenProject} onRemove={onRemoveProject} onShow={onShowProject} onHide={onHideProject} showHeaderAction={false} />
       case 'agent':
         return <AgentSettings settings={settings} meta={meta} onUpdate={onUpdate} onRefreshHarnesses={onRefreshHarnesses} />
       case 'providers':

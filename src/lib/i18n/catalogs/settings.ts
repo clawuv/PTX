@@ -240,6 +240,8 @@ const en = {
   'providers.intro.pi':
     'Choose which providers and models appear in Ptx; credentials stay managed by the pi CLI.',
   'providers.catalogue': '{name} catalogue',
+  'providers.section.providers': 'Providers',
+  'providers.section.models': '{name} models',
   'providers.action.disableAll': 'Disable all',
   'providers.action.hideAll': 'Hide all',
   'providers.action.enableAll': 'Enable all',
@@ -573,6 +575,8 @@ const zh = {
   'providers.intro.omp': '选择哪些服务商和模型显示在 Ptx 中；凭据仍由 OMP CLI 管理。',
   'providers.intro.pi': '选择哪些服务商和模型显示在 Ptx 中；凭据仍由 pi CLI 管理。',
   'providers.catalogue': '{name} 目录',
+  'providers.section.providers': '服务商',
+  'providers.section.models': '{name} 模型',
   'providers.action.disableAll': '全部禁用',
   'providers.action.hideAll': '全部隐藏',
   'providers.action.enableAll': '全部启用',

@@ -95,6 +95,7 @@ export function FeishuSettings() {
         </button>
       </header>
       <div className="settings-group">
+        <div className="settings-group__card">
         <fieldset disabled={busy || !loaded} className="feishu-fields">
           <label className="field">
             <span>执行引擎</span>
@@ -171,8 +172,10 @@ export function FeishuSettings() {
             {error || status?.error}
           </p>
         ) : null}
+        </div>
       </div>
       <div className="settings-group">
+        <div className="settings-group__card">
         <h2>在飞书开放平台配置</h2>
         <ol>
           <li>创建企业自建应用并启用机器人。</li>
@@ -184,6 +187,7 @@ export function FeishuSettings() {
           在手机机器人单聊发送 普通文字即可继续当前会话，使用 <code>/状态</code>、<code>/结果</code>、<code>/停止</code> 管理当前会话，使用 /新建、/会话、/切换 会话ID
           创建或切换会话。完成后回到桌面验收，需交互确认的任务也在桌面处理。
         </p>
+        </div>
       </div>
       {binding ? (
         <FeishuBindingDialog

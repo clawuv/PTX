@@ -49,8 +49,6 @@ const en = {
   'settings.agent.ready': '{name} is ready',
   'settings.agent.notDetected': '{name} not detected',
   'settings.agent.installHint': 'Install {name}, then refresh harnesses.',
-  'settings.agent.discoveryDescription':
-    'Discovery checks a saved override first, then the harness environment variable, bundled files, PATH, and standard install directories. Refreshing updates future sessions without restarting Ptx.',
   'settings.agent.pathOverride.label': '{name} executable override',
   'settings.agent.pathOverride.description': 'Optional absolute path. Leave blank to keep automatic discovery.',
   'settings.agent.pathOverride.error': '{name} path must be absolute (or blank for automatic discovery)',
@@ -65,11 +63,6 @@ const en = {
   'settings.agent.enterAction.aria': 'Primary Enter action',
   'settings.agent.enterAction.queue': 'Queue',
   'settings.agent.enterAction.steer': 'Steer',
-  'settings.agent.shortcut.queueMessage': 'Queue message',
-  'settings.agent.shortcut.steerTurn': 'Steer current turn',
-  'settings.agent.permissions': 'Permissions',
-  'settings.agent.workspaceAccess.title': 'Workspace access',
-  'settings.agent.workspaceAccess.description': 'The active agent only receives the project folders attached to a session.',
 
   // Voice
   'settings.voice.description': 'Connect a speech service, choose a model, then use the microphone or realtime orb.',
@@ -243,9 +236,9 @@ const en = {
 
   // Providers
   'providers.intro.omp':
-    'Choose which OMP providers and models appear in Ptx. These visibility settings do not change OMP itself; credentials remain managed by OMP. You may need to log in to or out of providers in the OMP CLI before they appear on this screen.',
+    'Choose which providers and models appear in Ptx; credentials stay managed by the OMP CLI.',
   'providers.intro.pi':
-    'Choose which Pi providers and models appear in Ptx. These visibility settings do not change Pi itself; Pi provider authentication is managed by the pi CLI. You may need to log in to or out of providers in the Pi CLI before they appear on this screen.',
+    'Choose which providers and models appear in Ptx; credentials stay managed by the pi CLI.',
   'providers.catalogue': '{name} catalogue',
   'providers.action.disableAll': 'Disable all',
   'providers.action.hideAll': 'Hide all',
@@ -401,7 +394,6 @@ const zh = {
   'settings.agent.ready': '{name} 已就绪',
   'settings.agent.notDetected': '未检测到 {name}',
   'settings.agent.installHint': '安装 {name}，然后刷新运行环境。',
-  'settings.agent.discoveryDescription': '发现流程会依次检查已保存的覆盖路径、运行环境变量、内置文件、PATH 以及标准安装目录。刷新后无需重启 Ptx，即可对后续会话生效。',
   'settings.agent.pathOverride.label': '{name} 可执行文件覆盖路径',
   'settings.agent.pathOverride.description': '可选的绝对路径。留空则保持自动发现。',
   'settings.agent.pathOverride.error': '{name} 路径必须是绝对路径（或留空以自动发现）',
@@ -416,11 +408,6 @@ const zh = {
   'settings.agent.enterAction.aria': 'Enter 键的主要操作',
   'settings.agent.enterAction.queue': '排队',
   'settings.agent.enterAction.steer': '引导',
-  'settings.agent.shortcut.queueMessage': '将消息排队',
-  'settings.agent.shortcut.steerTurn': '引导当前回合',
-  'settings.agent.permissions': '权限',
-  'settings.agent.workspaceAccess.title': '工作区访问',
-  'settings.agent.workspaceAccess.description': '当前代理只会收到附加到会话中的项目文件夹。',
 
   'settings.voice.description': '连接语音服务，选择模型，然后使用麦克风或实时语音球。',
   'settings.voice.restart.title': '重启 Ptx 以完成语音功能的启用',
@@ -583,8 +570,8 @@ const zh = {
   'settings.about.docs': '帮助与文档',
   'settings.about.openDocs': '打开文档',
 
-  'providers.intro.omp': '选择哪些 OMP 服务商和模型显示在 Ptx 中。这些可见性设置不会更改 OMP 本身；凭据仍由 OMP 管理。你可能需要先在 OMP CLI 中登录或退出服务商，它们才会显示在此界面上。',
-  'providers.intro.pi': '选择哪些 Pi 服务商和模型显示在 Ptx 中。这些可见性设置不会更改 Pi 本身；Pi 服务商认证由 pi CLI 管理。你可能需要先在 Pi CLI 中登录或退出服务商，它们才会显示在此界面上。',
+  'providers.intro.omp': '选择哪些服务商和模型显示在 Ptx 中；凭据仍由 OMP CLI 管理。',
+  'providers.intro.pi': '选择哪些服务商和模型显示在 Ptx 中；凭据仍由 pi CLI 管理。',
   'providers.catalogue': '{name} 目录',
   'providers.action.disableAll': '全部禁用',
   'providers.action.hideAll': '全部隐藏',

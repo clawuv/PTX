@@ -1,4 +1,4 @@
-import { Bot, Keyboard, RefreshCw, ShieldCheck } from 'lucide-react'
+import { Bot, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { SelectMenu } from '@/components/ui'
 import { errorMessage } from '@/lib/errors'
@@ -43,30 +43,6 @@ export function AgentSettings({ settings, meta, onUpdate, onRefreshHarnesses }: 
     <>
       <header><h1>{t('settings.harness')}</h1><p>{t('settings.agent.description')}</p></header>
       <section className="settings-group">
-        <h2>{t('settings.harness')}</h2>
-        <div className="settings-group__card">
-          <label className="settings-row">
-            <span><strong>{t('settings.agent.defaultHarness.label')}</strong><small>{t('settings.agent.defaultHarness.description')}</small></span>
-            <SelectMenu
-              label={t('settings.agent.defaultHarness.label')}
-              disabled={!availableHarnesses.length}
-              value={availableHarnesses.includes(activeHarness) ? activeHarness : ''}
-              options={!availableHarnesses.length ? [{ value: '', label: t('settings.agent.defaultHarness.none') }] : availableHarnesses.map((harness) => ({ value: harness, label: HARNESS_PRODUCT_NAMES[harness] }))}
-              onChange={(next) => { void onUpdate({ activeHarness: next as HarnessId }) }}
-            />
-          </label>
-          {approvalModeSupported ? <label className="settings-row">
-            <span><strong>{t('settings.agent.approvalMode.label')}</strong><small>{t('settings.agent.approvalMode.description')}</small></span>
-            <SelectMenu
-              label={t('settings.agent.approvalMode.label')}
-              value={settings.ompApprovalMode}
-              options={OMP_APPROVAL_MODES.map((mode) => ({ value: mode, label: t(APPROVAL_MODE_LABELS[mode]) }))}
-              onChange={(next) => { void onUpdate({ ompApprovalMode: next as OmpApprovalMode }) }}
-            />
-          </label> : null}
-        </div>
-      </section>
-      <section className="settings-group">
         <div className="settings-group__heading">
           <h2>{t('settings.agent.runtime')}</h2>
           <button type="button" className="button button--compact" disabled={refreshing} onClick={() => { void refreshHarnesses() }}>
@@ -89,7 +65,27 @@ export function AgentSettings({ settings, meta, onUpdate, onRefreshHarnesses }: 
               </div>
             )
           })}
-          <p className="settings-group__description">{t('settings.agent.discoveryDescription')}</p>
+          <div className="runtime-divider" role="presentation" />
+          <label className="settings-row">
+            <span><strong>{t('settings.agent.defaultHarness.label')}</strong><small>{t('settings.agent.defaultHarness.description')}</small></span>
+            <SelectMenu
+              label={t('settings.agent.defaultHarness.label')}
+              disabled={!availableHarnesses.length}
+              value={availableHarnesses.includes(activeHarness) ? activeHarness : ''}
+              options={!availableHarnesses.length ? [{ value: '', label: t('settings.agent.defaultHarness.none') }] : availableHarnesses.map((harness) => ({ value: harness, label: HARNESS_PRODUCT_NAMES[harness] }))}
+              onChange={(next) => { void onUpdate({ activeHarness: next as HarnessId }) }}
+            />
+          </label>
+          {approvalModeSupported ? <label className="settings-row">
+            <span><strong>{t('settings.agent.approvalMode.label')}</strong><small>{t('settings.agent.approvalMode.description')}</small></span>
+            <SelectMenu
+              label={t('settings.agent.approvalMode.label')}
+              value={settings.ompApprovalMode}
+              options={OMP_APPROVAL_MODES.map((mode) => ({ value: mode, label: t(APPROVAL_MODE_LABELS[mode]) }))}
+              onChange={(next) => { void onUpdate({ ompApprovalMode: next as OmpApprovalMode }) }}
+            />
+          </label> : null}
+          <div className="runtime-divider" role="presentation" />
           {HARNESS_IDS.map((harness) => <DraftSettingField
             key={harness}
             id={`runtime-path-${harness}`}
@@ -124,14 +120,6 @@ export function AgentSettings({ settings, meta, onUpdate, onRefreshHarnesses }: 
               {(['queue', 'steer'] as const).map((action) => <button key={action} type="button" className={`button button--compact ${settings.messageEnterAction === action ? 'is-active' : ''}`} role="radio" aria-checked={settings.messageEnterAction === action} onClick={() => { void onUpdate({ messageEnterAction: action }) }}>{action === 'queue' ? t('settings.agent.enterAction.queue') : t('settings.agent.enterAction.steer')}</button>)}
             </span>
           </label>
-          <div className="shortcut-row"><span><Keyboard size={14} />{settings.messageEnterAction === 'queue' ? t('settings.agent.shortcut.queueMessage') : t('settings.agent.shortcut.steerTurn')}</span><kbd>Enter</kbd></div>
-          <div className="shortcut-row"><span><Keyboard size={14} />{settings.messageEnterAction === 'queue' ? t('settings.agent.shortcut.steerTurn') : t('settings.agent.shortcut.queueMessage')}</span><kbd>{oppositeActionShortcut}</kbd></div>
-        </div>
-      </section>
-      <section className="settings-group">
-        <h2>{t('settings.agent.permissions')}</h2>
-        <div className="settings-group__card">
-          <div className="info-row"><ShieldCheck size={15} /><div><strong>{t('settings.agent.workspaceAccess.title')}</strong><small>{t('settings.agent.workspaceAccess.description')}</small></div></div>
         </div>
       </section>
     </>

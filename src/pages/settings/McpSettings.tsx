@@ -212,16 +212,19 @@ export function McpSettings({ initialHarness, projects }: { initialHarness: Harn
           <h1>{t('settings.mcp')}</h1>
           <p>{t('settings.mcp.description')}</p>
         </div>
-        <button type="button" className="button" disabled={loading || !servers.length} onClick={refreshAll}>
-          <RefreshCw size={14} />
-          {t('settings.mcp.status.refresh')}
-        </button>
-        <button type="button" className="button button--primary" onClick={openAdd}>
-          <Plus size={14} />
-          {t('settings.mcp.add.submit')}
-        </button>
+        <div className="mcp-settings__actions">
+          <button type="button" className="button" disabled={loading || !servers.length} onClick={refreshAll}>
+            <RefreshCw size={14} />
+            {t('settings.mcp.status.refresh')}
+          </button>
+          <button type="button" className="button button--primary" onClick={openAdd}>
+            <Plus size={14} />
+            {t('settings.mcp.add.submit')}
+          </button>
+        </div>
       </header>
       <div className="settings-group">
+        <div className="settings-group__card">
         <div className="mcp-fields">
           <label className="field">
             <span>{t('settings.mcp.engine')}</span>
@@ -339,6 +342,7 @@ export function McpSettings({ initialHarness, projects }: { initialHarness: Harn
             {alert}
           </p>
         ) : null}
+        </div>
       </div>
       {addOpen ? (
         <Modal title={t(editing ? 'settings.mcp.editServer' : 'settings.mcp.add')} onClose={resetDialog}>

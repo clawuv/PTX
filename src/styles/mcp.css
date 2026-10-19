@@ -9,6 +9,7 @@
   flex-wrap: wrap;
   gap: 12px 20px;
 }
+.mcp-settings__actions { display: flex; align-items: center; gap: 6px; }
 .mcp-settings h2 {
   margin: 14px 0 4px;
   font-size: 12px;

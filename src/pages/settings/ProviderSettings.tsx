@@ -1,4 +1,4 @@
-import { ChevronRight, ExternalLink, Gauge, RefreshCw, Search, Zap } from 'lucide-react'
+import { ChevronRight, ExternalLink, EyeOff, Gauge, RefreshCw, Search, Zap } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Modal, SelectMenu } from '@/components/ui'
 import { errorMessage } from '@/lib/errors'
@@ -125,7 +125,7 @@ export function ProviderSettings({ harness = 'omp', catalog, onRefresh, onSetEna
         <h2>{t('providers.catalogue', { name: agentName })}</h2>
         <div className="provider-heading-actions">
           {catalog && disabledCount < providerCount
-            ? <button type="button" className="button button--danger" disabled={Boolean(busy)} onClick={() => setConfirmHideAll(true)}>{externalAuth ? t('providers.action.hideAll') : t('providers.action.disableAll')}</button>
+            ? <button type="button" className="button button--icon button--icon--danger" aria-label={externalAuth ? t('providers.action.hideAll') : t('providers.action.disableAll')} data-tooltip={externalAuth ? t('providers.action.hideAll') : t('providers.action.disableAll')} disabled={Boolean(busy)} onClick={() => setConfirmHideAll(true)}><EyeOff size={13} /></button>
             : null}
           {disabledCount
             ? <button type="button" className="button" disabled={Boolean(busy)} onClick={() => void run('enable-all', onSetAllEnabled)}>{externalAuth ? t('providers.action.showAll') : t('providers.action.enableAll')}</button>

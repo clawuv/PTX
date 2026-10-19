@@ -60,7 +60,7 @@ async function render(node: ReactNode) {
 }
 
 function button(label: string): HTMLButtonElement {
-  const match = [...container.querySelectorAll('button')].find((item) => item.textContent?.includes(label))
+  const match = [...container.querySelectorAll('button')].find((item) => item.textContent?.includes(label) || item.getAttribute('aria-label') === label)
   if (!match) throw new Error(`Button not found: ${label}`)
   return match as HTMLButtonElement
 }

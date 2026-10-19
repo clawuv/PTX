@@ -1306,17 +1306,19 @@ test.describe('Pi Work desktop smoke', () => {
 
   test('shows a blue update icon beside search only after discovering an update', async () => {
     const update = page.locator('.title-toolbar .app-update')
-    await expect(update).toHaveCount(0)
+    // The icon is always rendered (manual check affordance); only the blue badge is update-gated.
+    await expect(update).toBeVisible()
+    await expect(update.locator('.app-update__icon')).toHaveCount(0)
     for (const phase of ['checking', 'not-available', 'error']) {
       await app!.evaluate(({ BrowserWindow }, phase) => {
         BrowserWindow.getAllWindows()[0]?.webContents.send('updates:changed', { phase })
       }, phase)
-      await expect(update).toHaveCount(0)
+      await expect(update.locator('.app-update__icon')).toHaveCount(0)
     }
     await app!.evaluate(({ BrowserWindow }) => {
       BrowserWindow.getAllWindows()[0]?.webContents.send('updates:changed', { phase: 'available', version: '1.0.1', manualInstall: true })
     })
-    await expect(update).toBeVisible()
+    await expect(update.locator('.app-update__icon')).toBeVisible()
     await expect(update.locator('.app-update__icon')).toHaveCSS('background-color', 'rgb(51, 156, 255)')
     const updateBounds = await update.boundingBox()
     const searchBounds = await page.locator('.title-toolbar__search').boundingBox()

@@ -420,9 +420,9 @@ const windowControls = {
 async function createWindow(): Promise<BrowserWindow | null> {
   if (shutdownStarted) return null
   const window = new BrowserWindow({
-    width: 854,
+    width: 960,
     height: 640,
-    minWidth: 854,
+    minWidth: 960,
     minHeight: 640,
     show: false,
     backgroundColor: '#ffffff',

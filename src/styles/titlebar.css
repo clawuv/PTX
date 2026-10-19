@@ -671,7 +671,8 @@ button.summary-popover__row[aria-expanded="true"] {
 .app-shell:not([data-platform="darwin"]) .title-toolbar__nav > .icon-button svg { width: 13px; height: 13px; }
 /* The strip buttons keep the menus' 6px rhythm; the back/forward pair sits wider at 10px. */
 .app-shell:not([data-platform="darwin"]) .titlebar-arrows { margin-left: 0; gap: 10px; }
-.app-shell:not([data-platform="darwin"]) .titlebar-menus { margin-left: 18px; gap: 6px; }
+/* Menus follow the left cluster (ending in the reserved update slot) with 14px of separation. */
+.app-shell:not([data-platform="darwin"]) .titlebar-menus { margin-left: 14px; gap: 6px; }
 .app-shell:not([data-platform="darwin"]) .titlebar-arrow { width: 13px; height: 13px; }
 .app-shell[data-platform="win32"] .title-toolbar { border-bottom: 0; font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif; }
 

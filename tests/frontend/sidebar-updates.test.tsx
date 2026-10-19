@@ -40,9 +40,34 @@ async function renderSidebar(updateState: AppUpdateState, onUpdateAction: () => 
 }
 
 describe('sidebar update control', () => {
-  it.each(['idle', 'checking', 'not-available', 'unsupported', 'error'] as const)('hides the update button when no update is known in %s', async (phase) => {
-    await renderSidebar({ phase }, vi.fn())
-    expect(container.querySelector('.app-update')).toBeNull()
+  it.each(['idle', 'not-available'] as const)('renders a plain manual-check icon in %s', async (phase) => {
+    const onUpdateAction = vi.fn()
+    await renderSidebar({ phase }, onUpdateAction)
+    const update = container.querySelector<HTMLButtonElement>('.app-update')
+    expect(update).not.toBeNull()
+    expect(update?.querySelector('.app-update__icon')).toBeNull()
+    expect(update?.disabled).toBe(false)
+    await press(update!)
+    expect(onUpdateAction).toHaveBeenCalledOnce()
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+  })
+
+  it('stays disabled while unsupported and cannot start a check', async () => {
+    const onUpdateAction = vi.fn()
+    await renderSidebar({ phase: 'unsupported', message: 'dev build' }, onUpdateAction)
+    const update = container.querySelector<HTMLButtonElement>('.app-update')
+    expect(update).not.toBeNull()
+    expect(update?.disabled).toBe(true)
+    await press(update!)
+    expect(onUpdateAction).not.toHaveBeenCalled()
+  })
+
+  it('spins and blocks re-entry while checking', async () => {
+    const onUpdateAction = vi.fn()
+    await renderSidebar({ phase: 'checking' }, onUpdateAction)
+    const update = container.querySelector<HTMLButtonElement>('.app-update')
+    expect(update?.classList.contains('app-update--checking')).toBe(true)
+    expect(update?.disabled).toBe(true)
   })
 
   it('asks only about restarting when the update is already downloaded', async () => {
@@ -71,9 +96,9 @@ describe('sidebar update control', () => {
     expect(update?.getAttribute('title')).toBe('network went away')
     expect(update?.disabled).toBe(false)
 
-    // Retrying re-checks straight away instead of asking to download and restart.
+    // Retrying re-checks straight away from the plain icon instead of opening a dialog.
     await press(update!)
-    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
     expect(onUpdateAction).toHaveBeenCalledOnce()
   })
 
@@ -119,7 +144,8 @@ describe('unsigned test update control', () => {
 it('shows an automatically discovered update without starting installation', async () => {
   const action = vi.fn()
   await renderSidebar({ phase: 'checking' }, action)
-  expect(container.querySelector('.app-update')).toBeNull()
+  expect(container.querySelector('.app-update')).not.toBeNull()
+  expect(container.querySelector<HTMLButtonElement>('.app-update')?.disabled).toBe(true)
   await renderSidebar({ phase: 'available', version: '1.0.1' }, action)
   expect(container.querySelector('.app-update')).not.toBeNull()
   expect(document.body.querySelector('[role="dialog"]')).toBeNull()

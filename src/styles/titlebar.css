@@ -56,7 +56,8 @@
 .app-shell[data-platform="win32"] .title-toolbar {
   flex-basis: auto;
   height: max(36px, var(--windows-titlebar-height));
-  padding-left: 24px;
+  /* Match the sidebar's 12px content inset so the back arrow lines up with the rows below. */
+  padding-left: 12px;
   padding-right: 0;
 }
 .app-shell[data-platform="linux"] .title-toolbar {
@@ -665,9 +666,11 @@ button.summary-popover__row[aria-expanded="true"] {
   text-overflow: ellipsis;
 }
 
+.app-shell:not([data-platform="darwin"]) .title-toolbar__nav { gap: 6px; }
 .app-shell:not([data-platform="darwin"]) .title-toolbar__nav > .icon-button { order: 1; margin-left: 0; }
 .app-shell:not([data-platform="darwin"]) .title-toolbar__nav > .icon-button svg { width: 13px; height: 13px; }
-.app-shell:not([data-platform="darwin"]) .titlebar-arrows { margin-left: 0; gap: 2px; }
+/* The four strip buttons keep the same 6px rhythm as the menu titles. */
+.app-shell:not([data-platform="darwin"]) .titlebar-arrows { margin-left: 0; gap: 6px; }
 .app-shell:not([data-platform="darwin"]) .titlebar-menus { margin-left: 18px; gap: 6px; }
 .app-shell:not([data-platform="darwin"]) .titlebar-arrow { width: 13px; height: 13px; }
 .app-shell[data-platform="win32"] .title-toolbar { border-bottom: 0; font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif; }

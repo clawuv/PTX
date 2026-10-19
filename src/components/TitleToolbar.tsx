@@ -115,7 +115,8 @@ export function TitleToolbar({ onToggleSidebar, onToggleSearch, searchOpen, upda
       <div className="title-toolbar__nav no-drag">
         <IconButton label={t('shellui.toggleSidebar', { shortcut: sidebarShortcut })} onClick={onToggleSidebar}><PanelLeft size={16} /></IconButton>
         <IconButton label={t('sidebar.search')} onClick={onToggleSearch} aria-expanded={searchOpen} className="title-toolbar__search"><Search size={16} /></IconButton>
-        <AppUpdateButton updateState={updateState} onUpdateAction={onUpdateAction} />
+        {/* The slot reserves the update icon's 26px cell (win32) so the menus never shift when an update appears. */}
+        <span className="title-toolbar__update-slot"><AppUpdateButton updateState={updateState} onUpdateAction={onUpdateAction} /></span>
         {platform === 'darwin' || platform === 'win32' ? (
           <span className="titlebar-arrows">
             <button type="button" className="titlebar-arrow" disabled={!canBack} aria-label={t('shellui.navigateBack')} data-tooltip={t('shellui.navigateBack')} onClick={onBack}>

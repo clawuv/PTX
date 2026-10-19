@@ -669,10 +669,14 @@ button.summary-popover__row[aria-expanded="true"] {
 .app-shell:not([data-platform="darwin"]) .title-toolbar__nav { gap: 6px; }
 .app-shell:not([data-platform="darwin"]) .title-toolbar__nav > .icon-button { order: 1; margin-left: 0; }
 .app-shell:not([data-platform="darwin"]) .title-toolbar__nav > .icon-button svg { width: 13px; height: 13px; }
-/* The four strip buttons keep the same 6px rhythm as the menu titles. */
-.app-shell:not([data-platform="darwin"]) .titlebar-arrows { margin-left: 0; gap: 6px; }
+/* The strip buttons keep the menus' 6px rhythm; the back/forward pair sits wider at 10px. */
+.app-shell:not([data-platform="darwin"]) .titlebar-arrows { margin-left: 0; gap: 10px; }
 .app-shell:not([data-platform="darwin"]) .titlebar-menus { margin-left: 18px; gap: 6px; }
 .app-shell:not([data-platform="darwin"]) .titlebar-arrow { width: 13px; height: 13px; }
 .app-shell[data-platform="win32"] .title-toolbar { border-bottom: 0; font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif; }
 
 .app-shell[data-platform="win32"] .titlebar-arrow > svg { width: 13px; height: 13px; }
+/* Update icon slot: transparent wrapper elsewhere; on Windows it always reserves the icon's
+   26px cell between the search button and the menu titles so they never shift when it appears. */
+.title-toolbar__update-slot { display: contents; }
+.app-shell[data-platform="win32"] .title-toolbar__update-slot { order: 2; display: grid; place-items: center; width: 26px; flex: 0 0 26px; }

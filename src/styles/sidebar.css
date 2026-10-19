@@ -113,8 +113,10 @@
 .session-status-mark { width: 16px; height: 16px; display: inline-grid; place-items: center; flex: 0 0 auto; border-radius: 50%; }
 .session-status-mark--running { color: var(--accent); }
 .session-status-mark--waiting { color: var(--warning); }
-.session-status-mark--failed > span { width: 7px; height: 7px; border-radius: 50%; background: var(--text-tertiary); }
+.session-status-mark--failed > span { width: 7px; height: 7px; border-radius: 50%; background: color-mix(in srgb, var(--danger) 62%, var(--canvas)); }
 .session-row-wrap.has-attention .session-status-mark--failed > span { background: var(--danger); }
+.session-status-mark--day > span { width: 7px; height: 7px; border-radius: 50%; background: color-mix(in srgb, var(--text-tertiary) 45%, var(--canvas)); }
+.session-status-mark--day.is-today > span { background: color-mix(in srgb, #a78bfa 78%, var(--canvas)); }
 
 /* Compact footer with settings and a persistent software-update control. */
 .sidebar__footer { flex: 0 0 auto; display: flex; align-items: center; gap: 9px; margin-top: auto; height: 40px; padding: 0 12px; border-top: 1px solid var(--chrome-divider); }
@@ -129,4 +131,5 @@
 
 .nav-attention-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 10.5px; font-style: normal; font-weight: 700; line-height: 1; }
 
-.sidebar__mobile--connected { color: var(--accent); }
+/* Fixed violet (the light-theme accent) so the connected phone icon reads identically in both themes. */
+.sidebar__mobile--connected { color: #5f4bd3; }

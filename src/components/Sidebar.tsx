@@ -109,13 +109,18 @@ export function boundedSidebarSessions(sessions: SessionRecord[]): SessionRecord
 }
 
 
-function SessionStatusMark({ status, attention }: { status: SessionRecord['status']; attention: boolean }) {
+function isSameLocalDay(value: string): boolean {
+  const time = new Date(value).getTime()
+  return Number.isFinite(time) && new Date(time).toDateString() === new Date().toDateString()
+}
+
+function SessionStatusMark({ status, attention, today }: { status: SessionRecord['status']; attention: boolean; today: boolean }) {
   const { t } = useI18n()
   const title = status === 'failed' && !attention ? t('sidebar.failedCleared') : t(statusLabel[status])
   if (status === 'running') return <span className="session-status-mark session-status-mark--running" data-tooltip={t(statusLabel[status])}><LoaderCircle className="spin" size={13} /></span>
   if (status === 'waiting') return <span className="session-status-mark session-status-mark--waiting" data-tooltip={t(statusLabel[status])}><MessageCircleQuestion size={12} /></span>
-  if (status === 'complete') return <span className="session-status-mark session-status-mark--complete" data-tooltip={t(statusLabel[status])}><CheckCircle2 size={12} /></span>
-  return <span className={`session-status-mark session-status-mark--${status}`} data-tooltip={title}><span /></span>
+  if (status === 'failed') return <span className="session-status-mark session-status-mark--failed" data-tooltip={title}><span /></span>
+  return <span className={`session-status-mark session-status-mark--day${today ? ' is-today' : ''}`} data-tooltip={title}><span /></span>
 }
 
 const HARNESS_MARKS: Record<HarnessId, (props: { size?: number }) => ReactElement> = { omp: OmpMark, pi: PiMark }
@@ -191,7 +196,7 @@ function SidebarView({ projects, sessions, activeProjectId, activeSessionId, act
   const renderSessionRow = (session: SessionRecord, selected: boolean) => (
     <div key={session.id} className={`session-row-wrap session-row-wrap--${session.status} ${needsAttention(session) ? 'has-attention' : ''} ${selected && activeSessionId === session.id && activeView === 'session' ? 'is-selected' : ''}`}>
       <button type="button" className="session-row" onClick={() => { setSessionMenu(null); onSelectSession(session) }} onContextMenu={(event) => { event.preventDefault(); openSessionMenu(session.id, event.currentTarget.getBoundingClientRect()) }}>
-        {session.status === 'running' || session.status === 'waiting' || session.status === 'failed' ? <SessionStatusMark status={session.status} attention={needsAttention(session)} /> : null}
+        <SessionStatusMark status={session.status} attention={needsAttention(session)} today={isSameLocalDay(session.lastUserMessageAt ?? session.updatedAt)} />
         <span className="session-row__text"><span className="session-row__title">{session.title}</span><span className="session-row__meta">{session.status === 'running' ? t('sidebar.working') : session.status === 'waiting' ? t('sidebar.needsAttention') : session.status === 'complete' ? t('sidebar.status.complete') : formatRelative(session.updatedAt)}</span></span>
         <span className="session-row__time">{formatRelative(session.updatedAt)}</span>
       </button>

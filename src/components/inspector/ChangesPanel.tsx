@@ -36,6 +36,7 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
   const [commitOpen, setCommitOpen] = useState(false)
   const [commitMessage, setCommitMessage] = useState('')
   const [confirmUndo, setConfirmUndo] = useState<string | null>(null)
+  const [confirmUndoAll, setConfirmUndoAll] = useState(false)
   const [actionError, setActionError] = useState('')
   const [pushing, setPushing] = useState(false)
   const [pulling, setPulling] = useState(false)
@@ -215,7 +216,10 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
       {actionError ? <p className="changes-error" role="alert">{actionError}</p> : null}
       <div className="changes-body">
         <div className="file-changes scroll-area">
-          <div className="file-changes__header"><span>{t('changes.count', { count: visibleFiles.length })}</span>{visibleFiles.length ? <button type="button" disabled={readOnly} onClick={() => void mutate(scope === 'staged' ? 'unstage' : 'stage', visibleFiles.map((file) => file.path))}>{scope === 'staged' ? t('changes.action.unstageAll') : t('changes.action.stageAll')}</button> : null}</div>
+          <div className="file-changes__header"><span>{t('changes.count', { count: visibleFiles.length })}</span>{visibleFiles.length ? <span className="file-changes__header-actions">
+            <button type="button" disabled={readOnly} onClick={() => void mutate(scope === 'staged' ? 'unstage' : 'stage', visibleFiles.map((file) => file.path))}>{scope === 'staged' ? t('changes.action.unstageAll') : t('changes.action.stageAll')}</button>
+            <button type="button" className="danger-action" disabled={readOnly} onClick={() => setConfirmUndoAll(true)}>{t('changes.action.undoAll')}</button>
+          </span> : null}</div>
           {visibleFiles.map((file) => <button type="button" key={file.path} className={selectedPath === file.path ? 'is-selected' : ''} onClick={() => setSelectedPath(file.path)}><File size={13} /><span title={file.path}>{file.path}</span><small className="additions">+{file.additions}</small><small className="deletions">−{file.deletions}</small><span className="file-status">{file.status}</span></button>)}
           {visibleFiles.length === 0 ? <p className="file-changes__empty">{scope === 'staged' ? t('changes.empty.staged') : t('changes.empty.unstaged')}</p> : null}
         </div>
@@ -226,6 +230,7 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
       </div>
       {commitOpen ? <Modal title={t('changes.commit.title')} onClose={() => setCommitOpen(false)} footer={<><button className="button" type="button" onClick={() => setCommitOpen(false)}>{t('changes.action.cancel')}</button><button className="button button--primary" type="button" disabled={readOnly || !commitMessage.trim()} onClick={() => void commit()}>{t('changes.commit.action')}</button></>}><label className="field"><span>{t('changes.commit.message')}</span><div className="commit-message-input"><input autoFocus value={commitMessage} onChange={(event) => setCommitMessage(event.target.value)} placeholder={t('changes.commit.placeholder')} /><button type="button" className="button button--compact" onClick={fillCommitSummary} title={t('changes.commit.generateTitle')}><Sparkles size={13} /> {t('changes.commit.generate')}</button></div></label><p className="muted-copy">{t('changes.commit.body.before')}<code>{git.branch}</code>{t('changes.commit.body.after')}</p></Modal> : null}
       {confirmUndo ? <Modal title={t('changes.undo.title')} onClose={() => setConfirmUndo(null)} footer={<><button className="button" type="button" onClick={() => setConfirmUndo(null)}>{t('changes.action.cancel')}</button><button className="button button--danger" type="button" disabled={readOnly} onClick={() => { const path = confirmUndo; void mutate('restore', [path]).then((ok) => { if (ok) setConfirmUndo(null) }) }}>{t('changes.action.undo')}</button></>}><p>{t('changes.undo.body.before')}<code>{confirmUndo}</code>{t('changes.undo.body.after')}</p></Modal> : null}
+      {confirmUndoAll ? <Modal title={t('changes.undoAll.title')} onClose={() => setConfirmUndoAll(false)} footer={<><button className="button" type="button" onClick={() => setConfirmUndoAll(false)}>{t('changes.action.cancel')}</button><button className="button button--danger" type="button" disabled={readOnly} onClick={() => { void mutate('restore', visibleFiles.map((file) => file.path)).then((ok) => { if (ok) setConfirmUndoAll(false) }) }}>{t('changes.action.undoAll')}</button></>}><p>{t('changes.undoAll.body', { count: visibleFiles.length })}</p></Modal> : null}
     </div>
   )
 }

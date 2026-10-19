@@ -138,6 +138,9 @@ const en = {
   'changes.undo.title': 'Undo file changes?',
   'changes.undo.body.before': 'This discards the staged and unstaged changes to ',
   'changes.undo.body.after': ' and restores the file to its last commit. A new untracked file will be deleted.',
+  'changes.action.undoAll': 'Undo all',
+  'changes.undoAll.title': 'Undo all file changes?',
+  'changes.undoAll.body': 'This discards the staged and unstaged changes in all {count} changed files and restores them to their last commit. New untracked files will be deleted.',
 
   // Terminal drawer (TerminalDrawer.tsx)
   'termdraw.exit.code': '[Process exited with code {code}]',
@@ -290,6 +293,9 @@ export const inspectorCatalog = defineCatalog(en, {
   'changes.undo.title': '撤销文件更改？',
   'changes.undo.body.before': '这会丢弃对 ',
   'changes.undo.body.after': ' 的已暂存和未暂存更改，并将该文件恢复到上一次提交。新建的未跟踪文件将被删除。',
+  'changes.action.undoAll': '全部撤销',
+  'changes.undoAll.title': '撤销全部文件更改？',
+  'changes.undoAll.body': '这会丢弃全部 {count} 个已更改文件的暂存与未暂存更改，并将它们恢复到上一次提交。新建的未跟踪文件将被删除。',
 
   'termdraw.exit.code': '[进程已退出，退出码 {code}]',
   'termdraw.bridge.title': 'Ptx 终端',

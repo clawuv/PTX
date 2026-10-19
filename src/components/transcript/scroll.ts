@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { newestWindow } from '@/lib/render-bounds'
 import type { TranscriptMessage } from '@/types/api'
 
@@ -15,13 +15,25 @@ export function useTranscriptScroll(messages: TranscriptMessage[]) {
   const visibleMessages = useMemo(() => newestWindow(messages, visibleLimit), [messages, visibleLimit])
   const hiddenCount = messages.length - visibleMessages.length
 
-  useEffect(() => {
+  // Layout effect: the first pin must land before the browser paints, or a
+  // remount flashes the top of the transcript before jumping down.
+  useLayoutEffect(() => {
     const firstLoadedTranscript = previousCountRef.current === 0 && messages.length > 0
     const scroller = scrollRef.current
     let frame: number | undefined
     if (firstLoadedTranscript) {
-      frame = requestAnimationFrame(() => scroller && typeof scroller.scrollTo === 'function' && scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'auto' }))
+      // Pin to bottom now, then re-assert for a few frames: after remounting
+      // (e.g. returning from Settings) fonts, images, and layout settle late, so
+      // a single scroll lands on a stale scrollHeight and leaves the view on top.
       pinnedToBottomRef.current = true
+      let retries = 0
+      const pin = () => {
+        if (!scroller || typeof scroller.scrollTo !== 'function') return
+        scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'auto' })
+        retries += 1
+        if (retries <= 4) frame = requestAnimationFrame(pin)
+      }
+      pin()
     } else if (streaming && pinnedToBottomRef.current) {
       frame = requestAnimationFrame(() => scroller && typeof scroller.scrollTo === 'function' && scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'auto' }))
     }

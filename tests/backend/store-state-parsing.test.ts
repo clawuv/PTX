@@ -76,6 +76,20 @@ describe('persisted project parsing', () => {
     expect(loadState({ version: 3, projects: { id: 'p' } }).projects).toEqual([])
   })
 
+  it('preserves the hidden flag across relaunch and rejects non-boolean values', () => {
+    const { projects } = loadState({
+      version: 3,
+      projects: [
+        { id: 'hidden-1', harness: 'omp', name: 'Hidden', path: '/repos/hidden', primaryFolder: '/repos/hidden', hidden: true },
+        { id: 'visible-1', harness: 'omp', name: 'Visible', path: '/repos/visible', primaryFolder: '/repos/visible' },
+        { id: 'garbage-1', harness: 'omp', name: 'Garbage', path: '/repos/garbage', primaryFolder: '/repos/garbage', hidden: 'yes' },
+      ],
+    })
+    expect(projects.find((project) => project.id === 'hidden-1')?.hidden).toBe(true)
+    expect(projects.find((project) => project.id === 'visible-1')?.hidden).toBeUndefined()
+    expect(projects.find((project) => project.id === 'garbage-1')?.hidden).toBeUndefined()
+  })
+
   it('keeps only folder identities with string device and inode numbers and a plausible birth time', () => {
     const { projects } = loadState({
       version: 3,

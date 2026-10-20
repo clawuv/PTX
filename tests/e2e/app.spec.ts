@@ -1191,7 +1191,8 @@ test.describe('Pi Work desktop smoke', () => {
     await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
     await page.getByRole('button', { name: 'OMP Work — switch harness' }).click()
     await expect(petSurface.getByRole('button', { name: 'Mute realtime voice' })).toHaveCount(0)
-    await expect(petSurface.getByRole('button', { name: 'Open realtime voice' })).toBeVisible()
+    // The test disabled the pet before switching, so closing voice also unmounts it.
+    await expect(petSurface).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'OMP Work — switch harness' })).toBeVisible()
   })
 

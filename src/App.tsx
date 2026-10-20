@@ -1076,10 +1076,13 @@ export default function App() {
               min={SIDEBAR_MIN}
               max={SIDEBAR_MAX}
               defaultValue={SIDEBAR_DEFAULT}
-              onChange={layout.setSidebarWidth}
+              onChange={(width) => {
+                layout.markSidebarUserSet()
+                layout.setSidebarWidth(width)
+              }}
               onDoubleClickAction={() => {
-                // Two-stage double-click: an expanded sidebar snaps to the compact 220px width first;
-                // already at 220px, the next double-click collapses it.
+                // Two-stage double-click: an expanded sidebar snaps to the compact 200px width first;
+                // already at 200px, the next double-click collapses it.
                 if (layout.sidebarWidth > SIDEBAR_MIN) layout.setSidebarWidth(SIDEBAR_MIN)
                 else void settingsState.updateSettings({ sidebarOpen: false })
               }}

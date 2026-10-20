@@ -6,15 +6,16 @@ export const INSPECTOR_DEFAULT = 240
 export const TERMINAL_MIN = 170
 export const TERMINAL_DEFAULT = 240
 export const WORKSPACE_ROW_MIN = 220
-export const SIDEBAR_MIN = 220
+export const SIDEBAR_MIN = 200
 export const SIDEBAR_MAX = 400
-export const SIDEBAR_DEFAULT = 240
+export const SIDEBAR_DEFAULT = 200
 export const SMALLEST_LAYOUT_BREAKPOINT = 720
 /** Double-clicking the divider resets to the compact inspector default. */
 export const INSPECTOR_RESET_WIDTH = INSPECTOR_DEFAULT
 const INSPECTOR_WIDTH_KEY = 'prime-work.inspector-width'
 const INSPECTOR_USER_SET_KEY = 'prime-work.inspector-width-user-set'
 const TERMINAL_USER_SET_KEY = 'prime-work.terminal-height-user-set'
+const SIDEBAR_USER_SET_KEY = 'prime-work.sidebar-width-user-set'
 
 const readPanelSize = (key: string, fallback: number) => {
   if (typeof window === 'undefined') return fallback
@@ -55,7 +56,11 @@ export function usePanelLayout({
     if (typeof window === 'undefined' || window.localStorage.getItem(TERMINAL_USER_SET_KEY) !== '1') return TERMINAL_DEFAULT
     return readPanelSize('prime-work.terminal-height', TERMINAL_DEFAULT)
   })
-  const [sidebarWidth, setSidebarWidth] = useState(() => readPanelSize('prime-work.sidebar-width', SIDEBAR_DEFAULT))
+  // A drag on the resize handle pins the width in localStorage; until then a new shipped default applies.
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    if (typeof window === 'undefined' || window.localStorage.getItem(SIDEBAR_USER_SET_KEY) !== '1') return SIDEBAR_DEFAULT
+    return readPanelSize('prime-work.sidebar-width', SIDEBAR_DEFAULT)
+  })
   const [inspectorMax, setInspectorMax] = useState(() => (typeof window === 'undefined' ? INSPECTOR_MIN : Math.max(INSPECTOR_MIN, Math.floor(window.innerWidth / 2))))
   const [terminalMax, setTerminalMax] = useState(520)
   const workspaceRowRef = useRef<HTMLDivElement>(null)
@@ -71,6 +76,10 @@ export function usePanelLayout({
   /** Marks the terminal height as user-dragged so later default changes still take effect. */
   const markTerminalUserSet = () => {
     window.localStorage.setItem(TERMINAL_USER_SET_KEY, '1')
+  }
+  /** Marks the sidebar width as user-dragged so later default changes still take effect. */
+  const markSidebarUserSet = () => {
+    window.localStorage.setItem(SIDEBAR_USER_SET_KEY, '1')
   }
 
   useEffect(() => {
@@ -133,6 +142,7 @@ export function usePanelLayout({
     setInspectorWidth,
     markInspectorUserSet,
     markTerminalUserSet,
+    markSidebarUserSet,
     inspectorDefault: INSPECTOR_RESET_WIDTH,
     terminalHeight,
     setTerminalHeight,

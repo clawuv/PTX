@@ -29,7 +29,7 @@
 }
 .app-shell[data-platform="darwin"] .title-toolbar {
   right: auto;
-  width: var(--sidebar-width, 240px);
+  width: var(--sidebar-width, 200px);
 }
 .app-shell[data-platform="darwin"] .sidebar {
   padding-top: 34px;
@@ -75,9 +75,9 @@
   -webkit-app-region: no-drag;
 }
 .title-toolbar__nav .icon-button {
-  width: 26px;
+  width: 22px;
   height: 26px;
-  min-width: 26px;
+  min-width: 22px;
   padding: 0;
   border-radius: 5px;
   color: var(--text);
@@ -88,9 +88,9 @@
 }
 /* Compact history, sidebar and search controls after the traffic lights. */
 .app-shell[data-platform="darwin"] .title-toolbar__nav .icon-button {
-  width: 26px;
+  width: 22px;
   height: 26px;
-  min-width: 26px;
+  min-width: 22px;
   border-radius: 8px;
   order: 1;
   margin-left: 0;
@@ -262,7 +262,7 @@
 }
 /* Native drag regions must not overlap the toolbar's clickable controls. */
 .app-shell[data-platform="darwin"][data-sidebar-open="false"] .workbench-titlebar-drag-region {
-  left: var(--sidebar-width, 240px);
+  left: var(--sidebar-width, 200px);
 }
 .workbench-titlebar-actions {
   position: absolute;

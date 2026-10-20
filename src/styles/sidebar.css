@@ -1,5 +1,5 @@
 /* Sidebar — Codex replica layout: 240px rail, flat project rows, recent chats, footer row. */
-.sidebar { --sidebar-row-height: 28px; --sidebar-row-spacing: 2px; --sidebar-row-radius: 8px; --sidebar-row-font-size: 13px; --sidebar-row-gap: 10px; --sidebar-row-background: var(--surface-hover); --sidebar-menu-ink: var(--navigation-ink); --sidebar-icon-ink: var(--text-secondary); font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; font-size: 14px; line-height: 20px; position: relative; z-index: 30; width: var(--sidebar-width, 240px); flex: 0 0 var(--sidebar-width, 240px); height: 100%; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--chrome-divider); background: var(--sidebar); user-select: none; }
+.sidebar { --sidebar-row-height: 28px; --sidebar-row-spacing: 2px; --sidebar-row-radius: 8px; --sidebar-row-font-size: 12px; --sidebar-row-gap: 10px; --sidebar-row-background: var(--surface-hover); --sidebar-menu-ink: var(--navigation-ink); --sidebar-icon-ink: var(--text-secondary); font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; font-size: 13px; line-height: 19px; position: relative; z-index: 30; width: var(--sidebar-width, 200px); flex: 0 0 var(--sidebar-width, 200px); height: 100%; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--chrome-divider); background: var(--sidebar); user-select: none; }
 :root[data-theme='dark'] .sidebar { --sidebar-icon-ink: color-mix(in srgb, var(--text-secondary) 85%, var(--text)); }
 /* Win/Linux: the divider is drawn by the workbench's left border instead, so it bends with the rounded corner instead of running past it. */
 .app-shell[data-platform='win32'] .sidebar, .app-shell[data-platform='linux'] .sidebar { border-right: 0; }
@@ -16,7 +16,7 @@
 /* Sessions nested under their project: flat title lines, like the replica's project group. */
 .project-sessions { display: flex; flex-direction: column; gap: var(--sidebar-row-spacing); margin-top: var(--sidebar-row-spacing); }
 .project-sessions .session-row { padding: 2px 6px 2px 41px; }
-.session-line-more { min-height: 24px; display: flex; align-items: center; width: 100%; padding: 2px 8px 2px 33px; border-radius: 6px; color: var(--text-tertiary); background: transparent; font-size: 12px; text-align: left; }
+.session-line-more { min-height: 24px; display: flex; align-items: center; width: 100%; padding: 2px 8px 2px 33px; border-radius: 6px; color: var(--text-tertiary); background: transparent; font-size: 11px; text-align: left; }
 .session-line-more:hover { color: var(--text-secondary); background: var(--sidebar-row-background); }
 
 /* Section heading: the label toggles the section, the actions reveal on hover, like the replica's section header. */
@@ -33,7 +33,7 @@
 
 .sidebar-search-wrap { padding: 0 12px 10px; }
 .sidebar-search { height: 31px; display: flex; align-items: center; gap: 6px; padding: 0 7px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--canvas); color: var(--text-tertiary); }
-.sidebar-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; font-size: 12px; }
+.sidebar-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; font-size: 11px; }
 .sidebar-search button { width: 18px; height: 18px; padding: 0; color: var(--text-tertiary); background: transparent; }
 
 .sidebar__primary { margin-top: 0; padding: 0 12px; display: flex; flex-direction: column; gap: var(--sidebar-row-spacing); }
@@ -58,14 +58,14 @@
 .sidebar__primary > button > svg, .project-row__main > svg { width: 15px; height: 15px; }
 .sidebar__primary kbd, .sidebar__footer kbd { opacity: 0; transition: opacity 130ms ease-out; }
 .sidebar__primary button:hover kbd, .sidebar__footer button:hover kbd { opacity: 1; }
-.nav-count { min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 5px; border-radius: 9px; color: var(--accent); background: var(--accent-soft); font-size: 10.5px; font-weight: 650; }
+.nav-count { min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 5px; border-radius: 9px; color: var(--accent); background: var(--accent-soft); font-size: 10px; font-weight: 650; }
 
 .sidebar__scroll { flex: 1; min-height: 0; overflow: auto; padding: 0 12px; }
 .sidebar__section-heading { min-height: 26px; display: flex; align-items: center; justify-content: space-between; padding: 0 4px 0 8px; margin: 14px 0 4px; color: var(--text-tertiary); font-size: var(--sidebar-row-font-size); font-weight: 400; }
 .sidebar__section-heading:first-child { margin-top: 18px; }
 .sidebar__section-heading--recent { margin-top: 12px; }
 .sidebar__section-heading .icon-button { color: var(--text-tertiary); }
-.sidebar__empty { margin: 12px 16px; color: var(--text-tertiary); font-size: 12px; }
+.sidebar__empty { margin: 12px 16px; color: var(--text-tertiary); font-size: 11px; }
 /* Main and project rows use the same inset as settings menu rows. */
 /* Session titles align with project labels while status marks occupy their own slot. */
 .sidebar__primary > button, .sidebar__scroll .project-row { padding-left: 8px; }
@@ -109,8 +109,8 @@
 .session-row__title, .session-row__meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .session-row__title { color: inherit; font-size: var(--sidebar-row-font-size); font-weight: 400; }
 .session-row-wrap.has-attention .session-row__title { color: var(--text); }
-.session-row__meta { display: none; color: var(--text-tertiary); font-size: 10.5px; }
-.session-row__time { display: none; flex: 0 0 auto; margin-right: 24px; overflow: hidden; color: var(--text-tertiary); font-size: 10.5px; white-space: nowrap; }
+.session-row__meta { display: none; color: var(--text-tertiary); font-size: 10px; }
+.session-row__time { display: none; flex: 0 0 auto; margin-right: 24px; overflow: hidden; color: var(--text-tertiary); font-size: 10px; white-space: nowrap; }
 .session-row:hover .session-row__time, .session-row-wrap:focus-within .session-row__time, .session-row-wrap.is-selected .session-row__time { display: block; }
 .session-row--empty { min-height: var(--sidebar-row-height); align-items: center; color: var(--text-tertiary); font-size: var(--sidebar-row-font-size); }
 .session-status-mark { width: 16px; height: 16px; display: inline-grid; place-items: center; flex: 0 0 auto; border-radius: 50%; }
@@ -132,7 +132,7 @@
 
 .sidebar__primary > button.is-active > svg, .sidebar__settings-nav button.is-active svg { color: inherit; }
 
-.nav-attention-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 10.5px; font-style: normal; font-weight: 700; line-height: 1; }
+.nav-attention-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 10px; font-style: normal; font-weight: 700; line-height: 1; }
 
 /* Fixed violet (the light-theme accent) so the connected phone icon reads identically in both themes. */
 .sidebar__mobile--connected { color: #5f4bd3; }

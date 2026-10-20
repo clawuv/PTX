@@ -639,7 +639,8 @@ describe('harness settings surfaces', () => {
     expect(container.textContent).toContain('Credentials managed by the omp CLI')
     // Two provider switches; bulk model control rides the provider switch itself.
     expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(2)
-    const buttonLabels = [...container.querySelectorAll('button')].map((button) => button.textContent ?? '')
+    // Bulk actions are icon buttons: their names live in aria-label, not textContent.
+    const buttonLabels = [...container.querySelectorAll('button')].map((button) => `${button.textContent ?? ''} ${button.getAttribute('aria-label') ?? ''}`)
     expect(buttonLabels.some((text) => text.includes('Hide all'))).toBe(true)
     expect(buttonLabels.some((text) => text.includes('Provider docs'))).toBe(true)
     for (const label of ['Connect', 'Reconnect', 'Add key', 'Replace key', 'Disable all', 'Enable all']) {
@@ -666,7 +667,7 @@ describe('harness settings surfaces', () => {
     expect(container.textContent).toContain('Credentials managed by the pi CLI')
     const toggles = [...container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')]
     expect(toggles).toHaveLength(2)
-    const buttonLabels = [...container.querySelectorAll('button')].map((button) => button.textContent ?? '')
+    const buttonLabels = [...container.querySelectorAll('button')].map((button) => `${button.textContent ?? ''} ${button.getAttribute('aria-label') ?? ''}`)
     expect(buttonLabels.some((text) => text.includes('Hide all'))).toBe(true)
     expect(buttonLabels.some((text) => text.includes('Provider docs'))).toBe(true)
     for (const label of ['Connect', 'Reconnect', 'Add key', 'Replace key', 'Disable all', 'Enable all']) {

@@ -203,6 +203,8 @@ function parseProject(value: unknown): PersistedProject | null {
     folders,
     primaryFolder: value.primaryFolder,
     pinned: typeof value.pinned === 'boolean' ? value.pinned : false,
+    // Sidebar visibility; stripped here would silently unhide projects on relaunch.
+    hidden: value.hidden === true ? true : undefined,
     createdAt: validDate(value.createdAt) ? value.createdAt : now,
     lastOpenedAt: validDate(value.lastOpenedAt) ? value.lastOpenedAt : now,
     folderIdentities: Object.keys(folderIdentities).length ? folderIdentities : undefined,

@@ -1,0 +1,19 @@
+# Normalize every text file to LF in the repository and on checkout; the
+# codebase is edited across macOS, Linux, and Windows CI, so mixed endings
+# produce whole-file diffs that bury real changes and reset blame.
+* text=auto eol=lf
+
+# Binary assets: never normalize or diff these.
+*.icns binary
+*.png binary
+*.webp binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.tgz binary
+*.tar.gz binary
+*.zip binary

@@ -81,7 +81,10 @@ function processIsAlive(pid: number): boolean {
   }
 }
 
-function createHermeticFixture(_activeSession = false): {
+function createHermeticFixture(
+  _activeSession = false,
+  searchableModels = false,
+): {
   userData: string
   home: string
   project: string
@@ -292,18 +295,30 @@ function createHermeticFixture(_activeSession = false): {
     }),
   )
 
-  const executable = join(fixtureRoot, 'pi-agent-fixture.cjs')
+  const executable = join(fixtureRoot, 'pi-agent-fixture')
+  const executablePayload = join(fixtureRoot, 'pi-agent-fixture.cjs')
   writeFileSync(
-    executable,
-    `#!/usr/bin/env node
-const fs = require('node:fs')
+    executablePayload,
+    `const fs = require('node:fs')
+const { join } = require('node:path')
 const readline = require('node:readline')
 const args = process.argv.slice(2)
 if (args.includes('--version')) { process.stdout.write('pi 0.84.1\\n'); process.exit(0) }
+const agentDir = ${JSON.stringify(join(fixtureRoot, 'home', '.pi', 'agent'))}
+if (args[0] === 'install' || args[0] === 'remove') {
+  const source = 'npm:pi-mcp-adapter'
+  fs.mkdirSync(agentDir, { recursive: true })
+  const settingsPath = join(agentDir, 'settings.json')
+  const settings = fs.existsSync(settingsPath) ? JSON.parse(fs.readFileSync(settingsPath, 'utf8')) : {}
+  settings.packages = [...(Array.isArray(settings.packages) ? settings.packages : []).filter((item) => item !== source && item?.source !== source), ...(args[0] === 'install' ? [source] : [])]
+  fs.writeFileSync(settingsPath, JSON.stringify(settings))
+  process.exit(0)
+}
 const resumeIndex = args.indexOf('--session')
 const sessionFile = resumeIndex >= 0 ? args[resumeIndex + 1] : ${JSON.stringify(realpathSync(sessionFile))}
 fs.writeFileSync(${JSON.stringify(join(fixtureRoot, 'pi-runtime.pid'))}, String(process.pid))
 fs.writeFileSync(${JSON.stringify(join(fixtureRoot, 'pi-runtime-args.json'))}, JSON.stringify(args))
+fs.writeFileSync(${JSON.stringify(join(fixtureRoot, 'pi-runtime-cwd.json'))}, JSON.stringify(process.cwd()))
 const send = (value) => process.stdout.write(JSON.stringify(value) + '\\n')
 let pendingPrompt
 let streaming = false
@@ -370,18 +385,24 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
     }
     fs.writeFileSync(${JSON.stringify(join(fixtureRoot, 'prompt-args.json'))}, JSON.stringify(command))
     if (typeof command.message === 'string' && command.message.includes('edit the fixture')) {
-      fs.appendFileSync(${JSON.stringify(join(canonicalSecondary, 'secondary-change.txt'))}, 'agent turn change\\n')
-      // Persist the exchange so the transcript reconciler keeps the reply after the turn.
-      const editedAt = new Date().toISOString()
-      fs.appendFileSync(sessionFile, [
-        JSON.stringify({ type: 'message', id: 'fixture-edit-user', parentId: 'fixture-goal-summary', timestamp: editedAt, message: { role: 'user', content: command.message } }),
-        JSON.stringify({ type: 'message', id: 'fixture-edit-assistant', parentId: 'fixture-edit-user', timestamp: editedAt, message: { role: 'assistant', content: 'Edited the fixture.' } }),
-      ].join('\\n') + '\\n')
+      // Let the app observe the running state before the working tree changes,
+      // just as a real agent turn does when it edits files mid-response.
       send({ type: 'agent_start' })
-      send({ type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'Edited the fixture.' } })
-      send({ type: 'agent_end' })
-      send({ type: 'response', id: command.id, command: command.type, success: true, data: {} })
-      pendingPrompt = undefined
+      setTimeout(() => {
+        fs.appendFileSync(${JSON.stringify(join(canonicalSecondary, 'secondary-change.txt'))}, 'agent turn change\\n')
+        // Persist the exchange so the transcript reconciler keeps the reply after the turn.
+        const editedAt = new Date().toISOString()
+        fs.appendFileSync(sessionFile, [
+          JSON.stringify({ type: 'message', id: 'fixture-edit-user', parentId: 'fixture-goal-summary', timestamp: editedAt, message: { role: 'user', content: command.message } }),
+          JSON.stringify({ type: 'message', id: 'fixture-edit-assistant', parentId: 'fixture-edit-user', timestamp: editedAt, message: { role: 'assistant', content: 'Edited the fixture.' } }),
+        ].join('\\n') + '\\n')
+        send({ type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'Edited the fixture.' } })
+        setTimeout(() => {
+          send({ type: 'agent_end' })
+          send({ type: 'response', id: command.id, command: command.type, success: true, data: {} })
+          pendingPrompt = undefined
+        }, 100)
+      }, 100)
       return
     }
     send({ type: 'agent_start' })
@@ -393,25 +414,33 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
       return
     }
     send({ type: 'message_update', assistantMessageEvent: { type: 'thinking_delta', delta: '**Reviewing the available release channels before asking for input.**' } })
-    send({ type: 'tool_execution_start', toolCallId: 'ask-2', toolName: 'ask_user', args: { questions: [
-      { question: 'Which release channel?', options: ['Stable', 'Beta'] },
-      { question: 'What should I optimize for?', options: ['Speed', 'Safety'] },
+    const isPiQuestions = command.message.includes('Pi fixture')
+    const questionIds = isPiQuestions ? ['pi-fixture-question-1', 'pi-fixture-question-2'] : ['fixture-question-1', 'fixture-question-2']
+    const firstQuestion = isPiQuestions ? 'Which Pi release channel?' : 'Which release channel?'
+    const secondQuestion = isPiQuestions ? 'What should Pi optimize for?' : 'What should I optimize for?'
+    send({ type: 'tool_execution_start', toolCallId: isPiQuestions ? 'ask-pi' : 'ask-2', toolName: 'ask_user', args: { questions: [
+      { question: firstQuestion, options: ['Stable', 'Beta'] },
+      { question: secondQuestion, options: ['Speed', 'Safety'] },
     ] } })
-    send({ type: 'extension_ui_request', id: 'fixture-question-1', method: 'select', title: 'Which release channel?', options: ['__prime_ask_user__fixture-group:0:2', 'Stable', 'Beta', 'Other (type your own answer)'] })
-    send({ type: 'extension_ui_request', id: 'fixture-question-2', method: 'select', title: 'What should I optimize for?', options: ['__prime_ask_user__fixture-group:1:2', 'Speed', 'Safety', 'Other (type your own answer)'] })
+    send({ type: 'extension_ui_request', id: questionIds[0], method: 'select', title: firstQuestion, options: [ \`__prime_ask_user__\${isPiQuestions ? 'pi-fixture-group' : 'fixture-group'}:0:2\`, 'Stable', 'Beta', 'Other (type your own answer)'] })
+    send({ type: 'extension_ui_request', id: questionIds[1], method: 'select', title: secondQuestion, options: [ \`__prime_ask_user__\${isPiQuestions ? 'pi-fixture-group' : 'fixture-group'}:1:2\`, 'Speed', 'Safety', 'Other (type your own answer)'] })
   } else if (command.type === 'extension_ui_response' && pendingPrompt) {
     pendingPrompt.values = { ...(pendingPrompt.values || {}), [command.id]: command.value }
     if (Object.keys(pendingPrompt.values).length < 2) return
     const prompt = pendingPrompt
     pendingPrompt = undefined
-    fs.writeFileSync(${JSON.stringify(join(fixtureRoot, 'questionnaire-values.json'))}, JSON.stringify(prompt.values))
-    send({ type: 'tool_execution_end', toolCallId: 'ask-2', toolName: 'ask_user', result: { values: prompt.values } })
+    const isPiQuestions = typeof prompt.message === 'string' && prompt.message.includes('Pi fixture')
+    const toolCallId = isPiQuestions ? 'ask-pi' : 'ask-2'
+    fs.writeFileSync(${JSON.stringify(fixtureRoot)} + (isPiQuestions ? '/pi-questionnaire-values.json' : '/questionnaire-values.json'), JSON.stringify(prompt.values))
+    send({ type: 'tool_execution_end', toolCallId, toolName: 'ask_user', result: { values: prompt.values } })
     send({ type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'The questionnaire answers are ready.' } })
     const completedAt = new Date().toISOString()
+    const firstQuestion = isPiQuestions ? 'Which Pi release channel?' : 'Which release channel?'
+    const secondQuestion = isPiQuestions ? 'What should Pi optimize for?' : 'What should I optimize for?'
     fs.appendFileSync(sessionFile, [
-      JSON.stringify({ type: 'message', id: 'fixture-live-assistant-multi', parentId: 'fixture-goal-summary', message: { role: 'assistant', timestamp: completedAt, content: [{ type: 'toolCall', id: 'ask-2', name: 'ask_user', arguments: { questions: [{ question: 'Which release channel?', options: ['Stable', 'Beta'] }, { question: 'What should I optimize for?', options: ['Speed', 'Safety'] }] } }] } }),
-      JSON.stringify({ type: 'message', id: 'fixture-live-result-multi', parentId: 'fixture-live-assistant-multi', message: { role: 'toolResult', timestamp: completedAt, toolCallId: 'ask-2', toolName: 'ask_user', content: JSON.stringify({ values: prompt.values }) } }),
-      JSON.stringify({ type: 'message', id: 'fixture-live-final-multi', parentId: 'fixture-live-result-multi', message: { role: 'assistant', timestamp: completedAt, content: 'The questionnaire answers are ready.' } }),
+      JSON.stringify({ type: 'message', id: isPiQuestions ? 'fixture-live-assistant-pi' : 'fixture-live-assistant-multi', parentId: 'fixture-goal-summary', message: { role: 'assistant', timestamp: completedAt, content: [{ type: 'toolCall', id: toolCallId, name: 'ask_user', arguments: { questions: [{ question: firstQuestion, options: ['Stable', 'Beta'] }, { question: secondQuestion, options: ['Speed', 'Safety'] }] } }] } }),
+      JSON.stringify({ type: 'message', id: isPiQuestions ? 'fixture-live-result-pi' : 'fixture-live-result-multi', parentId: isPiQuestions ? 'fixture-live-assistant-pi' : 'fixture-live-assistant-multi', message: { role: 'toolResult', timestamp: completedAt, toolCallId, toolName: 'ask_user', content: JSON.stringify({ values: prompt.values }) } }),
+      JSON.stringify({ type: 'message', id: isPiQuestions ? 'fixture-live-final-pi' : 'fixture-live-final-multi', parentId: isPiQuestions ? 'fixture-live-result-pi' : 'fixture-live-result-multi', message: { role: 'assistant', timestamp: completedAt, content: 'The questionnaire answers are ready.' } }),
     ].join('\\n') + '\\n')
     send({ type: 'agent_end' })
     send({ type: 'response', id: prompt.id, command: prompt.type, success: true, data: {} })
@@ -431,6 +460,13 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
 })
 `,
   )
+  chmodSync(executablePayload, 0o755)
+  writeFileSync(
+    executable,
+    `#!/bin/sh
+exec ${JSON.stringify(process.execPath)} ${JSON.stringify(executablePayload)} "$@"
+`,
+  )
   chmodSync(executable, 0o755)
   const ompExecutable = join(fixtureRoot, 'omp-fixture.cjs')
   writeFileSync(
@@ -444,6 +480,7 @@ if (args[0] === 'models' && args.includes('--json')) {
   process.stdout.write(JSON.stringify({ models: [
     { provider: 'anthropic', id: 'claude-fixture', name: 'Claude Fixture', contextWindow: 200000, maxTokens: 8192, reasoning: true, thinking: ['low', 'high'], input: ['text'] },
     { provider: 'openai-codex', id: 'gpt-fixture', name: 'GPT Fixture', contextWindow: 200000, maxTokens: 8192, reasoning: true, thinking: ['low', 'high'], input: ['text'] },
+    ...${JSON.stringify(searchableModels ? Array.from({ length: 7 }, (_, index) => ({ provider: 'fixture-extra', id: `extra-${index}`, name: `Extra ${index}`, contextWindow: 100000, maxTokens: 8192, input: ['text'] })) : [])},
   ] })); process.exit(0)
 }
 if (!args.includes('--mode') || args[args.indexOf('--mode') + 1] !== 'rpc') process.exit(2)
@@ -518,6 +555,10 @@ process.exit(2)
     return join(root, 'pi.cmd')
   }
   const piExecutable = platformExecutable(executable)
+  const statePath = join(userData, CURRENT_DESKTOP_STATE_FILENAME)
+  const persistedState = JSON.parse(readFileSync(statePath, 'utf8'))
+  persistedState.settings.runtimePaths = { omp: platformExecutable(ompExecutable), pi: piExecutable }
+  writeFileSync(statePath, JSON.stringify(persistedState))
   return {
     userData,
     home,
@@ -560,6 +601,32 @@ function hermeticEnvironment(home: string, _executable: string, ompExecutable: s
   return env
 }
 
+async function runWorkspaceCommand(name: string): Promise<void> {
+  await page.keyboard.press('Meta+K')
+  await page
+    .getByRole('dialog', { name: 'Command palette' })
+    .getByRole('option', { name: new RegExp(name, 'i') })
+    .click()
+}
+
+async function archiveSession(title: string): Promise<void> {
+  const row = page.locator('.session-row-wrap').filter({ hasText: title })
+  await row.locator('.session-row').click({ button: 'right' })
+  await page.getByLabel('Session options', { exact: true }).getByRole('button', { name: 'Archive', exact: true }).click()
+}
+
+async function expandSidebar(target: Page): Promise<void> {
+  if (!(await target.locator('.sidebar').isVisible())) {
+    await target.getByRole('button', { name: /Toggle sidebar/ }).click()
+  }
+  await expect(target.locator('.sidebar')).toBeVisible()
+}
+
+async function selectFixtureSession(target: Page): Promise<void> {
+  await target.locator('.session-row-wrap').filter({ hasText: 'Hermetic desktop fixture' }).locator('.session-row').click()
+  await expect(target.locator('.session-row-wrap.is-selected')).toContainText('Hermetic desktop fixture')
+}
+
 test.describe('Pi Work desktop smoke', () => {
   // biome-ignore lint/correctness/noEmptyPattern: Playwright derives fixture usage from this destructuring pattern
   test.beforeEach(async ({}, testInfo) => {
@@ -570,7 +637,7 @@ test.describe('Pi Work desktop smoke', () => {
     const noHarnesses = testInfo.title === 'opens Harness settings from the no-harness recovery prompt'
     let startupError: unknown
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const fixture = createHermeticFixture(activeSession)
+      const fixture = createHermeticFixture(activeSession, testInfo.title === 'searches and filters the custom model picker by provider')
       currentFixture = fixture
       fixtureSessionFile = fixture.sessionFile
       if (liveInstall) renameSync(fixture.ompExecutable, `${fixture.ompExecutable}.pending`)
@@ -592,6 +659,7 @@ test.describe('Pi Work desktop smoke', () => {
         await page.setViewportSize({ width: 1440, height: 920 })
         attachDiagnostics(page)
         await expect(page.locator('.app-shell')).toHaveAttribute('data-ready', 'true', { timeout: 20_000 })
+        await expandSidebar(page)
         return
       } catch (error) {
         console.error('Hermetic startup failed', error)
@@ -664,7 +732,7 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(queuedTray.locator('.composer-queue__actions')).toHaveCSS('opacity', '1')
     await expect(queuedTray.locator('.composer-queue__item')).toHaveCount(1)
     const sendImmediately = queuedTray.getByRole('button', { name: /^Send queued message immediately:/ })
-    await expect(sendImmediately).toHaveAttribute('title', 'Send queued message immediately')
+    await expect(sendImmediately).toHaveAttribute('data-tooltip', 'Send queued message immediately')
     await sendImmediately.click()
     await expect(queuedTray.locator('.composer-queue__item')).toHaveCount(0)
     const queuedSteerMarker = join(fixtureRoot, 'steer-args.json')
@@ -704,10 +772,10 @@ test.describe('Pi Work desktop smoke', () => {
     const fileChooser = page.waitForEvent('filechooser')
     await page.getByRole('option', { name: /Add files/ }).click()
     await (await fileChooser).setFiles(imagePath)
-    await expect(page.locator('.composer-attachment').filter({ hasText: 'picker.png' })).toBeVisible()
+    await expect(page.locator('.composer-attachment').filter({ has: page.getByRole('button', { name: 'Remove picker.png', exact: true }) })).toBeVisible()
     await expect(page.locator('.composer p[role="status"]')).toHaveText('1 file attached.')
     await page.getByRole('button', { name: 'Remove picker.png' }).click()
-    await expect(page.locator('.composer-attachment').filter({ hasText: 'picker.png' })).toHaveCount(0)
+    await expect(page.locator('.composer-attachment').filter({ has: page.getByRole('button', { name: 'Remove picker.png', exact: true }) })).toHaveCount(0)
   })
 
   test('keeps model names readable and picker menus inside the window', async () => {
@@ -723,14 +791,15 @@ test.describe('Pi Work desktop smoke', () => {
     const model = page.locator('.model-picker')
     const modelTrigger = model.locator('.model-picker__trigger')
     const reasoning = page.locator('.select-menu--compact').filter({ has: page.getByRole('combobox', { name: 'Reasoning effort' }) })
-    await expect(modelTrigger.locator('span')).toHaveCSS('display', 'block')
+    await expect(modelTrigger.locator('> span').first()).toHaveCSS('display', 'block')
     await expect(reasoning).toHaveCount(0)
 
     await page.locator('.conversation-column').evaluate((node) => {
       node.style.flex = '0 0 300px'
     })
-    await expect(modelTrigger.locator('span')).toHaveCSS('display', 'block')
-    await expect(modelTrigger.locator('svg').first()).not.toHaveCSS('display', 'none')
+    await expect(modelTrigger.locator('> span').first()).toHaveCSS('display', 'block')
+    await expect(modelTrigger).toBeVisible()
+    await expect(modelTrigger).toHaveAttribute('aria-haspopup', 'dialog')
     await expect(reasoning).toHaveCount(0)
 
     const controlBounds = await page.locator('.composer__footer').evaluate((footer) => {
@@ -776,7 +845,24 @@ test.describe('Pi Work desktop smoke', () => {
       return { type: typeof prime, groups: prime ? Object.keys(prime).sort() : [], voiceMethods: voice && typeof voice === 'object' ? Object.keys(voice).sort() : [] }
     })
     expect(bridge.type).toBe('object')
-    expect(bridge.groups).toEqual(['agent', 'app', 'browser', 'git', 'pets', 'plugins', 'projects', 'providers', 'schedules', 'sessions', 'settings', 'tasks', 'terminal', 'updates', 'voice'])
+    expect(bridge.groups).toEqual([
+      'agent',
+      'app',
+      'browser',
+      'feishu',
+      'git',
+      'pets',
+      'plugins',
+      'projects',
+      'providers',
+      'schedules',
+      'sessions',
+      'settings',
+      'tasks',
+      'terminal',
+      'updates',
+      'voice',
+    ])
     expect(bridge.voiceMethods).toContain('testSelfHosted')
     const updateMenu = await app!.evaluate(({ Menu }) => {
       const parents = Menu.getApplicationMenu()?.items ?? []
@@ -800,8 +886,7 @@ test.describe('Pi Work desktop smoke', () => {
     expect(invalidSelfHostedTest).toMatch(/too short|Invalid URL/)
     await expect.poll(() => app!.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().every((window) => !window.isVisible()))).toBe(true)
     await expect(page.getByRole('button', { name: 'Pi Work — switch harness' })).toBeVisible()
-    await expect(page.locator('.ptx-mark img')).toHaveCount(0)
-    await expect(page.locator('.sidebar__footer .sidebar-update')).toHaveCount(1)
+    await expect(page.locator('.title-toolbar .app-update')).toHaveCount(1)
     await expect(page.locator('.sidebar__footer .sidebar__settings-entry')).toBeVisible()
   })
 
@@ -913,22 +998,30 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('keeps the transcript pinned to the bottom across a settings round-trip', async () => {
-    await page.getByRole('button', { name: 'Hermetic desktop fixture', exact: true }).click()
+    await selectFixtureSession(page)
     await expect(page.locator('.transcript').getByText('Hermetic desktop fixture', { exact: true })).toBeVisible()
     const nonce = Date.now()
     const lines: string[] = []
     for (let index = 0; index < 12; index += 1) {
-      lines.push(JSON.stringify({
-        type: 'message',
-        id: `fixture-scroll-${nonce}-${index}`,
-        parentId: index === 0 ? 'fixture-goal-summary' : `fixture-scroll-${nonce}-${index - 1}`,
-        timestamp: new Date(Date.now() + index).toISOString(),
-        message: { role: index % 2 ? 'assistant' : 'user', timestamp: new Date(Date.now() + index).toISOString(), content: [{ type: 'text', text: `Scroll filler ${nonce} ${index}\n${'filler line\n'.repeat(6)}` }] },
-      }))
+      lines.push(
+        JSON.stringify({
+          type: 'message',
+          id: `fixture-scroll-${nonce}-${index}`,
+          parentId: index === 0 ? 'fixture-goal-summary' : `fixture-scroll-${nonce}-${index - 1}`,
+          timestamp: new Date(Date.now() + index).toISOString(),
+          message: {
+            role: index % 2 ? 'assistant' : 'user',
+            timestamp: new Date(Date.now() + index).toISOString(),
+            content: [{ type: 'text', text: `Scroll filler ${nonce} ${index}\n${'filler line\n'.repeat(6)}` }],
+          },
+        }),
+      )
     }
     appendFileSync(fixtureSessionFile, `${lines.join('\n')}\n`)
     await expect(page.locator('.transcript').getByText(`Scroll filler ${nonce} 11`)).toBeVisible()
-    await page.locator('.transcript').evaluate((node) => { node.scrollTop = node.scrollHeight })
+    await page.locator('.transcript').evaluate((node) => {
+      node.scrollTop = node.scrollHeight
+    })
     await page.waitForTimeout(400)
     const before = await page.locator('.transcript').evaluate((node) => ({ top: node.scrollTop, max: node.scrollHeight - node.clientHeight }))
     expect(before.max).toBeGreaterThan(400)
@@ -1001,7 +1094,12 @@ test.describe('Pi Work desktop smoke', () => {
     })
     expect(idlePetGap).toBeGreaterThanOrEqual(-8)
     expect(idlePetGap).toBeLessThanOrEqual(1)
+    // Realtime voice is opened from the desktop pet now.
+    await page.evaluate(() => window.ptx.settings.update({ petEnabled: true }))
+    await page.reload()
+    await expect(page.locator('.app-shell')).toHaveAttribute('data-ready', 'true')
     await page.getByRole('button', { name: 'Open realtime voice', exact: true }).click()
+    await page.evaluate(() => window.ptx.settings.update({ petEnabled: false }))
     await expect(page.getByRole('complementary', { name: 'Realtime voice session' })).toBeVisible()
     await expect(page.getByRole('button', { name: /Orb, draggable Ptx pet/ })).toBeVisible()
     await expect(page.locator('.voice-orb')).toHaveCount(0)
@@ -1036,7 +1134,12 @@ test.describe('Pi Work desktop smoke', () => {
 
     await expect(page.locator('.desktop-pet')).toHaveCount(0)
     await page.locator('.session-row-wrap').filter({ hasText: 'Hermetic desktop fixture' }).locator('.session-row').click()
+    // Realtime voice is opened from the desktop pet now.
+    await page.evaluate(() => window.ptx.settings.update({ petEnabled: true }))
+    await page.reload()
+    await expect(page.locator('.app-shell')).toHaveAttribute('data-ready', 'true')
     await page.getByRole('button', { name: 'Open realtime voice', exact: true }).click()
+    await page.evaluate(() => window.ptx.settings.update({ petEnabled: false }))
     const realtimePet = page.getByRole('complementary', { name: 'Realtime voice session' })
     await expect(realtimePet.getByRole('button', { name: /Ptx, draggable Ptx pet/ })).toBeVisible()
     await expect(realtimePet.locator('.pet-sprite img')).toBeVisible()
@@ -1062,7 +1165,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('wraps an unbroken user-message token inside its chat bubble', async () => {
-    await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
+    await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'OMP Work — switch harness' }).click()
     await page.locator('.session-row__title').filter({ hasText: 'OMP hermetic fixture' }).click()
 
@@ -1076,7 +1179,12 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('closes realtime voice before switching harnesses', async () => {
+    // Realtime voice is opened from the desktop pet now.
+    await page.evaluate(() => window.ptx.settings.update({ petEnabled: true }))
+    await page.reload()
+    await expect(page.locator('.app-shell')).toHaveAttribute('data-ready', 'true')
     await page.getByRole('button', { name: 'Open realtime voice', exact: true }).click()
+    await page.evaluate(() => window.ptx.settings.update({ petEnabled: false }))
     const petSurface = page.locator('.desktop-pet')
     await expect(petSurface.getByRole('button', { name: 'Mute realtime voice' })).toBeVisible()
     await expect(page.locator('.voice-orb')).toHaveCount(0)
@@ -1088,7 +1196,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('searches and filters the custom model picker by provider', async () => {
-    await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
+    await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'OMP Work — switch harness' }).click()
     await page.locator('.session-row__title').filter({ hasText: 'OMP hermetic fixture' }).click()
 
@@ -1096,13 +1204,13 @@ test.describe('Pi Work desktop smoke', () => {
     await picker.locator('.model-picker__trigger').click()
     const search = picker.getByRole('combobox', { name: 'Search models' })
     await expect(search).toBeFocused()
-    await picker.locator('.model-picker__providers').getByRole('button', { name: 'anthropic', exact: true }).click()
+    await search.fill('anthropic')
     await expect(picker.getByRole('option', { name: /Claude Fixture/ })).toHaveCount(1)
     await expect(picker.getByRole('option', { name: /GPT Fixture/ })).toHaveCount(0)
 
-    await search.fill('gpt')
+    await search.fill('no-such-model')
     await expect(picker.getByText('No models match this search.')).toBeVisible()
-    await picker.locator('.model-picker__providers').getByRole('button', { name: 'All', exact: true }).click()
+    await search.fill('gpt')
     await expect(picker.getByRole('option', { name: /GPT Fixture/ })).toHaveCount(1)
   })
 
@@ -1125,6 +1233,7 @@ test.describe('Pi Work desktop smoke', () => {
     )
     expect(voiceModelsAfter.models.map((model) => model.name)).toEqual(['GPT Fixture'])
 
+    await page.keyboard.press('Escape')
     await page.locator('.session-row__title').filter({ hasText: 'OMP hermetic fixture' }).click()
     const modelPicker = page.locator('.model-picker')
     await modelPicker.locator('.model-picker__trigger').click()
@@ -1137,16 +1246,9 @@ test.describe('Pi Work desktop smoke', () => {
     await page.getByRole('button', { name: 'OMP Work — switch harness' }).click()
     await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await page.getByRole('button', { name: 'Providers', exact: true }).click()
-    await page.getByRole('tab', { name: /Models/ }).click()
+    await page.locator('.provider-row').filter({ hasText: 'openai-codex' }).locator('.provider-row__select').click()
 
     const toggle = page.getByRole('checkbox', { name: 'Show GPT Fixture model' })
-    const groupHeader = page.locator('.provider-model-group__heading[aria-controls="provider-models-openai-codex"]')
-    await expect(groupHeader).toHaveAttribute('aria-expanded', 'true')
-    await groupHeader.click()
-    await expect(groupHeader).toHaveAttribute('aria-expanded', 'false')
-    await expect(toggle).toBeHidden()
-    await groupHeader.click()
-    await expect(groupHeader).toHaveAttribute('aria-expanded', 'true')
     await expect(toggle).toBeVisible()
     await expect(toggle).toBeChecked()
     const row = page.locator('.provider-model-row').filter({ has: toggle })
@@ -1156,12 +1258,12 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(toggle).not.toBeChecked()
     await expect.poll(() => JSON.parse(readFileSync(join(fixtureRoot, 'user-data', CURRENT_DESKTOP_STATE_FILENAME), 'utf8')).settings.ompDisabledModels).toEqual(['openai-codex/gpt-fixture'])
     await expect.poll(() => JSON.parse(readFileSync(join(fixtureRoot, 'user-data', CURRENT_DESKTOP_STATE_FILENAME), 'utf8')).settings.ompDisabledProviders).toEqual(['openai-codex'])
-    const groups = page.locator('.provider-model-group')
-    await expect(groups.nth(0)).toContainText('Claude Fixture')
-    await expect(groups.nth(1)).toContainText('GPT Fixture')
+    await expect(page.locator('.provider-row').filter({ hasText: 'openai-codex' })).toBeVisible()
+    await expect(page.locator('.provider-model-row')).toContainText('GPT Fixture')
 
     const voiceModels = await page.evaluate(async () => JSON.parse((await window.ptx.voice.executeTool({ name: 'list_models', arguments: {} }, 'omp')).output) as { models: Array<{ name: string }> })
     expect(voiceModels.models.map((model) => model.name)).toEqual(['Claude Fixture'])
+    await page.keyboard.press('Escape')
     await page.locator('.session-row__title').filter({ hasText: 'OMP hermetic fixture' }).click()
     const modelPicker = page.locator('.model-picker')
     await modelPicker.locator('.model-picker__trigger').click()
@@ -1170,28 +1272,26 @@ test.describe('Pi Work desktop smoke', () => {
 
     await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await page.getByRole('button', { name: 'Providers', exact: true }).click()
-    await page.getByRole('tab', { name: /Models/ }).click()
+    await page.locator('.provider-row').filter({ hasText: 'openai-codex' }).locator('.provider-row__select').click()
     const hiddenToggle = page.getByRole('checkbox', { name: 'Show GPT Fixture model' })
     await page.locator('.provider-model-row').filter({ has: hiddenToggle }).locator('.provider-model-row__toggle').click()
     await expect(hiddenToggle).toBeChecked()
     await expect.poll(() => JSON.parse(readFileSync(join(fixtureRoot, 'user-data', CURRENT_DESKTOP_STATE_FILENAME), 'utf8')).settings.ompDisabledModels).toEqual([])
     await expect.poll(() => JSON.parse(readFileSync(join(fixtureRoot, 'user-data', CURRENT_DESKTOP_STATE_FILENAME), 'utf8')).settings.ompDisabledProviders).toEqual([])
-    await page.getByRole('tab', { name: /Providers/ }).click()
     await expect(page.getByRole('checkbox', { name: 'Show openai-codex provider' })).toBeChecked()
   })
 
   test('keeps Harness settings shared when changing the default while providers follow the active harness', async () => {
     await page.locator('.sidebar__footer .sidebar__settings-entry').click()
     await page.getByRole('button', { name: 'Harness', exact: true }).click()
-    await expect(page.getByText('OMP approval mode', { exact: true })).toBeVisible()
-    await expect(page.getByLabel('Pi executable override')).toHaveCount(0)
+    await expect(page.getByText('OMP approval mode', { exact: true })).toHaveCount(0)
     await expect(page.getByLabel('OMP executable override')).toBeVisible()
     await expect(page.getByLabel('Pi executable override')).toBeVisible()
 
     await page.getByRole('combobox', { name: 'Default harness' }).click()
     await page.getByRole('option', { name: 'Pi Work' }).click()
-    await expect(page.getByRole('button', { name: 'Pi Work — switch harness' })).toBeVisible()
-    await expect(page.getByText('OMP approval mode', { exact: true })).toBeVisible()
+    await expect(page.getByRole('combobox', { name: 'Default harness' })).toContainText('Pi Work')
+    await expect(page.getByText('OMP approval mode', { exact: true })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Providers', exact: true }).click()
     await expect(page.getByText('Pi catalogue', { exact: true })).toBeVisible()
@@ -1250,7 +1350,8 @@ test.describe('Pi Work desktop smoke', () => {
 
   test('adds and connects to a harness installed while the app is open', async () => {
     await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
-    await expect(page.getByRole('button', { name: 'OMP Work — switch harness' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'OMP Work — switch harness' })).toBeVisible()
+    expect((await page.evaluate(() => window.ptx.app.getMeta())).harnesses.omp.path).toBeFalsy()
     await page.keyboard.press('Escape')
 
     const ompExecutable = join(fixtureRoot, 'omp-fixture.cjs')
@@ -1261,7 +1362,7 @@ test.describe('Pi Work desktop smoke', () => {
     await page.getByRole('button', { name: 'Refresh harnesses' }).click()
     await expect(page.getByText('OMP is ready', { exact: true })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
+    await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'OMP Work — switch harness' }).click()
     await page.locator('.session-row__title').filter({ hasText: 'OMP hermetic fixture' }).click()
     await expect(page.locator('.model-picker__trigger')).toHaveAccessibleName('Model: Claude Fixture')
@@ -1295,7 +1396,7 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(page.getByText('Pi MCP Adapter', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Install adapter', exact: true })).toBeVisible()
     await expect(page.getByText('No MCP servers in this scope.')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Add server', exact: true })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Add server', exact: true })).toBeEnabled()
   })
 
   test('shows a blue update icon beside search only after discovering an update', async () => {
@@ -1342,8 +1443,9 @@ test.describe('Pi Work desktop smoke', () => {
 
   test('keeps thread order stable and mutes acknowledged failure indicators', async () => {
     const titles = page.locator('.session-row__title')
-    await expect(titles.nth(0)).toHaveText('Hermetic desktop fixture')
-    await expect(titles.nth(1)).toHaveText('Primary workspace fixture')
+    await expect(titles.nth(0)).toHaveText('Pi hermetic fixture')
+    await expect(titles.nth(1)).toHaveText('Hermetic desktop fixture')
+    await expect(titles.nth(2)).toHaveText('Primary workspace fixture')
     const primaryFile = join(fixtureSessionFile, '..', 'primary.jsonl')
     appendFileSync(
       primaryFile,
@@ -1358,25 +1460,16 @@ test.describe('Pi Work desktop smoke', () => {
 
     const primaryRow = page.locator('.session-row-wrap').filter({ hasText: 'Primary workspace fixture' })
     await expect(primaryRow).toHaveClass(/has-attention/)
-    const activityCount = page.locator('.sidebar__primary button[data-tooltip="Activity"] .nav-count')
-    await expect(activityCount).toHaveText('1')
-    await expect(titles.nth(0)).toHaveText('Hermetic desktop fixture')
-    const attentionColor = await primaryRow.evaluate(
-      (node) =>
-        getComputedStyle(node)
-          .backgroundColor.match(/\d+(?:\.\d+)?/g)
-          ?.map(Number) ?? [],
-    )
-    expect(attentionColor.length).toBeGreaterThanOrEqual(3)
-    expect(attentionColor[2]).toBeGreaterThan(attentionColor[1])
-
+    const activityCount = page.locator('.session-row-wrap.has-attention')
+    await expect(activityCount).toHaveCount(1)
+    await expect(titles.nth(0)).toHaveText('Pi hermetic fixture')
     const failureMark = primaryRow.locator('.session-status-mark--failed')
     const activeFailureColor = await failureMark.locator('> span').evaluate((node) => getComputedStyle(node).backgroundColor)
 
     await primaryRow.locator('.session-row').click()
     await expect(primaryRow).not.toHaveClass(/has-attention/)
     await expect(primaryRow).toHaveClass(/session-row-wrap--failed/)
-    await expect(failureMark).toHaveAttribute('title', 'Failed — notification cleared')
+    await expect(failureMark).toHaveAttribute('data-tooltip', 'Failed — notification cleared')
     await expect.poll(() => failureMark.locator('> span').evaluate((node) => getComputedStyle(node).backgroundColor)).not.toBe(activeFailureColor)
     await expect(activityCount).toHaveCount(0)
     appendFileSync(
@@ -1393,7 +1486,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('clears individual and all Activity notifications persistently', async () => {
-    await page.getByRole('button', { name: 'Activity', exact: true }).click()
+    await runWorkspaceCommand('Open activity')
     await expect(page.getByRole('heading', { name: 'Activity' })).toBeVisible()
     const primaryActivity = page.locator('.activity-row').filter({ hasText: 'Primary workspace fixture' })
     const fixtureActivity = page.locator('.activity-row').filter({ hasText: 'Hermetic desktop fixture' })
@@ -1417,7 +1510,7 @@ test.describe('Pi Work desktop smoke', () => {
 
     await page.reload()
     await expect(page.locator('.app-shell')).toHaveAttribute('data-ready', 'true')
-    await page.getByRole('button', { name: 'Activity', exact: true }).click()
+    await runWorkspaceCommand('Open activity')
     await expect(page.locator('.activity-row').filter({ hasText: 'Primary workspace fixture' })).toHaveCount(0)
     await page.getByRole('button', { name: 'Clear all' }).click()
     await expect(page.getByRole('heading', { name: 'You’re all caught up' })).toBeVisible()
@@ -1438,11 +1531,10 @@ test.describe('Pi Work desktop smoke', () => {
 
     const primaryRow = page.locator('.session-row-wrap').filter({ hasText: 'Primary workspace fixture' })
     await expect(primaryRow).toHaveClass(/has-attention/)
-    const activityCount = page.locator('.sidebar__primary button[data-tooltip="Activity"] .nav-count')
-    await expect(activityCount).toHaveText('1')
+    const activityCount = page.locator('.session-row-wrap.has-attention')
+    await expect(activityCount).toHaveCount(1)
 
-    await primaryRow.locator('[data-tooltip="Archive Primary workspace fixture"]').click()
-    await primaryRow.getByTitle('Confirm archive Primary workspace fixture').click()
+    await archiveSession('Primary workspace fixture')
     await expect(primaryRow).toHaveCount(0)
     await expect(activityCount).toHaveCount(0)
     await expect
@@ -1454,7 +1546,7 @@ test.describe('Pi Work desktop smoke', () => {
       )
       .toBeTruthy()
 
-    await page.getByRole('button', { name: 'Activity', exact: true }).click()
+    await runWorkspaceCommand('Open activity')
     await expect(page.getByRole('heading', { name: 'Activity' })).toBeVisible()
     await expect(page.getByText('Primary workspace fixture', { exact: true })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Archived', exact: true })).toHaveCount(0)
@@ -1481,8 +1573,7 @@ test.describe('Pi Work desktop smoke', () => {
     const guestId = await preview.evaluate((node) => (node as HTMLElement & { getWebContentsId(): number }).getWebContentsId())
     expect(await app!.evaluate(({ webContents }, id) => Boolean(webContents.fromId(id)), guestId)).toBe(true)
 
-    await sessionRow.locator('[data-tooltip="Archive Hermetic desktop fixture"]').click()
-    await sessionRow.getByTitle('Confirm archive Hermetic desktop fixture').click()
+    await archiveSession('Hermetic desktop fixture')
 
     await expect(sessionRow).toHaveCount(0)
     await expect
@@ -1499,7 +1590,7 @@ test.describe('Pi Work desktop smoke', () => {
   test('stops a dev server launched from the thread terminal when archived', async () => {
     const sessionRow = page.locator('.session-row-wrap').filter({ hasText: 'Hermetic desktop fixture' })
     await sessionRow.locator('.session-row').click()
-    await page.getByLabel(/Toggle terminal/).click()
+    await page.keyboard.press('Meta+J')
     const terminal = page.locator('.terminal-drawer:not([hidden])')
     const input = terminal.locator('.xterm-helper-textarea')
     await expect(input).toBeVisible()
@@ -1512,8 +1603,7 @@ test.describe('Pi Work desktop smoke', () => {
     expect(serverPid).toBeGreaterThan(0)
 
     try {
-      await sessionRow.locator('[data-tooltip="Archive Hermetic desktop fixture"]').click()
-      await sessionRow.getByTitle('Confirm archive Hermetic desktop fixture').click()
+      await archiveSession('Hermetic desktop fixture')
 
       await expect(sessionRow).toHaveCount(0)
       await expect(page.locator('.terminal-drawer')).toHaveCount(0)
@@ -1581,20 +1671,22 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('reflects an external JSONL append without reselecting the live session', async () => {
-    await expect(page.locator('.transcript').getByText('Hermetic desktop fixture', { exact: true })).toBeVisible()
-    const selectedSession = page.locator('.session-row-wrap.is-selected')
-    await expect(selectedSession).toHaveCount(1)
+    const peerSessionFile = join(fixtureSessionFile, '..', 'collaboration-peer.jsonl')
+    const peerSession = page.locator('.session-row-wrap').filter({ hasText: 'Ownership peer fixture' }).locator('.session-row')
+    await peerSession.click()
+    await expect(page.locator('.session-row-wrap.is-selected')).toContainText('Ownership peer fixture')
+    await expect(page.locator('.transcript').getByText('Ownership peer fixture', { exact: true })).toBeVisible()
 
     const nonce = `${Date.now()}-${Math.random().toString(36).slice(2)}`
     const reasoning = `External live reasoning ${nonce}`
     const answer = `External live answer ${nonce}`
     const timestamp = new Date().toISOString()
     appendFileSync(
-      fixtureSessionFile,
+      peerSessionFile,
       `${JSON.stringify({
         type: 'message',
         id: `fixture-external-${nonce}`,
-        parentId: 'fixture-goal-summary',
+        parentId: 'collaboration-peer-message',
         timestamp,
         message: {
           role: 'assistant',
@@ -1609,15 +1701,23 @@ test.describe('Pi Work desktop smoke', () => {
 `,
     )
 
+    await page
+      .locator('.transcript')
+      .getByRole('button', { name: /Worked for/ })
+      .last()
+      .click()
+    await page.locator('.transcript').locator('.reasoning__toggle').last().click()
     await expect(page.locator('.transcript').getByText(reasoning, { exact: true })).toHaveCount(1)
     await expect(page.locator('.transcript').getByText(answer, { exact: true })).toHaveCount(1)
     await expect(page.locator('.activity-line--tool')).toContainText('fixture_external_tool')
-    await expect(page.locator('.work-disclosure__button')).toHaveCount(0)
-    await expect(selectedSession).toHaveCount(1)
+    await expect(page.locator('.work-disclosure__button').last()).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.locator('.session-row-wrap.is-selected')).toContainText('Ownership peer fixture')
   })
 
   test('keeps session options visible and starts a new session from a hovered project', async () => {
-    const sessionOptions = page.locator('.session-row__more').first()
+    const session = page.locator('.session-row-wrap').filter({ hasText: 'Hermetic desktop fixture' })
+    const sessionOptions = session.locator('.session-row__more')
+    await session.hover()
     await expect(sessionOptions).toBeVisible()
     await expect.poll(() => sessionOptions.evaluate((node) => getComputedStyle(node).opacity)).toBe('1')
 
@@ -1638,6 +1738,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('keeps wrapped editing native and aligned through classic scrollbar overflow', async () => {
+    await selectFixtureSession(page)
     const composer = page.getByRole('combobox', { name: 'Message Pi' })
     await page.addStyleTag({
       content: `
@@ -1653,7 +1754,7 @@ test.describe('Pi Work desktop smoke', () => {
     await reference.click()
 
     const longToken = 'unbroken-token-'.repeat(18)
-    const draft = `@Ownership peer fixture\nFirst wrapped line ${'with words '.repeat(22)}\nEDITME ${longToken}\n${'final line '.repeat(30)}`
+    const draft = `@Ownership peer fixture\nFirst wrapped line ${'with words '.repeat(22)}\nEDITME ${longToken}\n${'final line\n'.repeat(30)}`
     await composer.fill(draft)
     const editStart = draft.indexOf('EDITME')
     await composer.evaluate((element, start) => {
@@ -1698,6 +1799,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('copies a session id and routes an @session mention without exposing its UUID block', async () => {
+    await selectFixtureSession(page)
     await page.evaluate(() => {
       const target = window as Window & { __copiedSessionId?: string }
       Object.defineProperty(navigator, 'clipboard', {
@@ -1759,34 +1861,31 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(page.locator('.session-row-wrap').filter({ hasText: 'Ownership peer fixture' })).toHaveClass(/is-selected/)
   })
 
-  test('removes a project from the sidebar through its context menu', async () => {
+  test('hides a project from its sidebar context menu without deleting it', async () => {
     const projectRow = page.locator('.project-row').first()
     await expect(projectRow).toBeVisible()
-    await expect(page.locator('.sidebar__primary .lucide-notebook-pen')).toHaveCount(1)
-    await expect(page.locator('.project-row__new-session .lucide-notebook-pen')).toHaveCount(1)
+    await expect(page.locator('.sidebar__primary .lucide-message-square-plus')).toHaveCount(1)
+    await expect(page.locator('.project-row__new-session .lucide-plus')).toHaveCount(1)
     await expect(page.locator('.sidebar__section-heading .lucide-plus')).toHaveCount(1)
-    await expect(page.getByTitle('New session (⌘N)')).toHaveCount(1)
+    await expect(page.getByRole('button', { name: 'New session ⌘N', exact: true })).toHaveCount(1)
     await expect(page.locator('[data-tooltip="Add project"]')).toHaveCount(1)
     await expect(projectRow.locator('[data-tooltip="New session in Multi-folder fixture"]')).toHaveCount(1)
     // The archive affordance lives in the per-session context menu (on demand).
     await page.locator('.session-row').first().click({ button: 'right' })
-    const sessionMenuPanel = page.getByRole('menu', { name: 'Session options' })
+    const sessionMenuPanel = page.getByLabel('Session options', { exact: true })
     await expect(sessionMenuPanel).toBeVisible()
-    await expect(sessionMenuPanel.getByRole('menuitem', { name: 'Archive' })).toBeVisible()
+    await expect(sessionMenuPanel.getByRole('button', { name: 'Archive' })).toBeVisible()
 
     await projectRow.click({ button: 'right' })
     const menu = page.getByRole('menu', { name: 'Project options for Multi-folder fixture' })
     await expect(menu).toBeVisible()
-    await menu.getByRole('menuitem', { name: 'Remove project' }).click()
-
-    const dialog = page.getByRole('dialog', { name: 'Remove project' })
-    await expect(dialog).toContainText('The folder and saved sessions will not be deleted.')
-    await dialog.getByRole('button', { name: 'Remove', exact: true }).click()
+    await menu.getByRole('menuitem', { name: 'Hide project' }).click()
     await expect(page.locator('.project-row')).toHaveCount(0)
     expect(existsSync(join(fixtureRoot, 'project'))).toBe(true)
   })
 
   test('renders agent handoffs and goal summaries as collapsed readable disclosures', async () => {
+    await selectFixtureSession(page)
     const agentDisclosure = page.getByRole('button', { name: 'Message from agent: fixture-reviewer' })
     const goalDisclosure = page.getByRole('button', { name: 'Goal summary' })
     await expect(agentDisclosure).toHaveAttribute('aria-expanded', 'false')
@@ -1800,6 +1899,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('copies a specific user or agent message from the action directly below it', async () => {
+    await selectFixtureSession(page)
     await page.evaluate(() => {
       const target = window as Window & { __copiedMessage?: string }
       Object.defineProperty(navigator, 'clipboard', {
@@ -1835,7 +1935,7 @@ test.describe('Pi Work desktop smoke', () => {
 
   test('navigates all primary workspace pages and command palette', async () => {
     for (const destination of ['Projects', 'Activity', 'Scheduled', 'Capabilities']) {
-      await page.getByRole('button', { name: destination, exact: true }).click()
+      await runWorkspaceCommand(`Open ${destination.toLowerCase()}`)
       await expect(page.locator('.page')).toBeVisible()
       if (destination === 'Capabilities') {
         await expect(page.locator('.feature-strip')).toHaveCount(0)
@@ -1862,14 +1962,14 @@ test.describe('Pi Work desktop smoke', () => {
         await expect(page.getByRole('button', { name: 'Disable Computer Use | TryCUA' })).toHaveAttribute('aria-pressed', 'true')
         await expect.poll(() => JSON.parse(readFileSync(join(fixtureRoot, 'user-data', CURRENT_DESKTOP_STATE_FILENAME), 'utf8')).settings.computerUseEnabled).toBe(true)
         await page.getByRole('button', { name: 'Add', exact: true }).click()
-        const addDialog = page.getByRole('dialog', { name: 'Add a Prime capability' })
+        const addDialog = page.getByRole('dialog', { name: 'Add a Pi capability' })
         await expect(addDialog.getByText('Add MCP', { exact: true })).toBeVisible()
         await expect(addDialog.getByText('Add Package', { exact: true })).toBeVisible()
         await expect(addDialog.getByText('Add Extension', { exact: true })).toBeVisible()
         await expect(addDialog.getByText(/Not every third-party package, plugin, or extension will work in Ptx/)).toBeVisible()
         const addMcp = addDialog.getByRole('button', { name: /Add MCP/ })
         await expect(addMcp).toBeDisabled()
-        await expect(addMcp).toContainText('Pi MCP setup is managed outside Ptx')
+        await expect(addMcp).toContainText('Enable Pi MCP Adapter first')
         await expect(addDialog.getByText('Server URL', { exact: true })).toHaveCount(0)
         await expect(addDialog.getByText('Authentication', { exact: true })).toHaveCount(0)
         await addDialog.getByRole('button', { name: 'Close' }).click()
@@ -1882,10 +1982,9 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(page.locator('.provider-row')).not.toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Hide all', exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Hide all', exact: true }).click()
-    await expect(page.getByRole('button', { name: 'Show all', exact: true })).toBeVisible()
+    await page.getByRole('dialog').getByRole('button', { name: 'Hide all', exact: true }).click()
     await expect(page.locator('.provider-row input[type="checkbox"]:checked')).toHaveCount(0)
-    await page.getByRole('tab', { name: /Models/ }).click()
-    await expect(page.getByLabel('Search models')).toBeVisible()
+    await expect(page.getByLabel(/Search .* models/)).toBeVisible()
     await expect(page.locator('.provider-model-row')).not.toHaveCount(0)
     await page.getByRole('button', { name: 'Harness', exact: true }).click()
     await expect(page.getByRole('checkbox', { name: /Show reasoning summaries/ })).toBeChecked()
@@ -1897,21 +1996,32 @@ test.describe('Pi Work desktop smoke', () => {
 
   test('installs, disables, and restores Pi MCP support from its directory toggle', async () => {
     await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
-    await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
     await page.getByRole('button', { name: 'Capabilities', exact: true }).click()
 
     const enable = page.getByRole('button', { name: 'Enable Pi MCP Adapter' })
+    if (!currentFixture) throw new Error('Missing hermetic fixture')
     await expect(enable).toHaveAttribute('aria-pressed', 'false')
     await enable.click()
-    await expect(page.getByRole('button', { name: 'Disable Pi MCP Adapter' })).toHaveAttribute('aria-pressed', 'true')
     const settingsPath = join(fixtureRoot, 'home', '.pi', 'agent', 'settings.json')
-    await expect.poll(() => JSON.parse(readFileSync(settingsPath, 'utf8')).packages).toContain('npm:pi-mcp-adapter')
+    await expect
+      .poll(() => {
+        try {
+          return JSON.parse(readFileSync(settingsPath, 'utf8')).packages as unknown
+        } catch {
+          return []
+        }
+      })
+      .toContain('npm:pi-mcp-adapter')
+    await expect(page.getByRole('button', { name: 'Disable Pi MCP Adapter' })).toHaveAttribute('aria-pressed', 'true')
     await expect(page.getByRole('status').filter({ hasText: 'Pi MCP Adapter installed.' })).toBeVisible()
 
+    await page.getByRole('button', { name: 'OMP Work — switch harness' }).click()
+    await expect(page.getByRole('heading', { name: 'Extend OMP' })).toBeVisible()
     await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
-    await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
+    await expect(page.getByRole('heading', { name: 'Extend Pi' })).toBeVisible()
     await expect(page.getByText('Pi MCP Adapter installed.')).toHaveCount(0)
-    await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
+    await page.getByRole('button', { name: 'OMP Work — switch harness' }).click()
+    await expect(page.getByRole('heading', { name: 'Extend OMP' })).toBeVisible()
     await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
     await expect(page.getByRole('heading', { name: 'Extend Pi' })).toBeVisible()
 
@@ -1940,12 +2050,12 @@ test.describe('Pi Work desktop smoke', () => {
     await expect.poll(() => JSON.parse(readFileSync(settingsPath, 'utf8')).packages).toContain('npm:pi-mcp-adapter')
   })
 
-  test('keeps transcript text from showing through the composer disclaimer', async () => {
+  test('keeps transcript text from showing through the composer', async () => {
     await page.getByRole('button', { name: 'Toggle inspector' }).click()
-    await expect(page.locator('.composer-note')).toBeVisible()
-    const colors = await page.locator('.composer-note').evaluate((node) => {
+    await expect(page.locator('.composer')).toBeVisible()
+    const colors = await page.locator('.composer').evaluate((node) => {
       const probe = document.createElement('div')
-      probe.style.background = 'var(--canvas)'
+      probe.style.background = 'var(--surface-raised)'
       document.body.append(probe)
       const canvas = getComputedStyle(probe).backgroundColor
       probe.remove()
@@ -1991,10 +2101,10 @@ test.describe('Pi Work desktop smoke', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
     expect(await nativeSelectTheme()).toMatchObject({
       scheme: 'dark',
-      optionColor: 'rgb(241, 241, 238)',
-      optionBackground: 'rgb(34, 34, 32)',
-      themeColor: '#f1f1ee',
-      themeBackground: '#222220',
+      optionColor: 'rgb(214, 214, 214)',
+      optionBackground: 'rgb(35, 35, 35)',
+      themeColor: '#d6d6d6',
+      themeBackground: '#232323',
     })
     await page.getByRole('button', { name: /System/ }).click()
   })
@@ -2011,7 +2121,7 @@ test.describe('Pi Work desktop smoke', () => {
     expect(fits).toBe(true)
     await page.setViewportSize({ width: 1440, height: 920 })
     await page.getByRole('radio', { name: 'Default', exact: true }).click()
-    await expect.poll(async () => app!.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.webContents.getZoomFactor())).toBeCloseTo(1.1, 2)
+    await expect.poll(async () => app!.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.webContents.getZoomFactor())).toBeCloseTo(1, 2)
   })
 
   test('traps modal focus, closes on Escape, and restores the trigger', async () => {
@@ -2040,7 +2150,7 @@ test.describe('Pi Work desktop smoke', () => {
     const composer = page.getByRole('combobox', { name: 'Message Pi' })
     await composer.fill('/')
     const options = page.locator('.composer-menu').getByRole('option')
-    await expect(options).toHaveCount(5)
+    await expect(options).toHaveCount(4)
     await expect(composer).toHaveAttribute('aria-expanded', 'true')
     await page.keyboard.press('ArrowDown')
     await expect(options.nth(1)).toHaveAttribute('aria-selected', 'true')
@@ -2055,19 +2165,19 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('round-trips a grouped Pi ask_user questionnaire', async () => {
-    await page.evaluate(() => window.ptx.settings.update({ askUserEnabled: true }))
+    await page.evaluate(() => window.ptx.settings.update({ askUserEnabled: true, showReasoningSummaries: true }))
     const composer = page.getByRole('combobox', { name: 'Message Pi' })
     await composer.fill('Ask me two questions')
     await composer.press('Enter')
 
     const dialog = page.getByRole('dialog', { name: 'Answer 2 questions' })
     await expect(dialog).toBeVisible()
-    await expect(page.locator('.work-disclosure__rail')).toBeVisible()
+    const workDisclosure = page.locator('.work-disclosure.is-running')
+    await expect(workDisclosure).toBeVisible()
+    await expect(page.locator('.work-disclosure__rail')).toBeHidden()
     const workStatus = page.locator('.work-disclosure__status')
     await expect(workStatus).toHaveAttribute('role', 'status')
     await expect(workStatus).toContainText('Working')
-    await expect(page.locator('.activity-line--reasoning')).toContainText('Reviewing the available release channels')
-    await expect(page.locator('.thinking-dots > span')).toHaveCount(3)
     await expect(page.locator('.work-disclosure__button')).toHaveCount(0)
     await expect(dialog).toContainText('Question 1 of 2')
     const context = dialog.getByRole('textbox', { name: 'Additional context' })
@@ -2120,7 +2230,7 @@ test.describe('Pi Work desktop smoke', () => {
 
   test('injects ask_user into OMP and answers its grouped questionnaire in the app', async () => {
     await page.evaluate(() => window.ptx.settings.update({ askUserEnabled: true }))
-    await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
+    await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'OMP Work — switch harness' }).click()
     await page.locator('.session-row__title').filter({ hasText: 'OMP hermetic fixture' }).click()
     await expect(page.locator('.model-picker__trigger')).toHaveAccessibleName('Model: Claude Fixture')
@@ -2154,13 +2264,11 @@ test.describe('Pi Work desktop smoke', () => {
 
   test('injects ask_user into Pi and answers its grouped questionnaire in the app', async () => {
     await page.evaluate(() => window.ptx.settings.update({ askUserEnabled: true }))
-    await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
-    await page.getByRole('button', { name: 'Pi Work — switch harness' }).click()
-    await page.locator('.session-row__title').filter({ hasText: 'Pi hermetic fixture' }).click()
-    await expect(page.locator('.model-picker__trigger')).toHaveAccessibleName('Model: Claude Fixture')
+    await expect(page.locator('.session-row-wrap.is-selected')).toContainText('Pi hermetic fixture')
+    await expect(page.locator('.model-picker__trigger')).toHaveAccessibleName('Model: Fixture Model')
 
     const composer = page.getByRole('combobox', { name: 'Message Pi' })
-    await composer.fill('Ask me two Pi questions')
+    await composer.fill('Ask me two questions for the Pi fixture')
     await composer.press('Enter')
 
     const dialog = page.getByRole('dialog', { name: 'Answer 2 questions' })
@@ -2179,19 +2287,19 @@ test.describe('Pi Work desktop smoke', () => {
       'pi-fixture-question-1': JSON.stringify({ answer: 'Beta', answerSource: 'option' }),
       'pi-fixture-question-2': JSON.stringify({ answer: 'Safety', answerSource: 'option', context: 'Pi app verification' }),
     })
-    const runtime = JSON.parse(readFileSync(join(fixtureRoot, 'pi-runtime-args.json'), 'utf8')) as { args: string[]; cwd: string }
-    const injectedExtensions = runtime.args.flatMap((value, index) => (value === '--extension' ? [runtime.args[index + 1]] : []))
+    const runtimeArgs = JSON.parse(readFileSync(join(fixtureRoot, 'pi-runtime-args.json'), 'utf8')) as string[]
+    const injectedExtensions = runtimeArgs.flatMap((value, index) => (value === '--extension' ? [runtimeArgs[index + 1]] : []))
     expect(injectedExtensions).toContain(join(process.cwd(), 'assets', 'extensions', 'omp-work-ask-user.ts'))
-    expect(runtime.args).not.toContain('--cwd')
+    expect(runtimeArgs).not.toContain('--cwd')
     if (!currentFixture) throw new Error('Missing hermetic fixture')
-    expect(runtime.cwd).toBe(realpathSync(currentFixture.project))
+    expect(JSON.parse(readFileSync(join(fixtureRoot, 'pi-runtime-cwd.json'), 'utf8'))).toBe(realpathSync(currentFixture.project))
     await expect(page.locator('.app-shell')).toHaveAttribute('data-ready', 'true')
     await expect(page.getByText(/Pi RPC exited|Request failed/)).toHaveCount(0)
   })
 
   test('preserves a rejected shell draft while rolling back the committed setting', async () => {
     await page.keyboard.press('Meta+,')
-    await page.getByRole('button', { name: 'Terminal', exact: true }).first().click()
+    await page.getByRole('button', { name: 'Local terminal', exact: true }).click()
     const shell = page.getByLabel('Shell executable')
     const rejectedDraft = '/definitely/not-an-executable'
     await expect(shell).toHaveValue('/bin/zsh')
@@ -2211,11 +2319,11 @@ test.describe('Pi Work desktop smoke', () => {
     await expect.poll(() => page.evaluate(() => window.ptx.settings.get().then((settings) => settings.terminalShell))).toBe('/bin/zsh')
 
     await page.getByRole('button', { name: 'General', exact: true }).click()
-    await page.getByRole('button', { name: 'Terminal', exact: true }).first().click()
+    await page.getByRole('button', { name: 'Local terminal', exact: true }).click()
     await expect(page.locator('.settings-content input.mono')).toHaveValue('/bin/zsh')
   })
 
-  test('keeps the sidebar docked and overlays only the inspector at the compact desktop breakpoint', async () => {
+  test('keeps the sidebar docked until the compact breakpoint overlays the inspector', async () => {
     await page
       .getByRole('button', { name: /^New session/ })
       .first()
@@ -2224,14 +2332,19 @@ test.describe('Pi Work desktop smoke', () => {
     await expect.poll(() => page.locator('.sidebar').evaluate((node) => getComputedStyle(node).position)).toBe('relative')
     await expect(page.locator('.sidebar')).toBeVisible()
     await expect(page.locator('.panel-scrim--sidebar')).toHaveCount(0)
-    // Default settings open the inspector; at the compact breakpoint it presents as an overlay drawer.
     const inspector = page.locator('.inspector')
-    await expect.poll(() => inspector.evaluate((node) => getComputedStyle(node).position)).toBe('fixed')
-    await expect(page.locator('.panel-scrim--inspector')).toBeVisible()
-    await expect(page.locator('.title-toolbar')).toHaveAttribute('inert')
-    await inspector.getByRole('button', { name: 'Close inspector' }).click()
+    await expect.poll(() => inspector.evaluate((node) => getComputedStyle(node).position)).toBe('relative')
+    await page.setViewportSize({ width: 720, height: 700 })
+    // Entering the compact breakpoint preserves the sidebar but closes an untouched inspector.
+    await expect.poll(() => page.evaluate(async () => (await window.ptx.settings.get()).inspectorOpen)).toBe(false)
     await expect(inspector).toHaveCount(0)
-    await expect(page.locator('.title-toolbar')).not.toHaveAttribute('inert')
+    await page.getByRole('button', { name: 'Toggle inspector' }).click()
+    // A user-opened compact inspector presents as an overlay drawer.
+    await expect(page.locator('.panel-scrim--inspector')).toBeVisible()
+    await expect(page.locator('.conversation-pane')).toHaveAttribute('inert')
+    await page.locator('.panel-scrim--inspector').click()
+    await expect(inspector).toHaveCount(0)
+    await expect(page.locator('.conversation-pane')).not.toHaveAttribute('inert')
     await expect(page.locator('.workbench')).not.toHaveAttribute('inert')
     await page.getByRole('button', { name: 'Toggle inspector' }).click()
     await expect.poll(() => inspector.evaluate((node) => getComputedStyle(node).position)).toBe('fixed')
@@ -2261,7 +2374,9 @@ test.describe('Pi Work desktop smoke', () => {
     const inspector = page.locator('.inspector')
     await page.getByRole('button', { name: 'Toggle inspector' }).click()
     await expect(inspector).toBeVisible()
-    await inspector.getByRole('button', { name: 'Close inspector' }).click()
+    await expect(page.locator('.panel-scrim--inspector')).toBeVisible()
+    await page.getByRole('tab', { name: 'Summary' }).click()
+    await page.keyboard.press('Escape')
     await expect(inspector).toHaveCount(0)
     await expect.poll(() => page.evaluate(async () => (await window.ptx.settings.get()).inspectorOpen)).toBe(false)
 
@@ -2297,6 +2412,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('binds Git to a secondary workspace and clears stale paths during a folder switch', async () => {
+    await selectFixtureSession(page)
     await page.getByRole('tab', { name: 'Changes' }).click()
     await expect(page.locator('.file-changes')).toContainText('secondary-change.txt')
     await expect(page.getByRole('button', { name: /Stage$/ }).last()).toBeVisible()
@@ -2331,7 +2447,7 @@ test.describe('Pi Work desktop smoke', () => {
     await changesCard.getByRole('button', { name: 'Show changed files' }).click()
     await expect(changesCard.locator('.changes-card__files')).toContainText('secondary-change.txt')
 
-    await changesCard.getByRole('button', { name: 'Review', exact: true }).click()
+    await changesCard.getByRole('button', { name: 'Review code', exact: true }).click()
     await expect(page.getByRole('tab', { name: 'Changes' })).toHaveAttribute('aria-selected', 'true')
 
     // The settings toggle hides the summaries; Back to session returns to the transcript.
@@ -2388,7 +2504,7 @@ test.describe('Pi Work desktop smoke', () => {
     await page.keyboard.press('ArrowRight')
     expect((await inspector.boundingBox())!.width).toBeLessThan(inspectorAfter!.width)
 
-    await page.getByLabel(/Toggle terminal/).click()
+    await page.keyboard.press('Meta+J')
     const drawer = page.locator('.terminal-drawer')
     const terminalHandle = page.getByRole('separator', { name: 'Resize terminal' })
     await expect(terminalHandle).toBeVisible()
@@ -2416,7 +2532,7 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('shuts down cleanly with an active terminal', async () => {
-    await page.getByLabel(/Toggle terminal/).click()
+    await page.keyboard.press('Meta+J')
     const drawer = page.locator('.terminal-drawer:not([hidden])')
     const input = drawer.locator('.xterm-helper-textarea')
     await expect(input).toBeVisible()
@@ -2428,7 +2544,8 @@ test.describe('Pi Work desktop smoke', () => {
   })
 
   test('restores each session terminal without leaking it into another session', async () => {
-    await page.getByLabel(/Toggle terminal/).click()
+    await selectFixtureSession(page)
+    await page.keyboard.press('Meta+J')
     const visibleDrawer = page.locator('.terminal-drawer:not([hidden])')
     const input = visibleDrawer.locator('.xterm-helper-textarea')
     await expect(input).toBeVisible()
@@ -2439,7 +2556,7 @@ test.describe('Pi Work desktop smoke', () => {
 
     await page.locator('.session-row').filter({ hasText: 'Primary workspace fixture' }).click()
     await expect(page.locator('.terminal-drawer:not([hidden])')).toHaveCount(0)
-    await page.getByLabel(/Toggle terminal/).click()
+    await page.keyboard.press('Meta+J')
     const primaryDrawer = page.locator('.terminal-drawer:not([hidden])')
     const primaryInput = primaryDrawer.locator('.xterm-helper-textarea')
     await expect(primaryInput).toBeVisible()
@@ -2466,8 +2583,9 @@ test.describe('Pi Work desktop smoke', () => {
       return selected.inferred ? window.ptx.projects.grantInferred(selected.primaryFolder) : selected
     })
     expect(project).not.toBeNull()
+    await selectFixtureSession(page)
     await page.getByRole('tab', { name: 'Summary' }).click()
-    await page.getByLabel(/Toggle terminal/).click()
+    await page.keyboard.press('Meta+J')
     await expect(page.locator('.terminal-drawer .xterm')).toBeVisible()
     await expect(page.locator('.terminal-live-dot.is-connected')).toBeVisible()
     const firstTerminalLine = () => page.locator('.terminal-surface:not([hidden]) .xterm-rows').evaluate((rows) => [...rows.children].map((row) => row.textContent?.trim() ?? '').find(Boolean) ?? '')
@@ -2493,7 +2611,7 @@ test.describe('Pi Work desktop smoke', () => {
 
     await page.locator('.session-row').filter({ hasText: 'Primary workspace fixture' }).click()
     await expect(page.locator('.terminal-drawer:not([hidden])')).toHaveCount(0)
-    await page.getByLabel(/Toggle terminal/).click()
+    await page.keyboard.press('Meta+J')
     await expect(page.getByRole('tablist', { name: 'Terminal tabs' }).getByRole('tab')).toHaveCount(1)
     await expect(page.locator('.terminal-surface:not([hidden]) .xterm-rows')).not.toContainText(/first-terminal|second-terminal/)
     await expect(page.getByLabel(/Split terminal/)).toHaveCount(0)
@@ -2532,7 +2650,7 @@ test.describe('Pi Work desktop smoke', () => {
 
   test('attaches and removes active terminal selection context', async () => {
     await page.getByRole('tab', { name: 'Summary' }).click()
-    await page.getByLabel(/Toggle terminal/).click()
+    await page.keyboard.press('Meta+J')
     const input = page.locator('.terminal-surface:not([hidden]) .xterm-helper-textarea')
     await input.click()
     await page.keyboard.type("printf 'terminal-selection-marker\\n'")

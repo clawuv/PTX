@@ -11,7 +11,7 @@ const identities = (...paths: string[]) => Object.fromEntries(paths.map((path) =
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }) })
 
 function fixture() {
-  const dir = mkdtempSync(join(tmpdir(), 'prime-work-project-removal-'))
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'prime-work-project-removal-')))
   dirs.push(dir)
   const folder = join(dir, 'project')
   mkdirSync(folder)
@@ -28,7 +28,7 @@ function fixture() {
 }
 
 describe('project removal', () => {
-  it('keeps a removed persisted project dismissed instead of immediately re-inferring it', async () => {
+  it('keeps a removed persisted project hidden and unauthorized', async () => {
     const { folder, marker, store, service } = fixture()
     const now = new Date().toISOString()
     await store.update((state) => { state.projects.push({
@@ -37,7 +37,11 @@ describe('project removal', () => {
     }) })
 
     expect(await service.remove('project-1')).toBe(true)
-    expect(await service.list()).toEqual([])
+    expect(await service.list()).toEqual([
+      expect.objectContaining({ path: realpathSync(folder), inferred: true, readOnly: true, hidden: true, sessionCount: 1 }),
+    ])
+    await expect(service.authorizeReadOnlyCwd(folder)).rejects.toThrow(/not inside/)
+    await expect(service.authorizeCwd(folder)).rejects.toThrow(/not inside/)
     expect(store.snapshot().dismissedProjectPaths).toContain(realpathSync(folder))
     expect(existsSync(marker)).toBe(true)
   })
@@ -48,12 +52,19 @@ describe('project removal', () => {
     expect(inferred.inferred).toBe(true)
 
     expect(await service.remove(inferred.id)).toBe(true)
-    expect(await service.list()).toEqual([])
+    expect(await service.list()).toEqual([
+      expect.objectContaining({ path: realpathSync(folder), inferred: true, readOnly: true, hidden: true, sessionCount: 1 }),
+    ])
+    await expect(service.authorizeReadOnlyCwd(folder)).rejects.toThrow(/not inside/)
+    await expect(service.authorizeCwd(folder)).rejects.toThrow(/not inside/)
 
     const granted = await service.grantInferred(folder)
     expect(granted.inferred).not.toBe(true)
     expect(store.snapshot().dismissedProjectPaths).not.toContain(realpathSync(folder))
-    expect(await service.list()).toHaveLength(1)
+    expect(await service.list()).toEqual([
+      expect.objectContaining({ id: granted.id, path: realpathSync(folder) }),
+    ])
+    expect((await service.list())[0].hidden).not.toBe(true)
   })
 
   it('does not reauthorize a removed project when an older list finishes later', async () => {

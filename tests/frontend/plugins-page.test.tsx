@@ -356,7 +356,7 @@ describe('PluginsPage bundled capability controls', () => {
     expect(addMcp.textContent).toContain('Enable Pi MCP Adapter first')
     expect(dialog.textContent).toContain('Not every third-party package, plugin, or extension will work in Ptx')
     await act(async () => { [...dialog.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === 'create a GitHub issue')!.click() })
-    expect(openExternal).toHaveBeenCalledWith('https://github.com/am-will/pi-studio/issues/new')
+    expect(openExternal).toHaveBeenCalledExactlyOnceWith('https://github.com/clawuv/PTX/issues/new')
 
     await act(async () => { [...dialog.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent?.includes('Add Package'))!.click() })
     expect(dialog.textContent).not.toContain('Not every third-party')

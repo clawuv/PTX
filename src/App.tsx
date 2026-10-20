@@ -1,10 +1,8 @@
-import { useTaskSessionNavigation } from '@/hooks/useTaskSessionNavigation'
+import { Plus } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Plus } from 'lucide-react'
 import { activityNotificationSignature, readClearedActivity, readClearedAttention, sessionCompanionNotificationSignature } from '@/app/session-attention'
 import { turnAnchorId } from '@/app/turn-anchor'
-import { installTooltips } from '@/lib/tooltip'
 import { AgentBrowserLayer, type AgentSlotRect } from '@/components/AgentBrowserLayer'
 import { Composer } from '@/components/Composer'
 import { ConversationHeader } from '@/components/ConversationHeader'
@@ -26,6 +24,7 @@ import { usePluginSkills } from '@/hooks/usePluginSkills'
 import { useProviderCatalog } from '@/hooks/useProviderCatalog'
 import { useSidebarActions } from '@/hooks/useSidebarActions'
 import { useStableCallback } from '@/hooks/useStableCallback'
+import { useTaskSessionNavigation } from '@/hooks/useTaskSessionNavigation'
 import { useToast } from '@/hooks/useToast'
 import { useTurnChanges } from '@/hooks/useTurnChanges'
 import { useWorkspaceActions } from '@/hooks/useWorkspaceActions'
@@ -39,17 +38,18 @@ import { I18nProvider, type MessageKey, type MessageValues, resolveLocale, trans
 import { detectRendererPlatform } from '@/lib/platform-shortcuts'
 import { ProjectScriptBusyError, setupNeedsRun } from '@/lib/project-scripts'
 import { countSchedulesNeedingAttention } from '@/lib/schedule-attention'
+import { installTooltips } from '@/lib/tooltip'
 import { waitForVoiceSession } from '@/lib/voice'
-import { createSingleFlightAdmission, selectActiveProject, gitStatusForWorkspace, shouldRefreshGitOnSessionTransition, workspaceCwd } from '@/lib/workspace'
+import { createSingleFlightAdmission, gitStatusForWorkspace, selectActiveProject, shouldRefreshGitOnSessionTransition, workspaceCwd } from '@/lib/workspace'
 import type { SettingsSection } from '@/pages/settings/contracts'
 import type {
+  AgentModelDescriptor,
+  AgentProviderDescriptor,
   AutomationScheduleRecord,
   GitStatus,
   GitWorktree,
   HarnessId,
   OpenWithTargetId,
-  AgentModelDescriptor,
-  AgentProviderDescriptor,
   ProjectRecord,
   QueuedPrompt,
   ScheduleTiming,
@@ -296,10 +296,7 @@ export default function App() {
     reportError,
   })
   const activeSession = useMemo(() => sessions.find((session) => session.id === workspace.activeSessionId), [sessions, workspace.activeSessionId])
-  const activeProject = useMemo(
-    () => selectActiveProject(projects, activeHarness, workspace.activeProjectId, activeSession),
-    [projects, activeHarness, activeSession, workspace.activeProjectId],
-  )
+  const activeProject = useMemo(() => selectActiveProject(projects, activeHarness, workspace.activeProjectId, activeSession), [projects, activeHarness, activeSession, workspace.activeProjectId])
   const activeCwd = workspaceCwd(activeProject, activeSession)
   const mentionableSessions = useMemo(
     () => sessions.filter((session) => !session.archived && session.depth === 0 && session.id !== activeSession?.id && session.projectPath === activeCwd),
@@ -922,9 +919,7 @@ export default function App() {
     active: turnActive,
     anchorId: changesAnchorId,
     enabled: settingsState.settings.showFileChangesPopup,
-    resetKey: workspace.activeSessionId
-      ? `${activeProject?.id ?? 'no-project'}:${workspace.activeSessionId}`
-      : `${activeProject?.id ?? 'no-project'}:new:${workspace.workspaceGeneration}`,
+    resetKey: workspace.activeSessionId ? `${activeProject?.id ?? 'no-project'}:${workspace.activeSessionId}` : `${activeProject?.id ?? 'no-project'}:new:${workspace.workspaceGeneration}`,
   })
   const externalSessionRunning = Boolean(activeSession?.status === 'running' && workspace.runtime?.sessionFile !== activeSession.filePath)
   const queuedMessages = useMemo<QueuedPrompt[]>(() => workspace.pendingQueuedPrompts.filter((pending) => pending.intent === 'queue'), [workspace.pendingQueuedPrompts])
@@ -941,7 +936,16 @@ export default function App() {
   const openTaskSession = useTaskSessionNavigation({ bridge, harness: activeHarness, projects, selectHarness, selectSession, reportError })
   const page =
     view === 'projects' ? (
-      <ProjectsPage projects={projects} activeProjectId={activeProject?.id} onAdd={() => void addProject()} onOpen={selectProject} onRemove={(project) => void removeProject(project)} onShow={(project) => void setProjectHidden(project, false)} onHide={(project) => void setProjectHidden(project, true)} showHeaderAction={false} />
+      <ProjectsPage
+        projects={projects}
+        activeProjectId={activeProject?.id}
+        onAdd={() => void addProject()}
+        onOpen={selectProject}
+        onRemove={(project) => void removeProject(project)}
+        onShow={(project) => void setProjectHidden(project, false)}
+        onHide={(project) => void setProjectHidden(project, true)}
+        showHeaderAction={false}
+      />
     ) : view === 'tasks' ? (
       <TasksPage bridge={bridge} harness={activeHarness} onOpenSession={openTaskSession} />
     ) : view === 'activity' ? (
@@ -969,6 +973,7 @@ export default function App() {
       />
     ) : view === 'plugins' ? (
       <PluginsPage
+        key={activeHarness}
         harness={activeHarness}
         skills={pluginSkills.skills}
         warnings={pluginSkills.warnings}
@@ -1039,11 +1044,18 @@ export default function App() {
         data-inspector-open={inspectorVisible ? 'true' : 'false'}
         style={{ '--sidebar-width': `${layout.sidebarWidth}px`, '--inspector-width': `${layout.inspectorWidth}px` } as CSSProperties}
       >
-        <TitleToolbar updateState={appUpdates.state} onUpdateAction={appUpdates.act} platform={platform} onToggleSidebar={toggleSidebar} searchOpen={sidebarVisible && view !== 'settings' && sidebarSearchOpen} onToggleSearch={() => {
-          setSidebarSearchOpen(!sidebarVisible || view === 'settings' || !sidebarSearchOpen)
-          if (!sidebarVisible) toggleSidebar()
-          if (view === 'settings') navigate('session')
-        }} />
+        <TitleToolbar
+          updateState={appUpdates.state}
+          onUpdateAction={appUpdates.act}
+          platform={platform}
+          onToggleSidebar={toggleSidebar}
+          searchOpen={sidebarVisible && view !== 'settings' && sidebarSearchOpen}
+          onToggleSearch={() => {
+            setSidebarSearchOpen(!sidebarVisible || view === 'settings' || !sidebarSearchOpen)
+            if (!sidebarVisible) toggleSidebar()
+            if (view === 'settings') navigate('session')
+          }}
+        />
         <div className="app-shell__body">
           {sidebarVisible && initialized ? (
             <Sidebar
@@ -1114,14 +1126,12 @@ export default function App() {
                   openWith(target)
                 }}
               />
-            ) : <div className="workbench-titlebar-drag-region drag-region" aria-hidden="true" />}
+            ) : (
+              <div className="workbench-titlebar-drag-region drag-region" aria-hidden="true" />
+            )}
             {view === 'projects' ? (
               <div className="workbench-titlebar-actions">
-                <button
-                  type="button"
-                  className="button button--primary workbench-titlebar-actions__primary"
-                  onClick={() => void addProject()}
-                >
+                <button type="button" className="button button--primary workbench-titlebar-actions__primary" onClick={() => void addProject()}>
                   <Plus size={14} />
                   {t('projects.add')}
                 </button>
@@ -1311,7 +1321,9 @@ export default function App() {
                       />
                     </Suspense>
                   ) : null}
-                  {inspectorVisible && layout.compactLayout ? <button type="button" className="panel-scrim panel-scrim--inspector" aria-label={t('shellui.closeInspector')} onClick={toggleInspector} /> : null}
+                  {inspectorVisible && layout.compactLayout ? (
+                    <button type="button" className="panel-scrim panel-scrim--inspector" aria-label={t('shellui.closeInspector')} onClick={toggleInspector} />
+                  ) : null}
                 </div>
               ) : (
                 <Suspense fallback={<LoadingPanel label={view} />}>{page}</Suspense>

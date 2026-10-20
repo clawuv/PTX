@@ -35,6 +35,7 @@ gh api repos/am-will/pi-studio/branches/main/protection \
 |---|---|
 | Pull-request, `main`, and manual CI | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) |
 | Tagged public releases | [`.github/workflows/release.yml`](../.github/workflows/release.yml) |
+| Unsigned testing prereleases | [`.github/workflows/testing-platforms.yml`](../.github/workflows/testing-platforms.yml) |
 | Scheduled production-dependency audit | [`.github/workflows/audit.yml`](../.github/workflows/audit.yml) |
 | Aggregate commands and toolchain policy | [`package.json`](../package.json) and [`.nvmrc`](../.nvmrc) |
 | Resolved dependency graph | [`package-lock.json`](../package-lock.json) |

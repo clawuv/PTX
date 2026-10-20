@@ -7,7 +7,11 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     // Fully minify production code: Electron never consumes readable output,
     // and less source is faster for V8 to read, parse, and compile at startup.
-    build: { lib: { entry: 'electron/main/index.ts' }, minify: 'esbuild' },
+    build: {
+      // Library mode preserves whitespace even with esbuild minification.
+      rollupOptions: { input: resolve('electron/main/index.ts'), output: { entryFileNames: 'index.js' } },
+      minify: 'esbuild',
+    },
   },
   preload: {
     plugins: [externalizeDepsPlugin()],

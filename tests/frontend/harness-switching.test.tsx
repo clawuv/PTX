@@ -357,7 +357,12 @@ describe('inactive harness event isolation', () => {
 
 describe('sidebar brand switcher', () => {
   const noop = () => undefined
-  function renderSidebar(onSelectHarness: (harness: HarnessId) => void, activeHarness: HarnessId = 'pi', appMeta = meta) {
+  function renderSidebar(
+    onSelectHarness: (harness: HarnessId) => void,
+    activeHarness: HarnessId = 'pi',
+    appMeta = meta,
+    navigation: Pick<Parameters<typeof Sidebar>[0], 'onNavigate' | 'onSelectSettingsSection'> = { onNavigate: noop },
+  ) {
     return act(async () => {
       root.render(
         <Sidebar
@@ -369,7 +374,8 @@ describe('sidebar brand switcher', () => {
           onSelectHarness={onSelectHarness}
           onSelectProject={noop}
           onSelectSession={noop}
-          onNavigate={noop}
+          onNavigate={navigation.onNavigate}
+          onSelectSettingsSection={navigation.onSelectSettingsSection}
           onNewSession={noop}
           onAddProject={noop}
         onHideProject={noop}
@@ -381,17 +387,28 @@ describe('sidebar brand switcher', () => {
     })
   }
 
-  it('lists only harnesses with a detected executable', async () => {
+  it('keeps missing harnesses visible and opens Agent settings instead of switching', async () => {
     const onSelectHarness = vi.fn()
-    await renderSidebar(onSelectHarness)
+    const onNavigate = vi.fn()
+    const onSelectSettingsSection = vi.fn()
+    await renderSidebar(onSelectHarness, 'pi', meta, { onNavigate, onSelectSettingsSection })
 
     const group = container.querySelector('.brand-switcher[role="group"]')
     expect(group).not.toBeNull()
     const options = [...group!.querySelectorAll<HTMLButtonElement>('button')]
-    expect(options.map((option) => option.textContent)).toEqual(['Pi'])
+    expect(options.map((option) => option.textContent)).toEqual(['Pi', 'OMP'])
     expect(options[0].getAttribute('aria-pressed')).toBe('true')
+    expect(options[1].getAttribute('aria-pressed')).toBe('false')
     await click(options[0])
     expect(onSelectHarness).not.toHaveBeenCalled()
+    expect(onNavigate).not.toHaveBeenCalled()
+    expect(onSelectSettingsSection).not.toHaveBeenCalled()
+
+    await click(options[1])
+    expect(onSelectHarness).not.toHaveBeenCalled()
+    expect(onNavigate).toHaveBeenCalledExactlyOnceWith('settings')
+    expect(onSelectSettingsSection).toHaveBeenCalledExactlyOnceWith('agent')
+    expect(options[0].getAttribute('aria-pressed')).toBe('true')
   })
 
   it('switches directly to OMP from the segmented selector', async () => {

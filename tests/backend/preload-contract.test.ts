@@ -36,6 +36,7 @@ const INVOKE_CASES: Array<[domain: string, method: string, channel: string, args
   ['projects', 'add', 'projects:add', ['omp']],
   ['projects', 'grantInferred', 'projects:grant-inferred', ['/repo', 'omp']],
   ['projects', 'remove', 'projects:remove', ['project-id', 'omp']],
+  ['projects', 'setHidden', 'projects:set-hidden', ['project-id', true, 'omp']],
   ['projects', 'touch', 'projects:touch', ['project-id', 'omp']],
   ['projects', 'updateScripts', 'projects:update-scripts', ['project-id', { setup: 'npm install', run: 'npm run dev' }, 'omp']],
   ['projects', 'markSetupStarted', 'projects:mark-setup-started', ['project-id', 'npm install', 'omp']],
@@ -71,6 +72,7 @@ const INVOKE_CASES: Array<[domain: string, method: string, channel: string, args
   ['providers', 'setEnabled', 'providers:set-enabled', ['openai', false, 'omp']],
   ['providers', 'setDisabled', 'providers:set-disabled', [['openai'], 'omp']],
   ['providers', 'setModelEnabled', 'providers:set-model-enabled', ['openai/model', true, 'omp']],
+  ['providers', 'setModelEffort', 'providers:set-model-effort', ['openai/model', 'high', 'omp']],
   ['voice', 'credentialStatus', 'voice:credential-status', []],
   ['voice', 'saveApiKey', 'voice:save-api-key', ['openai', 'secret']],
   ['voice', 'deleteApiKey', 'voice:delete-api-key', ['openai']],
@@ -91,12 +93,18 @@ const INVOKE_CASES: Array<[domain: string, method: string, channel: string, args
   ['git', 'commit', 'git:commit', ['/repo', 'message']],
   ['git', 'push', 'git:push', ['/repo']],
   ['git', 'pull', 'git:pull', ['/repo']],
+  ['git', 'aheadCommits', 'git:ahead-commits', ['/repo']],
+  ['git', 'undoCommit', 'git:undo-commit', ['/repo', 'abc123']],
+  ['git', 'branches', 'git:branches', ['/repo']],
+  ['git', 'switchBranch', 'git:switch-branch', ['/repo', 'feature']],
+  ['git', 'createBranch', 'git:create-branch', ['/repo', 'feature']],
   ['plugins', 'list', 'plugins:list', ['/repo', 'omp']],
   ['plugins', 'install', 'plugins:install', ['npm:example', 'omp']],
   ['plugins', 'installExtension', 'plugins:install-extension', [{ source: '/extension.ts', scope: 'user' }, 'omp']],
   ['plugins', 'setMcpSupport', 'plugins:set-mcp-support', [true, 'pi']],
   ['plugins', 'connectMcp', 'plugins:connect-mcp', [{ name: 'docs' }, 'omp']],
   ['plugins', 'setMcpEnabled', 'plugins:set-mcp-enabled', [{ name: 'docs', enabled: true }, 'omp']],
+  ['plugins', 'probeMcp', 'plugins:probe-mcp', [{ name: 'docs', scope: 'project', projectPath: '/repo' }, 'omp']],
   ['plugins', 'mutateCapability', 'plugins:mutate-capability', [{ kind: 'mcp', action: 'remove' }, 'omp']],
   ['plugins', 'refresh', 'plugins:refresh', ['omp']],
   ['settings', 'get', 'settings:get', []],
@@ -164,8 +172,27 @@ describe('preload bridge contract', () => {
 
   it.each(INVOKE_CASES)('routes %s.%s through fixed channel %s', async (domain, method, channel, args) => {
     const api = electronMocks.api as BridgeApi
-    await api[domain][method](...args)
+    const result = { ok: true }
+    electronMocks.ipcRenderer.invoke.mockResolvedValueOnce(result)
+    await expect(api[domain][method](...args)).resolves.toBe(result)
+    expect(electronMocks.ipcRenderer.invoke).toHaveBeenCalledOnce()
     expect(electronMocks.ipcRenderer.invoke).toHaveBeenCalledWith(channel, ...args)
+  })
+
+  it('has contract cases for every exposed bridge method', () => {
+    const api = electronMocks.api as BridgeApi
+    const expected = [
+      ...INVOKE_CASES.map(([domain, method]) => `${domain}.${method}`),
+      ...SUBSCRIPTION_CASES.map(([domain, method]) => `${domain}.${method}`),
+      'app.onOpenSettings',
+      'terminal.input',
+      'terminal.resize',
+      'terminal.setActiveContext',
+      'terminal.clearActiveContext',
+    ]
+    const exposed = Object.entries(api).flatMap(([domain, methods]) => Object.keys(methods).map((method) => `${domain}.${method}`))
+
+    expect(exposed.sort()).toEqual(expected.sort())
   })
 
   it.each([

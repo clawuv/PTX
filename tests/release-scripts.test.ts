@@ -652,7 +652,7 @@ else if (JSON.stringify(args) === ${JSON.stringify(JSON.stringify(expectedInstal
       // env block - never interpolated into run commands or action inputs.
       expect(step.lines.some((line) => /^\s*env:\s*$/.test(line))).toBe(true)
       for (const line of step.secretLines) {
-        expect(line).toMatch(/^\s+[A-Z][A-Z0-9_]*: \$\{\{ secrets\.[A-Z][A-Z0-9_]* \}\}$/)
+        expect(line).toMatch(/^\s+[A-Z][A-Z0-9_]*: \$\{\{ secrets\.[A-Z][A-Z0-9_]*(?: \|\| secrets\.[A-Z][A-Z0-9_]*)? \}\}$/)
       }
       expect(step.lines.join('\n')).not.toMatch(/run:.*secrets\./)
     }

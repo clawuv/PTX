@@ -118,9 +118,11 @@ describe.each<HarnessId>(['omp', 'pi'])('command palette for %s', (harness) => {
     await waitFor(() => [...document.body.querySelectorAll('h1')].find((heading) => heading.textContent === 'Scheduled'))
     expect(document.body.textContent).toContain(`Unattended ${HARNESS_SHORT_NAMES[harness]} work`)
 
-    // Projects moved into Settings > Workspace, so leave the page through the sidebar instead.
+    const capabilities = [...container.querySelectorAll<HTMLButtonElement>('.sidebar__primary button')]
+      .find((button) => button.textContent === 'Capabilities')
+    expect(capabilities).toBeDefined()
     await act(async () => {
-      container.querySelector<HTMLButtonElement>('.sidebar__primary button[title="Capabilities"]')!.click()
+      capabilities!.click()
     })
     await waitFor(() => [...document.body.querySelectorAll('h1')].find((heading) => heading.textContent === `Extend ${HARNESS_SHORT_NAMES[harness]}`))
 

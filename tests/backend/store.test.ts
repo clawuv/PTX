@@ -796,7 +796,7 @@ describe('JsonStateStore', () => {
     expect(readFileSync(legacyPath, 'utf8')).toBe(legacyRaw)
   })
 
-  it('keeps only bounded absolute runtime path overrides without changing the active harness', () => {
+  it('keeps only bounded absolute runtime path overrides without changing the active harness', async () => {
     const dir = makeDirectory()
     const path = join(dir, 'state.json')
     writeFileSync(path, JSON.stringify({
@@ -812,10 +812,12 @@ describe('JsonStateStore', () => {
       dismissedProjectPaths: [],
       schedules: [],
     }))
-    const state = new JsonStateStore(path).snapshot()
+    const store = new JsonStateStore(path)
+    const state = store.snapshot()
     expect(state.settings.runtimePaths).toEqual({ omp: '', pi: '' })
     expect(state.settings.enabledHarnesses).toEqual(['pi'])
     expect(state.settings.activeHarness).toBe('omp')
+    await store.beginShutdown()
   })
 
   it('preserves an oversized state file and fails closed without rewriting it', async () => {

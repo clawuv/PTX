@@ -50,7 +50,7 @@
 @media (max-width: 720px) {
 
   .panel-scrim { position: fixed; z-index: 20; inset: var(--toolbar-height, 36px) 0 0; display: block; padding: 0; background: rgba(10,10,9,.18); }
-  .inspector { position: fixed; z-index: 80; top: var(--toolbar-height, 36px); left: 0; width: 100vw; max-width: none; min-width: 0; flex-basis: auto; box-shadow: -12px 0 30px rgba(0,0,0,.14); }
+  .inspector { position: fixed; z-index: 80; top: var(--toolbar-height, 36px); right: 0; width: min(100vw, 340px); max-width: none; min-width: 0; flex-basis: auto; border-left: 1px solid var(--border); box-shadow: -12px 0 30px rgba(0,0,0,.14); }
   .panel-scrim--inspector { z-index: 70; }
   .session-workspace > .resize-handle--vertical { display: none; }
   .native-heartbeats__header { align-items: flex-start; flex-direction: column; gap: 3px; }

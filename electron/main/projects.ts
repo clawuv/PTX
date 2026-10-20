@@ -513,10 +513,10 @@ export class ProjectService {
 
     // Dismissed (hidden) inferred roots still list, flagged, so settings can restore them.
     const discoveredCanonicals = new Set(discoveredSessionRoots.map(({ canonical }) => canonical))
-    for (const { project, folders } of persisted) for (const folder of folders) discoveredCanonicals.add(folder)
+    for (const { folders } of persisted) for (const folder of folders) discoveredCanonicals.add(folder)
     const hiddenInferred: Array<{ cwd: string; record: ProjectRecord }> = []
     for (const canonical of dismissedCanonicals) {
-      if (!canonicalSessionPaths.get(canonical) || discoveredCanonicals.has(canonical)) continue
+      if (!sessionStats.has(canonical) || discoveredCanonicals.has(canonical)) continue
       const stats = sessionStats.get(canonical)
       hiddenInferred.push({ cwd: canonical, record: {
         id: inferredId(canonical), harness: this.harness, name: basename(canonical) || canonical, path: canonical, folders: [canonical], primaryFolder: canonical,

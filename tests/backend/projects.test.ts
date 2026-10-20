@@ -30,7 +30,7 @@ afterEach(() => {
 })
 
 function setup(): { root: string; service: ProjectService; store: JsonStateStore } {
-  const dir = mkdtempSync(join(tmpdir(), 'prime-work-files-')); dirs.push(dir)
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'prime-work-files-'))); dirs.push(dir)
   const root = join(dir, 'project'); mkdirSync(root)
   const store = new JsonStateStore(join(dir, 'state.json'))
   const service = new ProjectService(store, () => null)
@@ -171,6 +171,7 @@ describe('ProjectService list enrichment', () => {
     expect(records.map((record) => record.id)).toEqual([
       'persisted',
       expect.stringMatching(/^inferred-/),
+      expect.stringMatching(/^inferred-/),
     ])
     expect(records[0]).toMatchObject({
       id: 'persisted',
@@ -186,8 +187,42 @@ describe('ProjectService list enrichment', () => {
       inferred: true,
       readOnly: true,
     })
-    expect(records.some((record) => record.path === realpathSync(dismissed))).toBe(false)
+    expect(records[2]).toMatchObject({
+      path: realpathSync(dismissed),
+      createdAt: '2026-04-01T00:00:00.000Z',
+      lastOpenedAt: '2026-04-02T00:00:00.000Z',
+      sessionCount: 1,
+      inferred: true,
+      readOnly: true,
+      hidden: true,
+    })
+    await expect(service.authorizeReadOnlyCwd(dismissed)).rejects.toThrow(/not inside/)
     expect(records.some((record) => record.path === resolve(missing))).toBe(false)
+  })
+
+  it('lists a dismissed project whose sessions use an aliased path without restoring access', async () => {
+    const { root, service, store } = setup()
+    const alias = `${root}-alias`
+    symlinkSync(root, alias, 'junction')
+    await store.update((state) => { state.dismissedProjectPaths.push(root) })
+    service.bindProviders({
+      sessions: async () => [session('aliased', alias, '2026-04-01T00:00:00.000Z', '2026-04-02T00:00:00.000Z')],
+      branch: async () => undefined,
+    })
+
+    expect(await service.list()).toEqual([
+      expect.objectContaining({
+        path: root, folders: [root], primaryFolder: root,
+        inferred: true, hidden: true, readOnly: true, sessionCount: 1,
+        createdAt: '2026-04-01T00:00:00.000Z', lastOpenedAt: '2026-04-02T00:00:00.000Z',
+      }),
+    ])
+    for (const path of [root, alias]) {
+      await expect(service.authorizeReadOnlyCwd(path)).rejects.toThrow(/not inside/)
+      await expect(service.authorizeCwd(path)).rejects.toThrow(/not inside/)
+    }
+    expect(store.snapshot().projects).toEqual([])
+    expect(store.snapshot().dismissedProjectPaths).toEqual([root])
   })
 
   it('enriches persisted branches without spawning git for inferred roots', async () => {

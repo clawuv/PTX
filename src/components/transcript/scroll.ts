@@ -19,6 +19,11 @@ export function useTranscriptScroll(messages: TranscriptMessage[]) {
   // remount flashes the top of the transcript before jumping down.
   useLayoutEffect(() => {
     const firstLoadedTranscript = previousCountRef.current === 0 && messages.length > 0
+    // A message the user just sent must be visible even if the view was scrolled
+    // up reading history: repin the moment it lands.
+    const appendedUserMessage = previousCountRef.current > 0
+      && messages.length > previousCountRef.current
+      && messages[messages.length - 1]?.role === 'user'
     const scroller = scrollRef.current
     let frame: number | undefined
     if (firstLoadedTranscript) {
@@ -32,6 +37,17 @@ export function useTranscriptScroll(messages: TranscriptMessage[]) {
         scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'auto' })
         retries += 1
         if (retries <= 4) frame = requestAnimationFrame(pin)
+      }
+      pin()
+    } else if (appendedUserMessage) {
+      pinnedToBottomRef.current = true
+      setScrolledUp(false)
+      let retries = 0
+      const pin = () => {
+        if (!scroller || typeof scroller.scrollTo !== 'function') return
+        scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'auto' })
+        retries += 1
+        if (retries <= 3) frame = requestAnimationFrame(pin)
       }
       pin()
     } else if (streaming && pinnedToBottomRef.current) {

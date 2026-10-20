@@ -5,7 +5,7 @@
 .app-shell[data-platform='win32'] .sidebar, .app-shell[data-platform='linux'] .sidebar { border-right: 0; }
 .sidebar__titlebar { flex: 0 0 auto; padding: 10px 12px 10px; }
 .app-shell[data-platform='linux'] .traffic-light-clearance, .app-shell[data-platform='win32'] .traffic-light-clearance { display: none; }
-.brand-switcher { display: flex; width: 100%; gap: 2px; padding: 0; border-radius: var(--sidebar-row-radius); background: var(--surface-selected); }
+.brand-switcher { display: flex; width: 100%; gap: 2px; margin: 2px 0 4px; padding: 0; border-radius: var(--sidebar-row-radius); background: var(--surface-selected); }
 .brand-switcher__segment { flex: 1; min-width: 0; height: calc(var(--sidebar-row-height) - 2px); display: flex; align-items: center; justify-content: center; gap: 7px; padding: 0 8px; border-radius: var(--sidebar-row-radius); background: transparent; color: var(--text); font-size: var(--sidebar-row-font-size); font-weight: 400; transition: background 130ms ease-out, color 130ms ease-out; }
 .brand-switcher__segment > svg { flex: 0 0 auto; }
 .brand-switcher__segment:hover { color: var(--text); background: var(--surface-hover); }

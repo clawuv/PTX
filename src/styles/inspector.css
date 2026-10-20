@@ -41,14 +41,16 @@
 /* Changes */
 .changes-panel { position: relative; height: 100%; display: flex; flex-direction: column; min-height: 0; }
 .changes-toolbar { min-height: 40px; display: flex; align-items: center; justify-content: flex-start; gap: 3px; padding: 0 10px 0 14px; border-bottom: 1px solid var(--border); }
-.changes-toolbar > div { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.changes-toolbar__actions { flex: 0 0 auto; gap: 2px; }
-.changes-toolbar__divider { width: 1px; height: 14px; flex: 0 0 1px; margin: 0 1px; background: var(--border); }
+.changes-toolbar > div { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; overflow: hidden; }
+/* Higher specificity than the `> div` rule above: the icon cluster must never shrink, or the refresh button clips at narrow widths. */
+.changes-toolbar > .changes-toolbar__actions { flex: 0 0 auto; gap: 0; }
+.changes-toolbar__divider { width: 1px; height: 14px; flex: 0 0 1px; margin: 0; background: var(--border); }
 /* Tight, right-hugging cluster: wins over the responsive 36px icon buttons. */
-.changes-toolbar__actions .icon-button { width: 24px; height: 24px; }
-.changes-toolbar .ahead-toggle { padding: 0 0 0 7px; border: 0; border-left: 1px solid var(--border); color: var(--text-tertiary); background: transparent; font-size: 10px; cursor: pointer; white-space: nowrap; }
-.changes-toolbar .ahead-toggle:hover { color: var(--text); }
-.ahead-popover { position: absolute; z-index: 25; top: 42px; left: 10px; right: 10px; padding: 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-raised); box-shadow: var(--shadow-popover); }
+.changes-toolbar__actions .icon-button { width: 22px; height: 22px; }
+.changes-scopes .ahead-toggle { min-height: 24px; padding: 0 7px; border: 0; color: var(--text-tertiary); background: transparent; font-size: 10px; cursor: pointer; white-space: nowrap; }
+.changes-scopes .ahead-toggle:hover:not(:disabled) { color: var(--text); }
+.changes-scopes__commit { display: flex; flex: 0 0 auto; align-items: center; gap: 3px; }
+.ahead-popover { position: absolute; z-index: 25; top: 82px; left: 10px; right: 10px; padding: 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-raised); box-shadow: var(--shadow-popover); }
 .ahead-popover__heading { height: 24px; display: flex; align-items: center; padding: 0 7px; margin-bottom: 4px; border-bottom: 1px solid var(--border-subtle); color: var(--text); font-size: 10px; font-weight: 550; }
 .ahead-popover > div { min-height: 28px; display: flex; align-items: center; gap: 7px; padding: 0 7px; }
 .ahead-popover > div:hover .ahead-popover__subject { color: var(--text); }
@@ -58,7 +60,8 @@
 .ahead-popover > div button:hover { color: var(--text); }
 .ahead-popover > div button:disabled { opacity: .5; }
 .ahead-popover__empty { margin: 6px 8px 8px; color: var(--text-tertiary); font-size: 10.5px; }
-.changes-toolbar strong { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 550; }
+.changes-toolbar strong { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 11px; font-weight: 550; }
+.changes-toolbar__branch { min-width: 0; overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
 .changes-scopes { min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 8px 5px 10px; border-bottom: 1px solid var(--border); overflow: hidden; scrollbar-width: thin; scrollbar-gutter: stable; }
 .changes-read-only { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-secondary); background: var(--surface-subtle); font-size: 10px; line-height: 1.35; }
 .changes-read-only span { min-width: 0; }
@@ -71,8 +74,10 @@
 .page-show-more:hover { color: var(--text); background: var(--surface-hover); }
 
 .segmented { height: 26px; display: inline-flex; align-items: center; padding: 2px; border-radius: 7px; background: var(--surface-hover); }
-.segmented button { height: 22px; padding: 0 7px; border-radius: 5px; color: var(--text-secondary); background: transparent; font-size: 10.5px; }
+.segmented button { height: 22px; padding: 0 7px; border-radius: 5px; color: var(--text-secondary); background: transparent; font-size: 10.5px; white-space: nowrap; }
 .segmented button.is-active { color: var(--text); background: var(--surface-raised); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+/* The scope toggle stays a fixed two-chip row; the branch row above absorbs narrow widths instead. */
+.changes-scopes .segmented { flex: 0 0 auto; }
 .changes-scopes .button--compact { min-height: 24px; font-size: 11px; }
 /* Single column: the file list stacks above the diff so the narrow panel gives the diff the full width. Flex (not grid rows) keeps the list's percentage cap resolving against the panel, not its own content. */
 .changes-body { min-height: 0; flex: 1; display: flex; flex-direction: column; }

@@ -1,4 +1,4 @@
-import { ArrowLeft, Brain, Check, ChevronDown, ChevronRight, Search } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, ChevronRight, Search } from 'lucide-react'
 import { memo, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useI18n } from '@/lib/i18n'
 import { REASONING_LABEL_KEYS as reasoningLabels } from '@/lib/reasoning'
@@ -153,7 +153,6 @@ export const ModelPicker = memo(function ModelPicker({ value, modelsByProvider, 
           }
         }}
       >
-        <Brain size={13} />
         <span>{selected?.name ?? t('modelpicker.noModel')}</span>
         {onEffortChange && effort && (reasoningLevels?.length ?? 0) > 1 ? (
           <span className="model-picker__trigger-effort">{t(reasoningLabels[effort])}</span>

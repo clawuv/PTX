@@ -196,7 +196,7 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
   return (
     <div className="changes-panel">
       <div className="changes-toolbar">
-        <div><strong><GitBranch size={13} /> {git.branch ?? t('changes.branch.fallback')}</strong><button type="button" className="ahead-toggle" aria-expanded={aheadOpen} disabled={readOnly || !git.ahead} title={git.ahead ? undefined : t('changes.ahead.none')} onClick={() => void toggleAhead()}>{t('changes.ahead', { count: git.ahead ?? 0 })}</button></div>
+        <div><strong title={git.branch ?? undefined}><GitBranch size={13} /><span className="changes-toolbar__branch">{git.branch ?? t('changes.branch.fallback')}</span></strong></div>
         <div className="changes-toolbar__actions">
           <IconButton label={t('changes.action.push')} disabled={readOnly || pushing || !git.ahead} onClick={() => void pushCommits()}><Upload size={14} /></IconButton>
           <span className="changes-toolbar__divider" aria-hidden="true" />
@@ -213,7 +213,7 @@ export function ChangesPanel({ cwd, git, readOnly = false, onGrantProject, onRef
         </div>) : <p className="ahead-popover__empty">{t('changes.ahead.loading')}</p>}
       </div> : null}
       {readOnly ? <div className="changes-read-only" role="note"><span>{t('changes.readOnly.notice')}</span>{onGrantProject ? <button type="button" className="button button--compact" onClick={() => void onGrantProject()}>{t('changes.action.addProject')}</button> : null}</div> : null}
-      <div className="changes-scopes"><Segmented value={scope} label={t('changes.scope.label')} options={[{ value: 'unstaged', label: t('changes.scope.unstaged') }, { value: 'staged', label: t('changes.scope.staged') }]} onChange={(value) => { setActionError(''); setScope(value as 'unstaged' | 'staged') }} /><button type="button" className="button button--compact" disabled={readOnly || !visibleFiles.length} onClick={() => setCommitOpen(true)}>{t('changes.action.commit')}</button></div>
+      <div className="changes-scopes"><Segmented value={scope} label={t('changes.scope.label')} options={[{ value: 'unstaged', label: t('changes.scope.unstaged') }, { value: 'staged', label: t('changes.scope.staged') }]} onChange={(value) => { setActionError(''); setScope(value as 'unstaged' | 'staged') }} /><div className="changes-scopes__commit"><button type="button" className="ahead-toggle" aria-expanded={aheadOpen} disabled={readOnly || !git.ahead} title={git.ahead ? undefined : t('changes.ahead.none')} onClick={() => void toggleAhead()}>{t('changes.ahead', { count: git.ahead ?? 0 })}</button><button type="button" className="button button--compact" disabled={readOnly || !visibleFiles.length} onClick={() => setCommitOpen(true)}>{t('changes.action.commit')}</button></div></div>
       {actionError ? <p className="changes-error" role="alert">{actionError}</p> : null}
       <div className="changes-body">
         <div className="file-changes">

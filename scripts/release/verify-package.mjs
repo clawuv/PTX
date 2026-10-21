@@ -29,6 +29,34 @@ function run(command, args) {
   return `${result.stdout ?? ''}${result.stderr ?? ''}`
 }
 
+const APPLE_VALIDATION_ATTEMPTS = 4
+const APPLE_VALIDATION_RETRY_DELAY_MS = 10_000
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isTransientAppleNetworkError(error) {
+  const message = error instanceof Error ? error.message : String(error)
+  return /exit code 68/.test(message) && (/NSURLErrorDomain Code=-1005/.test(message) || /network connection was lost/i.test(message) || /CloudKit's response is inconsistent/i.test(message))
+}
+
+// stapler validate contacts CloudKit even for a stapled app. Apple/GitHub
+// runner connectivity occasionally drops this request, so fail closed only
+// after retrying the exact transient network failure.
+async function runAppleValidationWithRetry(command, args) {
+  for (let attempt = 1; attempt <= APPLE_VALIDATION_ATTEMPTS; attempt += 1) {
+    try {
+      return run(command, args)
+    } catch (error) {
+      if (attempt === APPLE_VALIDATION_ATTEMPTS || !isTransientAppleNetworkError(error)) throw error
+      console.warn(`Retrying transient Apple validation network failure (attempt ${attempt}/${APPLE_VALIDATION_ATTEMPTS - 1}): ${error instanceof Error ? error.message : String(error)}`)
+      await sleep(APPLE_VALIDATION_RETRY_DELAY_MS)
+    }
+  }
+  throw new Error('Apple validation retry loop exited unexpectedly')
+}
+
 function findFiles(directory, predicate, found = []) {
   for (const name of readdirSync(directory)) {
     const path = join(directory, name)
@@ -121,7 +149,7 @@ async function verifyApp({ app, artifact, mode, expectedTeam }) {
     const actualTeam = parseTeamIdentifier(signature)
     if (actualTeam !== expectedTeam) throw new Error(`Signature Team ID ${actualTeam ?? '<missing>'} does not match ${expectedTeam}`)
     assertPackagedMicrophoneEntitlements(app, productName)
-    run('xcrun', ['stapler', 'validate', app])
+    await runAppleValidationWithRetry('xcrun', ['stapler', 'validate', app])
     run('spctl', ['--assess', '--type', 'execute', '--verbose=4', app])
   }
 

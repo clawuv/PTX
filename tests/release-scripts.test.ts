@@ -1486,6 +1486,17 @@ describe('cross-platform packaging repair', () => {
   })
 })
 
+describe('Apple verification network retries', () => {
+  test('stapler validation retries only the transient CloudKit network failure', () => {
+    const source = readFileSync('scripts/release/verify-package.mjs', 'utf8')
+    expect(source).toContain('const APPLE_VALIDATION_ATTEMPTS = 4')
+    expect(source).toMatch(/exit code 68/)
+    expect(source).toMatch(/NSURLErrorDomain Code=-1005/)
+    expect(source).toMatch(/await runAppleValidationWithRetry\('xcrun', \['stapler', 'validate', app\]\)/)
+    expect(source).toContain("run('spctl', ['--assess', '--type', 'execute', '--verbose=4', app])")
+  })
+})
+
 describe('DMG verification cleanup', () => {
   test('detach failures are logged instead of masking the original error and cleanup always runs', () => {
     const source = readFileSync('scripts/release/verify-package.mjs', 'utf8')

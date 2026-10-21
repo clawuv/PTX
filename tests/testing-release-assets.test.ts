@@ -10,7 +10,7 @@ afterEach(() => { for (const directory of directories.splice(0)) rmSync(director
 function fixture() {
   const directory = mkdtempSync(join(tmpdir(), 'ptx-release-assets-'))
   directories.push(directory)
-  for (const extension of ['dmg', 'zip', 'exe', 'AppImage', 'deb', 'rpm', 'pacman']) writeFileSync(join(directory, `Ptx.${extension}`), extension)
+  for (const extension of ['dmg', 'zip', 'exe', 'AppImage', 'deb', 'rpm', 'pacman', 'tar.gz']) writeFileSync(join(directory, `Ptx.${extension}`), extension)
   for (const [manifest, extension] of [['latest-mac.yml', 'zip'], ['latest.yml', 'exe'], ['latest-linux.yml', 'AppImage']]) {
     const file = { url: `Ptx.${extension}`, size: extension.length, sha512: createHash('sha512').update(extension).digest('base64') }
     writeFileSync(join(directory, manifest), JSON.stringify({ version: '1.0.1', files: [file], path: file.url, sha512: file.sha512 }))
@@ -19,7 +19,7 @@ function fixture() {
 }
 it('verifies three platform feeds and writes reproducible checksums', () => {
   const directory = fixture()
-  expect(verifyTestingAssets(directory, '1.0.1')).toHaveLength(10)
+  expect(verifyTestingAssets(directory, '1.0.1')).toHaveLength(11)
   const checksums = readFileSync(join(directory, 'SHA256SUMS.txt'), 'utf8')
   verifyTestingAssets(directory, '1.0.1')
   expect(readFileSync(join(directory, 'SHA256SUMS.txt'), 'utf8')).toBe(checksums)

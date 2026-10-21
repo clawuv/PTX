@@ -9,7 +9,7 @@ export function verifyTestingAssets(directory, version) {
   const names = readdirSync(directory)
     .filter((name) => name !== 'SHA256SUMS.txt')
     .sort()
-  const allowed = /\.(?:dmg|zip|exe|AppImage|deb|rpm|pacman|blockmap)$/
+  const allowed = /\.(?:dmg|zip|exe|AppImage|deb|rpm|pacman|tar\.gz|blockmap)$/
   const manifests = ['latest-mac.yml', 'latest.yml', 'latest-linux.yml']
   for (const name of names) {
     if (!allowed.test(name) && !manifests.includes(name)) throw new Error(`Unexpected release asset: ${name}`)
@@ -36,7 +36,7 @@ export function verifyTestingAssets(directory, version) {
     const primary = feed.files.find((file) => file.url === feed.path)
     if (!primary || primary.sha512 !== feed.sha512) throw new Error(`Invalid primary update asset: ${manifest}`)
   }
-  for (const extension of ['.dmg', '.zip', '.exe', '.AppImage', '.deb', '.rpm', '.pacman']) {
+  for (const extension of ['.dmg', '.zip', '.exe', '.AppImage', '.deb', '.rpm', '.pacman', '.tar.gz']) {
     if (!names.some((name) => name.endsWith(extension))) throw new Error(`Missing installer: ${extension}`)
   }
   const checksums =

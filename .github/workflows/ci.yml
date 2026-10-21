@@ -186,7 +186,9 @@ jobs:
             # Installers only: never upload the unpacked application directory.
             path: |
               release/mac/**/*.dmg
+              release/mac/**/*.dmg.blockmap
               release/mac/**/*.zip
+              release/mac/**/*.zip.blockmap
           - runner: ubuntu-22.04
             package: npm run package:linux:local-qa
             artifact: ptx-local-qa-linux
@@ -195,12 +197,16 @@ jobs:
               release/linux/**/*.deb
               release/linux/**/*.rpm
               release/linux/**/*.pacman
+              release/linux/**/*.tar.gz
           - runner: windows-2022
             package: npm run package:win:local-qa
             artifact: ptx-local-qa-windows
             path: |
               release/win/**/*.exe
+              release/win/**/*.exe.blockmap
               release/win/**/*.zip
+              release/win/**/*.zip.blockmap
+              release/win/**/*.tar.gz
               release/win/**/*.appx
               release/win/**/*.msix
     runs-on: ${{ matrix.runner }}

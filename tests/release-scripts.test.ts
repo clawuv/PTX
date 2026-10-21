@@ -112,7 +112,7 @@ function writeMacReleaseFixture(directory: string, { omit }: { omit?: string } =
     if (name === omit) continue
     const artifactDirectory = join(inputDirectory, `artifact-${index}`)
     mkdirSync(artifactDirectory, { recursive: true })
-    const content = name.endsWith('.yml') ? 'version: 0.2.0\nfiles:\n  - url: Ptx-0.2.0-x64.zip\n    sha512: x64-digest\n    size: 42\npath: Ptx-0.2.0-x64.zip\nsha512: x64-digest\n' : `asset ${index}`
+    const content = name.endsWith('.yml') ? 'version: 0.2.0\nfiles:\n  - url: Ptx-0.2.0-mac-x64.zip\n    sha512: x64-digest\n    size: 42\npath: Ptx-0.2.0-mac-x64.zip\nsha512: x64-digest\n' : `asset ${index}`
     writeFileSync(join(artifactDirectory, name), content)
   }
   return { projectDirectory, inputDirectory }
@@ -884,15 +884,37 @@ describe('GitHub Release publication', () => {
   test('selects an exact enabled platform set', () => {
     expect(parseReleasePlatforms('mac,linux')).toEqual(['mac', 'linux'])
     expect(expectedGitHubReleaseAssets('0.2.0', ['mac', 'linux'])).not.toContain('Ptx-0.2.0-win-x64.exe')
-    expect(expectedGitHubReleaseAssets('0.2.0', ['mac'])).toEqual(['Ptx-0.2.0-arm64.zip', 'Ptx-0.2.0-intel-chip.dmg', 'Ptx-0.2.0-m-chip.dmg', 'Ptx-0.2.0-x64.zip', 'latest-mac.yml'])
-    expect(expectedDownloadedReleaseAssets('0.2.0', ['mac'])).toEqual(['Ptx-0.2.0-arm64.zip', 'Ptx-0.2.0-x64.dmg', 'Ptx-0.2.0-arm64.dmg', 'Ptx-0.2.0-x64.zip', 'latest-mac.yml'])
+    expect(expectedGitHubReleaseAssets('0.2.0', ['mac'])).toEqual([
+      'Ptx-0.2.0-mac-arm64.dmg',
+      'Ptx-0.2.0-mac-arm64.dmg.blockmap',
+      'Ptx-0.2.0-mac-arm64.zip',
+      'Ptx-0.2.0-mac-arm64.zip.blockmap',
+      'Ptx-0.2.0-mac-x64.dmg',
+      'Ptx-0.2.0-mac-x64.dmg.blockmap',
+      'Ptx-0.2.0-mac-x64.zip',
+      'Ptx-0.2.0-mac-x64.zip.blockmap',
+      'latest-mac.yml',
+    ])
+    expect(expectedDownloadedReleaseAssets('0.2.0', ['mac'])).toEqual([
+      'Ptx-0.2.0-mac-arm64.dmg',
+      'Ptx-0.2.0-mac-arm64.dmg.blockmap',
+      'Ptx-0.2.0-mac-arm64.zip',
+      'Ptx-0.2.0-mac-arm64.zip.blockmap',
+      'Ptx-0.2.0-mac-x64.dmg',
+      'Ptx-0.2.0-mac-x64.dmg.blockmap',
+      'Ptx-0.2.0-mac-x64.zip',
+      'Ptx-0.2.0-mac-x64.zip.blockmap',
+      'latest-mac.yml',
+    ])
     expect(expectedGitHubReleaseAssets('0.2.0', ['linux'])).toEqual([
       'Ptx-0.2.0-linux-aarch64.pacman',
       'Ptx-0.2.0-linux-aarch64.rpm',
       'Ptx-0.2.0-linux-amd64.deb',
       'Ptx-0.2.0-linux-arm64.AppImage',
       'Ptx-0.2.0-linux-arm64.deb',
+      'Ptx-0.2.0-linux-arm64.tar.gz',
       'Ptx-0.2.0-linux-x64.pacman',
+      'Ptx-0.2.0-linux-x64.tar.gz',
       'Ptx-0.2.0-linux-x86_64.AppImage',
       'Ptx-0.2.0-linux-x86_64.rpm',
       'latest-linux-arm64.yml',
@@ -911,17 +933,17 @@ describe('GitHub Release publication', () => {
     const names = releaseAssetNames('0.2.0')
     const feeds = [...names.keys()].filter((name) => name.endsWith('.yml'))
     expect(feeds).toEqual(['latest-linux-arm64.yml', 'latest-linux.yml', 'latest-mac.yml', 'latest.yml'])
+    // electron-builder emits blockmaps beside differential-update formats, so
+    // expand only those installer/archive names before comparing both directions.
+    const blockmapSuffixes = new Set(['.dmg', '.zip', '.exe'])
+    const producedWithBlockmaps = [...produced, ...produced.filter((name) => blockmapSuffixes.has(name.slice(name.lastIndexOf('.')))).map((name) => `${name}.blockmap`)].sort()
     // Every produced artifact is published and every published asset (other than
     // the updater feeds) is produced - both directions, no index coupling.
-    expect([...names.values()].filter((name) => !name.endsWith('.yml')).sort()).toEqual(produced)
+    expect([...names.values()].filter((name) => !name.endsWith('.yml')).sort()).toEqual(producedWithBlockmaps)
     const targetCount = Object.entries(RELEASE_BUILD_MATRIX).reduce((total, [platform, architectures]) => total + architectures.length * config[platform].target.length, 0)
     expect(produced).toHaveLength(targetCount)
-    // Only the two macOS DMGs are renamed for the public download page.
-    expect([...names].filter(([published, downloaded]) => published !== downloaded)).toEqual([
-      ['Ptx-0.2.0-intel-chip.dmg', 'Ptx-0.2.0-x64.dmg'],
-      ['Ptx-0.2.0-m-chip.dmg', 'Ptx-0.2.0-arm64.dmg'],
-      ['Ptx-0.2.0-win-x64.msix', 'Ptx-0.2.0-win-x64.appx'],
-    ])
+    // The MSIX-compatible package is renamed for the public download page.
+    expect([...names].filter(([published, downloaded]) => published !== downloaded)).toEqual([['Ptx-0.2.0-win-x64.msix', 'Ptx-0.2.0-win-x64.appx']])
   })
 
   test('covers exactly the platform and architecture legs the release workflow builds', () => {
@@ -939,11 +961,11 @@ describe('GitHub Release publication', () => {
   test('reports the published name of a missing artifact through the rename map', async () => {
     const directory = mkdtempSync(join(tmpdir(), 'ptx-github-release-missing-'))
     try {
-      const { projectDirectory, inputDirectory } = writeMacReleaseFixture(directory, { omit: 'Ptx-0.2.0-arm64.dmg' })
-      // The arm64 DMG publishes as m-chip.dmg: the report must name the missing
-      // published asset, not whichever entry happens to share its sort index.
+      const { projectDirectory, inputDirectory } = writeMacReleaseFixture(directory, { omit: 'Ptx-0.2.0-mac-arm64.dmg' })
+      // The arm64 DMG publishes with the clearer mac-arm64 label: the report
+      // must name the missing published asset, not an unrelated sort index.
       await expect(prepareGitHubRelease({ inputDirectory, outputDirectory: join(directory, 'out'), projectDirectory, platforms: ['mac'], tag: 'v0.2.0' })).rejects.toThrow(
-        /incomplete; missing Ptx-0\.2\.0-m-chip\.dmg$/,
+        /incomplete; missing Ptx-0\.2\.0-mac-arm64\.dmg$/,
       )
     } finally {
       rmSync(directory, { recursive: true, force: true })
@@ -994,8 +1016,8 @@ describe('GitHub Release publication', () => {
   })
 
   test('deletes only unexpected assets from a resumed draft release', () => {
-    const assets = ['Ptx-0.2.0-m-chip.dmg', 'Ptx-0.1.9-arm64.dmg', 'latest-mac.yml', 'SHA256SUMS.txt']
-    const expected = ['Ptx-0.2.0-m-chip.dmg', 'latest-mac.yml', 'SHA256SUMS.txt']
+    const assets = ['Ptx-0.2.0-mac-arm64.dmg', 'Ptx-0.1.9-arm64.dmg', 'latest-mac.yml', 'SHA256SUMS.txt']
+    const expected = ['Ptx-0.2.0-mac-arm64.dmg', 'latest-mac.yml', 'SHA256SUMS.txt']
     expect(staleDraftReleaseAssets(assets, expected)).toEqual(['Ptx-0.1.9-arm64.dmg'])
     expect(staleDraftReleaseAssets(expected, expected)).toEqual([])
     // An empty expected set would delete the whole draft, so it fails instead.
@@ -1009,8 +1031,8 @@ describe('GitHub Release publication', () => {
     const directory = mkdtempSync(join(tmpdir(), 'ptx-draft-prune-'))
     try {
       mkdirSync(join(directory, 'release-assets'))
-      for (const name of ['Ptx-0.2.0-m-chip.dmg', 'SHA256SUMS.txt']) writeFileSync(join(directory, 'release-assets', name), 'asset')
-      writeFileSync(join(directory, 'draft.json'), JSON.stringify({ assets: [{ name: 'Ptx-0.2.0-m-chip.dmg' }, { name: 'Ptx-0.1.9-arm64.dmg' }] }))
+      for (const name of ['Ptx-0.2.0-mac-arm64.dmg', 'SHA256SUMS.txt']) writeFileSync(join(directory, 'release-assets', name), 'asset')
+      writeFileSync(join(directory, 'draft.json'), JSON.stringify({ assets: [{ name: 'Ptx-0.2.0-mac-arm64.dmg' }, { name: 'Ptx-0.1.9-arm64.dmg' }] }))
       const args = ['scripts/release/prune-draft-release-assets.mjs', '--assets', join(directory, 'draft.json'), '--expected', join(directory, 'release-assets')]
       const result = spawnSync(process.execPath, args, { encoding: 'utf8' })
       expect(result.status).toBe(0)
@@ -1048,20 +1070,20 @@ describe('GitHub Release publication', () => {
       mkdirSync(artifactDirectory)
       const updateTarget =
         name === 'latest-mac.yml'
-          ? 'Ptx-0.2.0-arm64.zip'
+          ? 'Ptx-0.2.0-mac-arm64.zip'
           : name === 'latest-linux.yml'
             ? 'Ptx-0.2.0-linux-x86_64.AppImage'
             : name === 'latest-linux-arm64.yml'
               ? 'Ptx-0.2.0-linux-arm64.AppImage'
-              : 'Ptx-0.2.0-win-x64.exe'
+              : 'Ptx-0.2.0-win-x64-installer.exe'
       const content = name.startsWith('latest')
-        ? `version: 0.2.0\nfiles:\n  - url: ${updateTarget}\n    sha512: checksum-${index}\n    size: ${index + 1}\n${name === 'latest-mac.yml' ? '  - url: Ptx-0.2.0-arm64.dmg\n    sha512: checksum-arm64-dmg\n    size: 44\n' : ''}path: ${updateTarget}\nsha512: checksum-${index}\n`
+        ? `version: 0.2.0\nfiles:\n  - url: ${updateTarget}\n    sha512: checksum-${index}\n    size: ${index + 1}\n${name === 'latest-mac.yml' ? '  - url: Ptx-0.2.0-mac-arm64.dmg\n    sha512: checksum-arm64-dmg\n    size: 44\n  - url: Ptx-0.2.0-mac-x64.dmg\n    sha512: checksum-x64-dmg\n    size: 45\n' : ''}path: ${updateTarget}\nsha512: checksum-${index}\n`
         : `asset ${index}`
       writeFileSync(join(artifactDirectory, name), content)
     }
     const secondMacManifest = join(inputDirectory, 'macos-x64')
     mkdirSync(secondMacManifest)
-    writeFileSync(join(secondMacManifest, 'latest-mac.yml'), 'version: 0.2.0\nfiles:\n  - url: Ptx-0.2.0-x64.zip\n    sha512: checksum-x64\n    size: 42\n')
+    writeFileSync(join(secondMacManifest, 'latest-mac.yml'), 'version: 0.2.0\nfiles:\n  - url: Ptx-0.2.0-mac-x64.zip\n    sha512: checksum-x64\n    size: 42\n')
     try {
       const result = await prepareGitHubRelease({ inputDirectory, outputDirectory, projectDirectory, tag: 'v0.2.0' })
       expect(result.assets).toEqual(expected)
@@ -1075,10 +1097,10 @@ describe('GitHub Release publication', () => {
         expect(checksums).toContain(`${digest}  ${name}`)
       }
       const macFeed = readFileSync(join(outputDirectory, 'latest-mac.yml'), 'utf8')
-      expect(macFeed).toContain('Ptx-0.2.0-arm64.zip')
-      expect(macFeed).toContain('Ptx-0.2.0-x64.zip')
-      expect(macFeed).toContain('Ptx-0.2.0-m-chip.dmg')
-      expect(macFeed).not.toContain('Ptx-0.2.0-arm64.dmg')
+      expect(macFeed).toContain('Ptx-0.2.0-mac-arm64.zip')
+      expect(macFeed).toContain('Ptx-0.2.0-mac-x64.zip')
+      expect(macFeed).toContain('Ptx-0.2.0-mac-arm64.dmg')
+      expect(macFeed).toContain('Ptx-0.2.0-mac-x64.dmg')
       const linuxFeed = readFileSync(join(outputDirectory, 'latest-linux.yml'), 'utf8')
       expect(linuxFeed).toContain('Ptx-0.2.0-linux-x86_64.AppImage')
       expect(linuxFeed).not.toContain('Ptx-0.2.0-linux-arm64.AppImage')
@@ -1112,7 +1134,7 @@ describe('GitHub Release publication', () => {
               ? 'Ptx-0.2.0-linux-x86_64.AppImage'
               : name === 'latest-linux-arm64.yml'
                 ? 'Ptx-0.2.0-linux-arm64.AppImage'
-                : 'Ptx-0.2.0-win-x64.exe'
+                : 'Ptx-0.2.0-win-x64-installer.exe'
         writeFileSync(join(artifactDirectory, name), name.startsWith('latest') ? `version: 0.2.0\nfiles:\n  - url: ${updateTarget}\n    sha512: checksum-${index}\n` : `asset ${index}`)
       }
       const duplicateDirectory = join(inputDirectory, 'duplicate')
@@ -1217,14 +1239,14 @@ describe('post-package verification helpers', () => {
       '**/node_modules/node-pty/prebuilds/win32-${arch}/conpty/OpenConsole.exe',
       '**/node_modules/node-pty/prebuilds/win32-${arch}/conpty/conpty.dll',
     ])
-    expect(packageJson.build.linux.target).toEqual(['AppImage', 'deb', 'rpm', 'pacman'])
-    expect(packageJson.build.win.target).toEqual(['nsis', 'zip', 'appx'])
+    expect(packageJson.build.linux.target).toEqual(['AppImage', 'deb', 'rpm', 'pacman', 'tar.gz'])
+    expect(packageJson.build.win.target).toEqual(['nsis', 'zip', 'tar.gz', 'appx'])
     expect(packageJson.build.directories.output).toBe('release')
   })
 
   test('verifies and uploads every configured Linux installer format', () => {
-    expect(expectedArtifactExtensions('linux')).toEqual(['.AppImage', '.deb', '.rpm', '.pacman'])
-    expect(expectedArtifactExtensions('win')).toEqual(['.exe', '.zip', '.appx'])
+    expect(expectedArtifactExtensions('linux')).toEqual(['.AppImage', '.deb', '.rpm', '.pacman', '.tar.gz'])
+    expect(expectedArtifactExtensions('win')).toEqual(['.exe', '.zip', '.tar.gz', '.appx'])
     const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8')
     const releaseWorkflow = readFileSync('.github/workflows/release.yml', 'utf8')
     expect(ciWorkflow).toContain('release/linux/**/*.pacman')

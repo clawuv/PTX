@@ -44,7 +44,7 @@ export function packagedExecutablePath(unpackedDirectory, target) {
 }
 
 export function expectedArtifactExtensions(target) {
-  return target === 'linux' ? ['.AppImage', '.deb', '.rpm', '.pacman'] : ['.exe', '.zip', '.appx']
+  return target === 'linux' ? ['.AppImage', '.deb', '.rpm', '.pacman', '.tar.gz'] : ['.exe', '.zip', '.tar.gz', '.appx']
 }
 
 function assertExpectedArtifacts(outputDirectory, target) {

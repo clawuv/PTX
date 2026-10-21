@@ -177,6 +177,11 @@ Ptx 围绕本地项目和本地运行环境会话构建，不会重写会话历�
 ```bash
 nvm install && nvm use
 npm run toolchain:bootstrap
+```
+
+该引导命令会校验仓库内置 npm 归档的确切大小和 SHA-512，然后禁用安装期生命周期脚本，并将其离线安装到被调用 npm 配置的全局前缀；随后按 `package.json` 和 `.nvmrc` 校验已安装 CLI 和两个工具版本，并在安装依赖前让 shim 可供后续 GitHub Actions 步骤使用。
+
+```bash
 npm install
 npm run dev
 ```

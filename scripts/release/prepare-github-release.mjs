@@ -29,30 +29,50 @@ export function parseReleasePlatforms(value = RELEASE_PLATFORMS.join(',')) {
 
 /**
  * The single source of truth for release asset naming: published GitHub Release
- * name to the name electron-builder produced (and CI downloaded). Only the macOS
- * DMGs are renamed for the public download page; every other asset publishes
- * under its produced name. Asset selection, the missing-asset report, and the
- * updater-feed URL rewriting are all driven by this map, so a rename that
- * reorders sorting cannot mispair entries.
+ * name to the name electron-builder produced (and CI downloaded). Windows uses
+ * an explicit installer filename and publishes its AppX-compatible package as
+ * MSIX. Asset selection, the missing-asset report, and updater-feed URL
+ * rewriting are all driven by this map, so a rename that reorders sorting
+ * cannot mispair entries.
  *
  * tests/release-scripts.test.ts derives the produced names from the
  * electron-builder configuration and fails when this map drifts from them.
  */
+/** electron-builder publishes a differential-updater blockmap beside these archive/installer formats. */
+function artifactWithBlockmap(published, downloaded = published) {
+  return [
+    [published, downloaded],
+    [`${published}.blockmap`, `${downloaded}.blockmap`],
+  ]
+}
+
 export function releaseAssetNames(version, platforms = RELEASE_PLATFORMS) {
   const assets = {
-    mac: [[`Ptx-${version}-m-chip.dmg`, `Ptx-${version}-arm64.dmg`], [`Ptx-${version}-intel-chip.dmg`, `Ptx-${version}-x64.dmg`], [`Ptx-${version}-arm64.zip`], [`Ptx-${version}-x64.zip`]],
+    mac: [
+      ...artifactWithBlockmap(`Ptx-${version}-mac-arm64.dmg`),
+      ...artifactWithBlockmap(`Ptx-${version}-mac-x64.dmg`),
+      ...artifactWithBlockmap(`Ptx-${version}-mac-arm64.zip`),
+      ...artifactWithBlockmap(`Ptx-${version}-mac-x64.zip`),
+    ],
     linux: [
       [`Ptx-${version}-linux-arm64.AppImage`],
       [`Ptx-${version}-linux-arm64.deb`],
       [`Ptx-${version}-linux-aarch64.pacman`],
       [`Ptx-${version}-linux-aarch64.rpm`],
+      [`Ptx-${version}-linux-arm64.tar.gz`],
       [`Ptx-${version}-linux-x86_64.AppImage`],
       [`Ptx-${version}-linux-amd64.deb`],
       [`Ptx-${version}-linux-x64.pacman`],
       [`Ptx-${version}-linux-x86_64.rpm`],
+      [`Ptx-${version}-linux-x64.tar.gz`],
     ],
     // electron-builder emits the MSIX-compatible package as .appx; publish the same bytes with the modern .msix extension.
-    win: [[`Ptx-${version}-win-x64.exe`], [`Ptx-${version}-win-x64.zip`], [`Ptx-${version}-win-x64.msix`, `Ptx-${version}-win-x64.appx`]],
+    win: [
+      ...artifactWithBlockmap(`Ptx-${version}-win-x64-installer.exe`),
+      ...artifactWithBlockmap(`Ptx-${version}-win-x64.zip`),
+      [`Ptx-${version}-win-x64.tar.gz`],
+      [`Ptx-${version}-win-x64.msix`, `Ptx-${version}-win-x64.appx`],
+    ],
   }
   const entries = platforms
     .flatMap((platform) => [...assets[platform], ...UPDATE_METADATA_BY_PLATFORM[platform].map((name) => [name])])
@@ -188,8 +208,8 @@ export async function prepareGitHubRelease({ inputDirectory, outputDirectory, ta
         throw new Error(`Update metadata references an unpublished release asset: ${manifest.path}`)
       }
       // The CI artifacts retain electron-builder's architecture filenames, but
-      // the public release may use clearer labels (for example, m-chip and
-      // intel-chip for the macOS DMGs). Keep the checksums intact while making
+      // the public release uses an MSIX extension for the AppX-compatible
+      // package. Keep the checksums intact while making
       // every feed URL resolve to the filename that is actually published.
       const publishedManifest = {
         ...manifest,

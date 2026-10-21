@@ -96,7 +96,7 @@
         "dmg",
         "zip"
       ],
-      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
       "icon": "assets/icon.icns",
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.inherit.plist",
@@ -124,7 +124,8 @@
         "AppImage",
         "deb",
         "rpm",
-        "pacman"
+        "pacman",
+        "tar.gz"
       ],
       "artifactName": "${productName}-${version}-linux-${arch}.${ext}",
       "icon": "assets/icon.png",
@@ -142,6 +143,7 @@
       "target": [
         "nsis",
         "zip",
+        "tar.gz",
         "appx"
       ],
       "artifactName": "${productName}-${version}-win-${arch}.${ext}",
@@ -160,7 +162,12 @@
         "package.json",
         "!**/node_modules/extract-zip/index.darwin-*.node",
         "!**/node_modules/extract-zip/index.linux-*.node"
-      ]
+      ],
+      "nsis": {
+        "oneClick": false,
+        "allowToChangeInstallationDirectory": true,
+        "artifactName": "${productName}-${version}-win-${arch}-installer.${ext}"
+      }
     },
     "directories": {
       "output": "release"

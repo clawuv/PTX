@@ -19,6 +19,7 @@ export const TARGET_EXTENSIONS = Object.freeze({
   deb: 'deb',
   rpm: 'rpm',
   pacman: 'pacman',
+  'tar.gz': 'tar.gz',
   nsis: 'exe',
   appx: 'appx',
 })
@@ -48,13 +49,15 @@ export function expandArtifactName(template, values) {
 export function producedArtifactNames(config, version, platform, architecture) {
   const platformConfig = config[platform]
   if (!platformConfig) throw new Error(`electron-builder configuration has no ${platform} platform`)
-  const template = platformConfig.artifactName ?? config.artifactName
-  if (!template) throw new Error(`electron-builder configuration has no ${platform} artifactName`)
   const targets = platformConfig.target
   if (!Array.isArray(targets) || !targets.length) throw new Error(`electron-builder configuration has no ${platform} targets`)
   return targets.map((target) => {
     const ext = TARGET_EXTENSIONS[target]
     if (!ext) throw new Error(`Unknown electron-builder target for release asset naming: ${platform}/${target}`)
+    // electron-builder allows a target-specific artifactName (for example, NSIS
+    // installers); it takes precedence over the platform template.
+    const template = platformConfig[target]?.artifactName ?? platformConfig.artifactName ?? config.artifactName
+    if (!template) throw new Error(`electron-builder configuration has no ${platform}/${target} artifactName`)
     return expandArtifactName(template, {
       productName: config.productName,
       version,

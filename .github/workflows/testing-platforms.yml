@@ -93,6 +93,7 @@ jobs:
             release/${{ matrix.target }}/${{ matrix.arch }}/*.deb
             release/${{ matrix.target }}/${{ matrix.arch }}/*.rpm
             release/${{ matrix.target }}/${{ matrix.arch }}/*.pacman
+            release/${{ matrix.target }}/${{ matrix.arch }}/*.tar.gz
             release/${{ matrix.target }}/${{ matrix.arch }}/*.exe
             release/${{ matrix.target }}/${{ matrix.arch }}/*.zip
             release/${{ matrix.target }}/${{ matrix.arch }}/latest*.yml

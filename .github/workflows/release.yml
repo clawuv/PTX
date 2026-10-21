@@ -184,7 +184,9 @@ jobs:
           name: ptx-public-macos-${{ matrix.arch }}
           path: |
             release/mac/${{ matrix.arch }}/*.dmg
+            release/mac/${{ matrix.arch }}/*.dmg.blockmap
             release/mac/${{ matrix.arch }}/*.zip
+            release/mac/${{ matrix.arch }}/*.zip.blockmap
             release/mac/${{ matrix.arch }}/latest*.yml
           if-no-files-found: error
 
@@ -248,6 +250,7 @@ jobs:
             release/linux/${{ matrix.arch }}/*.deb
             release/linux/${{ matrix.arch }}/*.rpm
             release/linux/${{ matrix.arch }}/*.pacman
+            release/linux/${{ matrix.arch }}/*.tar.gz
             release/linux/${{ matrix.arch }}/latest*.yml
           if-no-files-found: error
 
@@ -298,7 +301,10 @@ jobs:
           name: ptx-public-windows
           path: |
             release/win/**/*.exe
+            release/win/**/*.exe.blockmap
             release/win/**/*.zip
+            release/win/**/*.zip.blockmap
+            release/win/**/*.tar.gz
             release/win/**/*.appx
             release/win/**/*.msix
             release/win/**/latest*.yml

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { copyFileSync, readdirSync, rmSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { copyFileSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { join, resolve } from 'node:path'
+import { tmpdir } from 'node:os'
 import { assertSupportedToolchain, runCommand, validateReleaseCredentials, validateWindowsReleaseCredentials, withoutReleaseCredentials } from './lib.mjs'
 
 const args = new Set(process.argv.slice(2))
@@ -34,10 +35,10 @@ if (!arch || !(arch in nativeArchitectures)) {
   process.exit(2)
 }
 
-function run(command, commandArgs, env = process.env) {
+function run(command, commandArgs, env = process.env, options = {}) {
   console.log(`\n> ${command} ${commandArgs.join(' ')}`)
   if (dryRun) return
-  runCommand(command, commandArgs, { env })
+  runCommand(command, commandArgs, { env, ...options })
 }
 
 const ELECTRON_BUILDER_ATTEMPTS = 4
@@ -47,24 +48,34 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-function isAppleStaplerFailure(error) {
-  const message = error instanceof Error ? error.message : String(error)
+function isTransientAppleStaplerFailure(error, output) {
+  const message = `${error instanceof Error ? error.message : String(error)}\n${output}`
   // electron-builder's macOS notarizer invokes `xcrun stapler`; GitHub runners
-  // intermittently lose its CloudKit request. Exit 68 is the same transient
-  // code handled by verify-package for post-build stapler validation.
-  return /electron-builder failed with exit code 68/.test(message)
+  // intermittently lose its CloudKit request. Require both Apple-specific
+  // markers so unrelated builder failures still fail closed immediately.
+  return message.includes('The staple and validate action failed! Error 68.') && /NSURLErrorDomain Code=-1005/.test(message)
 }
 
 async function runElectronBuilderWithRetry(commandArgs, env) {
   for (let attempt = 1; attempt <= ELECTRON_BUILDER_ATTEMPTS; attempt += 1) {
     if (!dryRun) rmSync(resolve('release', platform, arch), { recursive: true, force: true })
+    let outputDirectory
     try {
-      run('electron-builder', commandArgs, env)
+      outputDirectory = dryRun ? undefined : mkdtempSync(join(tmpdir(), 'ptx-electron-builder-'))
+      const outputPath = outputDirectory ? join(outputDirectory, 'output.log') : undefined
+      try {
+        run('electron-builder', commandArgs, env, outputPath ? { captureOutputPath: outputPath } : {})
+      } finally {
+        if (outputPath) process.stdout.write(readFileSync(outputPath, 'utf8'))
+      }
       return
     } catch (error) {
-      if (attempt === ELECTRON_BUILDER_ATTEMPTS || platform !== 'mac' || !isAppleStaplerFailure(error)) throw error
+      const output = outputDirectory ? readFileSync(join(outputDirectory, 'output.log'), 'utf8') : ''
+      if (attempt === ELECTRON_BUILDER_ATTEMPTS || platform !== 'mac' || !isTransientAppleStaplerFailure(error, output)) throw error
       console.warn(`Retrying transient Apple stapler failure (attempt ${attempt}/${ELECTRON_BUILDER_ATTEMPTS - 1})`)
       await sleep(ELECTRON_BUILDER_RETRY_DELAY_MS)
+    } finally {
+      if (outputDirectory) rmSync(outputDirectory, { recursive: true, force: true })
     }
   }
 }

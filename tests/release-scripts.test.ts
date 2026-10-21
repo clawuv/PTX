@@ -1536,12 +1536,14 @@ describe('Apple verification network retries', () => {
     expect(source).toContain("run('spctl', ['--assess', '--type', 'execute', '--verbose=4', app])")
   })
 
-  test('electron-builder retries transient Apple stapler failures and rebuilds cleanly', () => {
+  test('electron-builder retries only transient Apple stapler failures and rebuilds cleanly', () => {
     const source = readFileSync('scripts/release/package.mjs', 'utf8')
     expect(source).toContain('const ELECTRON_BUILDER_ATTEMPTS = 4')
-    expect(source).toMatch(/electron-builder failed with exit code 68/)
-    expect(source).toMatch(/if \(attempt === ELECTRON_BUILDER_ATTEMPTS \|\| platform !== 'mac' \|\| !isAppleStaplerFailure\(error\)\) throw error/)
+    expect(source).toContain("message.includes('The staple and validate action failed! Error 68.')")
+    expect(source).toMatch(/NSURLErrorDomain Code=-1005/)
+    expect(source).toMatch(/if \(attempt === ELECTRON_BUILDER_ATTEMPTS \|\| platform !== 'mac' \|\| !isTransientAppleStaplerFailure\(error, output\)\) throw error/)
     expect(source).toContain("rmSync(resolve('release', platform, arch), { recursive: true, force: true })")
+    expect(source).toContain('captureOutputPath: outputPath')
     expect(source).toContain('await runElectronBuilderWithRetry(builderArgs, builderEnv)')
   })
 })

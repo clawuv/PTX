@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { accessSync, constants, existsSync, lstatSync, readFileSync, readdirSync } from 'node:fs'
+import { accessSync, closeSync, constants, existsSync, lstatSync, openSync, readFileSync, readdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, posix, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -52,14 +52,22 @@ export function resolveCommandInvocation(command, args, platform = process.platf
 export function runCommand(command, args, options = {}) {
   const env = options.env ?? process.env
   const invocation = resolveCommandInvocation(command, args, options.platform ?? process.platform, env)
-  const result = spawnSync(invocation.file, invocation.args, {
-    stdio: 'inherit',
-    env,
-    shell: invocation.shell,
-  })
-  if (result.error) throw result.error
-  if (result.status !== 0) throw new Error(`${command} failed with exit code ${result.status ?? `signal ${result.signal}`}`)
-  return result
+  const captureOutputPath = options.captureOutputPath
+  // A regular file keeps live output complete for long builders while letting
+  // the caller inspect transient child-process failures after spawn exits.
+  const outputFd = captureOutputPath ? openSync(captureOutputPath, 'a') : undefined
+  try {
+    const result = spawnSync(invocation.file, invocation.args, {
+      stdio: ['inherit', outputFd ?? 'inherit', outputFd ?? 'inherit'],
+      env,
+      shell: invocation.shell,
+    })
+    if (result.error) throw result.error
+    if (result.status !== 0) throw new Error(`${command} failed with exit code ${result.status ?? `signal ${result.signal}`}`)
+    return result
+  } finally {
+    if (outputFd !== undefined) closeSync(outputFd)
+  }
 }
 
 export const RELEASE_CREDENTIAL_NAMES = [

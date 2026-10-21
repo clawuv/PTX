@@ -68,8 +68,10 @@ export function releaseAssetNames(version, platforms = RELEASE_PLATFORMS) {
     ],
     // electron-builder emits the MSIX-compatible package as .appx; publish the same bytes with the modern .msix extension.
     win: [
+      // electron-builder makes installer blockmaps for differential updates;
+      // its portable ZIP target does not emit one on Windows.
       ...artifactWithBlockmap(`Ptx-${version}-win-x64-installer.exe`),
-      ...artifactWithBlockmap(`Ptx-${version}-win-x64.zip`),
+      [`Ptx-${version}-win-x64.zip`],
       [`Ptx-${version}-win-x64.tar.gz`],
       [`Ptx-${version}-win-x64.msix`, `Ptx-${version}-win-x64.appx`],
     ],

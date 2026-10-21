@@ -935,10 +935,21 @@ describe('GitHub Release publication', () => {
     const names = releaseAssetNames('0.2.0')
     const feeds = [...names.keys()].filter((name) => name.endsWith('.yml'))
     expect(feeds).toEqual(['latest-linux-arm64.yml', 'latest-linux.yml', 'latest-mac.yml', 'latest.yml'])
-    // electron-builder emits blockmaps beside differential-update formats, so
-    // expand only those installer/archive names before comparing both directions.
-    const blockmapSuffixes = new Set(['.dmg', '.zip', '.exe'])
-    const producedWithBlockmaps = [...produced, ...produced.filter((name) => blockmapSuffixes.has(name.slice(name.lastIndexOf('.')))).map((name) => `${name}.blockmap`)].sort()
+    // electron-builder emits blockmaps beside differential-update formats.
+    // macOS archives and DMGs support it, while Windows differential updates
+    // use the NSIS installer only (its ZIP target has no blockmap).
+    const blockmapPlatforms = new Map([
+      ['mac', new Set(['.dmg', '.zip'])],
+      ['linux', new Set()],
+      ['win', new Set(['.exe'])],
+    ])
+    const producedWithBlockmaps = [...produced]
+    for (const [platform, suffixes] of blockmapPlatforms) {
+      for (const name of producedReleaseArtifactNames(config, '0.2.0', [platform])) {
+        if (suffixes.has(name.slice(name.lastIndexOf('.')))) producedWithBlockmaps.push(`${name}.blockmap`)
+      }
+    }
+    producedWithBlockmaps.sort()
     // Every produced artifact is published and every published asset (other than
     // the updater feeds) is produced - both directions, no index coupling.
     expect([...names.values()].filter((name) => !name.endsWith('.yml')).sort()).toEqual(producedWithBlockmaps)

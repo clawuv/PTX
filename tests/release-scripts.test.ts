@@ -112,7 +112,9 @@ function writeMacReleaseFixture(directory: string, { omit }: { omit?: string } =
     if (name === omit) continue
     const artifactDirectory = join(inputDirectory, `artifact-${index}`)
     mkdirSync(artifactDirectory, { recursive: true })
-    const content = name.endsWith('.yml') ? 'version: 0.2.0\nfiles:\n  - url: Ptx-0.2.0-mac-x64.zip\n    sha512: x64-digest\n    size: 42\npath: Ptx-0.2.0-mac-x64.zip\nsha512: x64-digest\n' : `asset ${index}`
+    const content = name.endsWith('.yml')
+      ? 'version: 0.2.0\nfiles:\n  - url: Ptx-0.2.0-mac-x64.zip\n    sha512: x64-digest\n    size: 42\npath: Ptx-0.2.0-mac-x64.zip\nsha512: x64-digest\n'
+      : `asset ${index}`
     writeFileSync(join(artifactDirectory, name), content)
   }
   return { projectDirectory, inputDirectory }

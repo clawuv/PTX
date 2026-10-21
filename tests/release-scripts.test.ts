@@ -1243,6 +1243,11 @@ describe('post-package verification helpers', () => {
     ])
     expect(packageJson.build.linux.target).toEqual(['AppImage', 'deb', 'rpm', 'pacman', 'tar.gz'])
     expect(packageJson.build.win.target).toEqual(['nsis', 'zip', 'tar.gz', 'appx'])
+    expect(packageJson.build.nsis).toEqual({
+      oneClick: false,
+      allowToChangeInstallationDirectory: true,
+      artifactName: '${productName}-${version}-win-${arch}-installer.${ext}',
+    })
     expect(packageJson.build.directories.output).toBe('release')
   })
 

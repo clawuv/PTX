@@ -56,7 +56,7 @@ export function producedArtifactNames(config, version, platform, architecture) {
     if (!ext) throw new Error(`Unknown electron-builder target for release asset naming: ${platform}/${target}`)
     // electron-builder allows a target-specific artifactName (for example, NSIS
     // installers); it takes precedence over the platform template.
-    const template = platformConfig[target]?.artifactName ?? platformConfig.artifactName ?? config.artifactName
+    const template = config[target]?.artifactName ?? platformConfig[target]?.artifactName ?? platformConfig.artifactName ?? config.artifactName
     if (!template) throw new Error(`electron-builder configuration has no ${platform}/${target} artifactName`)
     return expandArtifactName(template, {
       productName: config.productName,

@@ -1501,7 +1501,7 @@ describe('cross-platform packaging repair', () => {
     expect(builder.args[0]).toMatch(/electron-builder[\\/]cli\.js$/)
     expect(builder.args.at(-1)).toBe('install-app-deps')
     const packageScript = readFileSync('scripts/release/package.mjs', 'utf8')
-    expect(packageScript).toContain("run('electron-builder', builderArgs, builderEnv)")
+    expect(packageScript).toContain('await runElectronBuilderWithRetry(builderArgs, builderEnv)')
     expect(packageScript).not.toContain("['exec', '--', 'electron-builder'")
     const npmViaLifecycle = resolveCommandInvocation('npm', ['run', 'release:verify'], 'win32', { npm_execpath: 'C:/npm/npm-cli.js' })
     expect(npmViaLifecycle).toEqual({ file: process.execPath, args: ['C:/npm/npm-cli.js', 'run', 'release:verify'], shell: false })
@@ -1534,6 +1534,15 @@ describe('Apple verification network retries', () => {
     expect(source).toMatch(/NSURLErrorDomain Code=-1005/)
     expect(source).toMatch(/await runAppleValidationWithRetry\('xcrun', \['stapler', 'validate', app\]\)/)
     expect(source).toContain("run('spctl', ['--assess', '--type', 'execute', '--verbose=4', app])")
+  })
+
+  test('electron-builder retries transient Apple stapler failures and rebuilds cleanly', () => {
+    const source = readFileSync('scripts/release/package.mjs', 'utf8')
+    expect(source).toContain('const ELECTRON_BUILDER_ATTEMPTS = 4')
+    expect(source).toMatch(/electron-builder failed with exit code 68/)
+    expect(source).toMatch(/if \(attempt === ELECTRON_BUILDER_ATTEMPTS \|\| platform !== 'mac' \|\| !isAppleStaplerFailure\(error\)\) throw error/)
+    expect(source).toContain("rmSync(resolve('release', platform, arch), { recursive: true, force: true })")
+    expect(source).toContain('await runElectronBuilderWithRetry(builderArgs, builderEnv)')
   })
 })
 

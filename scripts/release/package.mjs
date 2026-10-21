@@ -40,6 +40,35 @@ function run(command, commandArgs, env = process.env) {
   runCommand(command, commandArgs, { env })
 }
 
+const ELECTRON_BUILDER_ATTEMPTS = 4
+const ELECTRON_BUILDER_RETRY_DELAY_MS = 10_000
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isAppleStaplerFailure(error) {
+  const message = error instanceof Error ? error.message : String(error)
+  // electron-builder's macOS notarizer invokes `xcrun stapler`; GitHub runners
+  // intermittently lose its CloudKit request. Exit 68 is the same transient
+  // code handled by verify-package for post-build stapler validation.
+  return /electron-builder failed with exit code 68/.test(message)
+}
+
+async function runElectronBuilderWithRetry(commandArgs, env) {
+  for (let attempt = 1; attempt <= ELECTRON_BUILDER_ATTEMPTS; attempt += 1) {
+    if (!dryRun) rmSync(resolve('release', platform, arch), { recursive: true, force: true })
+    try {
+      run('electron-builder', commandArgs, env)
+      return
+    } catch (error) {
+      if (attempt === ELECTRON_BUILDER_ATTEMPTS || platform !== 'mac' || !isAppleStaplerFailure(error)) throw error
+      console.warn(`Retrying transient Apple stapler failure (attempt ${attempt}/${ELECTRON_BUILDER_ATTEMPTS - 1})`)
+      await sleep(ELECTRON_BUILDER_RETRY_DELAY_MS)
+    }
+  }
+}
+
 try {
   assertSupportedToolchain()
   if (process.platform !== platformHosts[platform]) throw new Error(`${platform} packaging must run natively on ${platformHosts[platform]}`)
@@ -47,15 +76,13 @@ try {
   if (isPublic && platform === 'win') validateWindowsReleaseCredentials(process.env)
   const verifyScript = skipVerify ? 'build:bundle' : platform === 'mac' ? 'release:verify' : 'release:verify:package'
   run('npm', ['run', verifyScript], withoutReleaseCredentials(process.env))
-  if (!dryRun) rmSync(resolve('release', platform, arch), { recursive: true, force: true })
-
   const builderArgs = [`--${platform}`, `--${arch}`, '--publish', 'never', `--config.directories.output=release/${platform}/${arch}`]
   if (isQa) builderArgs.push('--config.extraMetadata.ptxUpdateChannel=testing')
   if (isQa && platform === 'mac') builderArgs.push('--config.extraMetadata.ptxUpdateInstall=manual')
   if (isPublic && platform === 'win') builderArgs.push('--config.forceCodeSigning=true')
   const builderEnv = isQa ? { ...process.env, CSC_IDENTITY_AUTO_DISCOVERY: 'false' } : process.env
   if (isQa && platform === 'mac') builderArgs.push('--config.mac.identity=null', '--config.mac.notarize=false')
-  run('electron-builder', builderArgs, builderEnv)
+  await runElectronBuilderWithRetry(builderArgs, builderEnv)
   if (platform === 'win' && !dryRun) {
     const outputDirectory = resolve('release', platform, arch)
     const appx = readdirSync(outputDirectory).find((name) => name.endsWith('.appx'))
